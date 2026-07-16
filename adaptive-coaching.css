@@ -1,0 +1,65 @@
+.recap-recovery-note {
+  margin: 14px 0 0;
+  color: #788da7;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.generator-session.adjusted {
+  border-color: #356da8;
+  background: #0d2037;
+}
+
+.generator-session.paused {
+  border-style: dashed;
+  opacity: .68;
+}
+
+.generator-session.paused h3,
+.day.outcome-paused .day-session h3 {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.adaptive-badge {
+  display: inline-flex;
+  margin-left: 6px;
+  padding: 3px 5px;
+  border: 1px solid #356da8;
+  border-radius: 5px;
+  background: #102846;
+  color: #8dc2ff;
+  font-size: 7px;
+  letter-spacing: .08em;
+  vertical-align: middle;
+}
+
+.adaptive-badge.paused {
+  border-color: #5d6774;
+  background: #1b222c;
+  color: #aab3bf;
+}
+
+.adaptive-session-note {
+  margin-top: 7px !important;
+  padding: 7px 9px;
+  border-left: 2px solid #3d78ba;
+  background: #0e2036;
+  color: #9eb9da !important;
+  font-size: 9px !important;
+  line-height: 1.45;
+}
+
+.day.outcome-paused {
+  border-style: dashed;
+  opacity: .65;
+}
+
+.outcome-status.paused {
+  color: #9aa6b4;
+}
+
+.calendar-event.outcome-paused {
+  border-style: dashed;
+  opacity: .58;
+}

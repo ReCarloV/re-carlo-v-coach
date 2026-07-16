@@ -1,0 +1,56 @@
+(function(root,factory){const api=factory();if(typeof module!=='undefined'&&module.exports)module.exports=api;if(root)root.rcCloudSyncModel=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  'use strict';
+
+  function stable(value){
+    if(value===null||typeof value!=='object')return JSON.stringify(value);
+    if(Array.isArray(value))return`[${value.map(stable).join(',')}]`;
+    return`{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`;
+  }
+
+  function fnv1a(text){
+    let hash=0x811c9dc5;
+    for(let index=0;index<text.length;index+=1){hash^=text.charCodeAt(index);hash=Math.imul(hash,0x01000193);}
+    return(hash>>>0).toString(16).padStart(8,'0');
+  }
+
+  function sameData(first,second){return stable(first)===stable(second);}
+
+  function fingerprintSnapshot(snapshot){
+    if(!snapshot||typeof snapshot!=='object'||!snapshot.data||typeof snapshot.data!=='object')throw new Error('La copia dati da sincronizzare non è valida.');
+    return`v${Number(snapshot.backupVersion)||0}-${fnv1a(stable(snapshot.data))}`;
+  }
+
+  function value(snapshot,name){return snapshot?.data?.[name]?.value;}
+  function count(snapshot,name){const item=value(snapshot,name);return Array.isArray(item)?item.length:0;}
+  function snapshotSummary(snapshot){
+    const profile=value(snapshot,'profile');
+    return{
+      athleteName:profile?[profile.firstName,profile.lastName].filter(Boolean).join(' '):'',
+      sessions:count(snapshot,'sessions'),
+      checkins:count(snapshot,'preSessionCheckins'),
+      activities:count(snapshot,'importedActivities'),
+      whoopDays:count(snapshot,'whoopCycles'),
+      goals:count(snapshot,'goals'),
+      exportedAt:snapshot?.exportedAt||null
+    };
+  }
+
+  function decideSync(input={}){
+    const local=String(input.localFingerprint||'');
+    const remote=input.remoteFingerprint===null||input.remoteFingerprint===undefined?null:String(input.remoteFingerprint);
+    const remoteRevision=input.remoteRevision===null||input.remoteRevision===undefined?null:Number(input.remoteRevision);
+    const baseRevision=input.baseRevision===null||input.baseRevision===undefined?null:Number(input.baseRevision);
+    const base=String(input.baseFingerprint||'');
+    if(!local)return{action:'blocked',reason:'local-invalid'};
+    if(remote===null)return{action:'upload',reason:'cloud-empty',expectedRevision:0};
+    if(local===remote)return{action:'in-sync',reason:'same-content',revision:remoteRevision};
+    if(baseRevision===null||!base)return{action:'choose',reason:'first-device-link',revision:remoteRevision};
+    if(remoteRevision===baseRevision&&local!==base)return{action:'upload',reason:'local-only-change',expectedRevision:baseRevision};
+    if(local===base&&remoteRevision!==baseRevision)return{action:'download',reason:'remote-only-change',revision:remoteRevision};
+    return{action:'conflict',reason:'both-changed',revision:remoteRevision};
+  }
+
+  function safeDeviceName(value){return String(value||'Dispositivo').replace(/[<>]/g,'').trim().slice(0,60)||'Dispositivo';}
+
+  return{stable,sameData,fnv1a,fingerprintSnapshot,snapshotSummary,decideSync,safeDeviceName};
+});

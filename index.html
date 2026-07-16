@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07101f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Re Carlo V">
+  <title>Re Carlo V — Personal Coach</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="crop.css">
+  <link rel="stylesheet" href="profile.css">
+  <link rel="stylesheet" href="selectors.css">
+  <link rel="stylesheet" href="pbs.css">
+  <link rel="stylesheet" href="sessions.css">
+  <link rel="stylesheet" href="sessions-extra.css">
+  <link rel="stylesheet" href="post-session.css">
+  <link rel="stylesheet" href="plan-polish.css">
+  <link rel="stylesheet" href="plan-calendar.css">
+  <link rel="stylesheet" href="bodymap.css">
+  <link rel="stylesheet" href="checkins.css">
+  <link rel="stylesheet" href="generator.css">
+  <link rel="stylesheet" href="today.css">
+  <link rel="stylesheet" href="recap.css">
+  <link rel="stylesheet" href="demo-data.css">
+  <link rel="stylesheet" href="session-selection.css">
+  <link rel="stylesheet" href="strength-performance.css">
+  <link rel="stylesheet" href="data-import.css">
+  <link rel="stylesheet" href="adaptive-coaching.css">
+  <link rel="stylesheet" href="goals.css">
+  <link rel="stylesheet" href="refinements.css">
+  <link rel="stylesheet" href="cloud-sync.css">
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="crown">♛</span><div><strong>RE CARLO V</strong><small>Personal Coach</small></div></div>
+      <nav>
+        <button class="nav active" data-view="today" data-mobile-label="Oggi" data-mobile-icon="●" aria-label="Oggi">Oggi</button>
+        <button class="nav" data-view="goals" data-mobile-label="Obiettivi" data-mobile-icon="◆" aria-label="Obiettivi">Obiettivi</button>
+        <button class="nav" data-view="plan" data-mobile-label="Piano" data-mobile-icon="▦" aria-label="Piano">Piano</button>
+        <button class="nav" data-view="recap" data-mobile-label="Recap" data-mobile-icon="▥" aria-label="Recap">Recap</button>
+        <button class="nav" data-view="profile" data-mobile-label="Profilo" data-mobile-icon="♛" aria-label="Profilo atleta">Profilo atleta</button>
+        <button class="nav" data-view="data" data-mobile-label="Dati" data-mobile-icon="↻" aria-label="Dati">Dati</button>
+      </nav>
+      <button class="sidebar-goal" id="sidebar-goal" type="button"><small>OBIETTIVO PRINCIPALE</small><strong id="sidebar-goal-name">Nessun obiettivo</strong><span id="sidebar-goal-summary">Aggiungi la prossima gara</span></button>
+    </aside>
+
+    <main>
+      <header><div><small id="header-date"></small><h1 id="page-title">Oggi</h1></div><div class="status" id="local-data-status"><i></i><span>Dati locali</span></div></header>
+      <div class="data-health-warning" id="data-health-warning" role="alert" hidden><strong>Alcuni dati locali non sono leggibili.</strong><span>Per proteggerli l’app non li sovrascriverà. Evita modifiche e usa un backup valido prima di continuare.</span></div>
+
+      <section class="view active" id="today">
+        <div class="metrics today-metrics" id="today-metrics">
+          <article><span>STATO SOGGETTIVO</span><strong id="today-subjective-value">—</strong><small id="today-subjective-summary">Compila il check-in pre sessione</small></article>
+          <article id="today-sleep-card" hidden><span>SONNO WHOOP</span><strong id="today-sleep-value">—</strong><small id="today-sleep-summary"></small></article>
+          <article><span>CARICO 7 GIORNI</span><strong id="today-load-value">0</strong><small id="today-load-summary">In attesa di allenamenti registrati</small></article>
+          <article><span>SEGNALI ATTIVI</span><strong id="today-issues-count">0</strong><small id="today-issues-summary">Nessun fastidio monitorato</small></article>
+        </div>
+
+        <article class="panel today-whoop-overview" id="today-whoop-overview" hidden aria-live="polite"></article>
+
+        <article class="panel today-adaptive-panel" id="today-adaptive-panel" aria-live="polite"></article>
+
+        <div class="grid">
+          <article class="panel session" id="today-session-panel" aria-live="polite"></article>
+          <article class="panel" id="today-week-panel" aria-live="polite"></article>
+        </div>
+      </section>
+
+      <section class="view" id="goals">
+        <div class="section-head goals-head"><div><small>PERIODIZZAZIONE</small><h1>Obiettivi e gare</h1><p class="muted">La gara prioritaria guida la preparazione; quelle concluse restano nello storico.</p></div><button class="primary small" id="add-goal" type="button">+ Nuovo obiettivo</button></div>
+        <article class="goal-empty panel" id="goal-empty" hidden><span class="goal-empty-icon">♛</span><h2>Nessun obiettivo programmato</h2><p class="muted">Aggiungi una gara o un test per collegare countdown, calendario e periodizzazione.</p><button class="primary" id="goal-empty-add" type="button">Aggiungi il primo obiettivo</button></article>
+        <div id="goal-content" hidden>
+          <article class="goal-hero" id="goal-hero" aria-live="polite">
+            <div class="goal-hero-main"><div class="goal-badges"><span id="goal-current-priority">PRIORITÀ A</span><span id="goal-current-type">MARATONA</span></div><h2 id="goal-current-name">—</h2><p id="goal-current-target">—</p><button class="goal-edit-link" id="edit-current-goal" type="button">Modifica obiettivo</button></div>
+            <div class="goal-countdown"><strong id="goal-countdown-days">—</strong><span id="goal-countdown-label">GIORNI ALLA GARA</span><small id="goal-current-date">—</small></div>
+          </article>
+          <div class="goal-metrics">
+            <article><span>SETTIMANE</span><strong id="goal-weeks">—</strong><small>alla gara prioritaria</small></article>
+            <article><span>FASE ATTUALE</span><strong id="goal-phase">—</strong><small id="goal-phase-note">Nessuna fase collegata</small></article>
+            <article><span>SETTIMANA</span><strong id="goal-week-sessions">—</strong><small id="goal-week-note">Nessuna seduta</small></article>
+            <article><span>CORSA PREVISTA</span><strong id="goal-week-km">—</strong><small id="goal-week-km-note">Distanza non disponibile</small></article>
+          </div>
+          <div class="goals-grid">
+            <article class="panel"><div class="panel-head"><div><small>PASSI CHIAVE</small><h2>Prossime sedute essenziali</h2></div></div><div class="goal-key-sessions" id="goal-key-sessions"></div></article>
+            <article class="panel"><div class="panel-head"><div><small>CALENDARIO GARE</small><h2>Prossimi appuntamenti</h2></div></div><div class="goal-upcoming-list" id="goal-upcoming-list"></div></article>
+          </div>
+        </div>
+        <article class="panel goal-attention-panel" id="goal-attention-panel" hidden><div class="panel-head"><div><small>RISULTATO DA REGISTRARE</small><h2>Chiudi le gare concluse</h2></div></div><div class="goal-attention-list" id="goal-attention-list"></div></article>
+        <article class="panel goal-history-panel"><div class="panel-head"><div><small>MEMORIA DEL COACH</small><h2>Storico obiettivi</h2><p class="muted">Risultati e note restano disponibili per le preparazioni future.</p></div></div><div class="goal-history-list" id="goal-history-list"></div></article>
+      </section>
+
+      <section class="view" id="recap">
+        <div class="section-head recap-head">
+          <div><small>ANALISI E DECISIONI</small><h1>Recap settimanale</h1><p class="muted" id="recap-period"></p></div>
+          <div class="recap-navigation" aria-label="Navigazione settimane">
+            <button class="ghost small" id="recap-prev" type="button" aria-label="Settimana precedente">‹</button>
+            <button class="ghost small" id="recap-current" type="button">Settimana attuale</button>
+            <button class="ghost small" id="recap-next" type="button" aria-label="Settimana successiva">›</button>
+          </div>
+        </div>
+        <p class="muted recap-intro">Il riepilogo usa soltanto sedute, esiti e check-in realmente registrati. La proposta successiva indica sempre cosa cambierebbe e con quale affidabilità.</p>
+        <div class="metrics recap-metrics">
+          <article><span>ADERENZA CHIAVE</span><strong id="recap-adherence">—</strong><small id="recap-adherence-note">In attesa di dati</small></article>
+          <article><span>CARICO REGISTRATO</span><strong id="recap-load">—</strong><small id="recap-load-note">In attesa di esiti</small></article>
+          <article><span>DOLORE MASSIMO</span><strong id="recap-pain">—</strong><small id="recap-pain-note">Nessun dato disponibile</small></article>
+          <article><span>AFFIDABILITÀ</span><strong id="recap-confidence">Bassa</strong><small id="recap-confidence-note">Storico ancora limitato</small></article>
+        </div>
+        <div class="recap-grid">
+          <article class="panel recap-coach" id="recap-coach" aria-live="polite"></article>
+          <article class="panel recap-volume" id="recap-volume" aria-live="polite"></article>
+          <article class="panel recap-subjective" id="recap-subjective" aria-live="polite"></article>
+          <article class="panel recap-recovery" id="recap-recovery" aria-live="polite"></article>
+          <article class="panel recap-next-plan" id="recap-next-plan" aria-live="polite"></article>
+        </div>
+        <article class="panel recap-history-panel"><div class="panel-head"><div><h2>Storico settimane</h2><p class="muted">Seleziona una settimana per rileggere dati e decisioni.</p></div></div><div class="recap-history" id="recap-history"></div></article>
+      </section>
+
+      <section class="view" id="plan">
+        <div class="section-head"><div><small>PROGRAMMAZIONE</small><h1>Piano adattivo</h1></div><div class="plan-actions"><button class="primary small" id="generate-week">Genera settimana</button><button class="ghost small" id="open-weekly-checkin">Check-in settimana</button><button class="ghost small" id="add-session">+ Seduta manuale</button><button class="ghost small" id="select-sessions" type="button">Seleziona</button></div></div>
+        <p class="muted intro" id="plan-intro">Cinque sedute previste. Se la disponibilità scende, il sistema protegge lungo, qualità e forza essenziale.</p>
+        <div id="weekly-checkin-summary" class="weekly-checkin-summary" hidden></div>
+        <div class="plan-view-toolbar">
+          <div class="plan-view-switch" role="group" aria-label="Modalità di visualizzazione del piano">
+            <button type="button" class="plan-view-button active" data-plan-view="list" aria-pressed="true">☷ <span>Lista</span></button>
+            <button type="button" class="plan-view-button" data-plan-view="calendar" aria-pressed="false">▦ <span>Calendario</span></button>
+          </div>
+          <div class="calendar-navigation" id="calendar-navigation" hidden aria-label="Navigazione del periodo">
+            <button type="button" class="calendar-nav-button" id="calendar-prev" aria-label="Periodo precedente">‹</button>
+            <strong id="calendar-month-label" aria-live="polite"></strong>
+            <button type="button" class="calendar-nav-button" id="calendar-next" aria-label="Periodo successivo">›</button>
+            <button type="button" class="calendar-today" id="calendar-today">Oggi</button>
+          </div>
+        </div>
+        <div class="plan-month-summary" id="plan-month-summary" aria-label="Riepilogo del periodo">
+          <span><strong id="month-total-count">0</strong><small>Totale</small></span>
+          <span class="completed"><strong id="month-completed-count">0</strong><small>Eseguite</small></span>
+          <span class="running"><strong id="month-running-count">0</strong><small>Corsa</small></span>
+          <span class="strength"><strong id="month-strength-count">0</strong><small>Forza</small></span>
+          <span class="bonus"><strong id="month-bonus-count">0</strong><small>Bonus <em>(opz.)</em></small></span>
+        </div>
+        <div class="session-selection-bar" id="session-selection-bar" hidden aria-live="polite">
+          <div><strong id="session-selection-count">0 sedute selezionate</strong><span>Seleziona le sedute dalla lista o dal calendario.</span></div>
+          <div class="session-selection-actions"><button class="ghost small" id="select-month-sessions" type="button">Seleziona tutto</button><button class="ghost small" id="clear-session-selection" type="button">Deseleziona</button><button class="danger" id="delete-selected-sessions" type="button" disabled>Elimina selezionate</button></div>
+        </div>
+        <div class="calendar-status-legend" id="calendar-status-legend" hidden aria-label="Legenda dello stato delle sedute">
+          <span class="calendar-drag-help">↔ Trascina le sedute programmate per cambiare giorno</span>
+          <span><i class="planned" aria-hidden="true">○</i>Programmata</span>
+          <span><i class="observed" aria-hidden="true">◆</i>Dati collegati</span>
+          <span><i class="completed" aria-hidden="true">✓</i>Svolta</span>
+          <span><i class="partial" aria-hidden="true">◐</i>Parziale</span>
+          <span><i class="skipped" aria-hidden="true">–</i>Non svolta</span>
+        </div>
+        <span class="visually-hidden" id="calendar-move-status" aria-live="polite"></span>
+        <div class="schedule" id="schedule"></div>
+        <div class="plan-calendar" id="plan-calendar" hidden>
+          <div class="calendar-weekdays" aria-hidden="true"><span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span></div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+      </section>
+
+      <section class="view" id="data">
+        <div class="section-head data-page-head"><div><small>STORICO E PROVENIENZA</small><h1>Dati di allenamento</h1><p class="muted">Importa copie locali dei tuoi dati. Ogni importazione viene controllata prima di modificare lo storico.</p></div><span class="data-local-badge" id="data-location-badge">Solo su questo dispositivo</span></div>
+        <article class="panel cloud-sync-panel" id="cloud-sync-panel" aria-live="polite">
+          <div class="cloud-sync-copy">
+            <div class="cloud-sync-symbol"><span>♛</span><i id="cloud-sync-dot"></i></div>
+            <div><small>MAC + IPHONE</small><h2 id="cloud-sync-title">Sincronizzazione dispositivi</h2><p class="muted" id="cloud-sync-detail">La copia locale resta intatta. Il collegamento cloud verrà attivato soltanto dopo il controllo iniziale.</p><span class="cloud-sync-meta" id="cloud-sync-meta">Non configurato</span></div>
+          </div>
+          <div class="cloud-sync-actions">
+            <button class="primary" id="cloud-sync-primary" type="button">Collega i dispositivi</button>
+            <button class="ghost" id="cloud-sync-now" type="button" hidden>Sincronizza ora</button>
+            <button class="ghost" id="pwa-install" type="button">Installa app</button>
+            <button class="ghost danger-text" id="cloud-sync-signout" type="button" hidden>Esci</button>
+          </div>
+        </article>
+        <div class="metrics data-overview-metrics">
+          <article><span>ATTIVITÀ STRAVA</span><strong id="data-activity-count">0</strong><small id="data-activity-range">Nessun dato importato</small></article>
+          <article><span>ULTIMO AGGIORNAMENTO</span><strong id="data-last-import">—</strong><small id="data-last-import-note">In attesa del primo file</small></article>
+          <article><span>CORSA · ULTIME 4 SETTIMANE</span><strong id="data-recent-run-km">—</strong><small id="data-recent-run-note">Baseline non disponibile</small></article>
+          <article><span>COPERTURA CARDIO CORSA</span><strong id="data-run-hr-coverage">—</strong><small id="data-run-hr-note">Nessuna attività disponibile</small></article>
+        </div>
+
+        <div class="data-import-grid">
+          <article class="panel import-source-card strava-source">
+            <div class="import-source-head"><div class="source-logo">S</div><div><small>FONTE ATTIVITÀ</small><h2>Strava</h2></div><span class="source-status waiting" id="strava-source-status">Non collegato</span></div>
+            <p class="muted">Carica l’archivio ZIP completo oppure il solo <code>activities.csv</code>. L’app legge il riepilogo, verifica i file originali e non conserva contatti, media o messaggi.</p>
+            <div class="import-safety"><span>✓ Anteprima obbligatoria</span><span>✓ Duplicati esclusi</span><span>✓ Importazione annullabile</span></div>
+            <div class="import-source-actions"><label class="primary file-button" for="strava-import-input">Importa Strava</label><input id="strava-import-input" type="file" accept=".zip,.csv,application/zip,text/csv"><small id="strava-import-status" role="status" aria-live="polite">Nessun file selezionato.</small></div>
+          </article>
+          <article class="panel import-source-card whoop-source">
+            <div class="import-source-head"><div class="source-logo whoop">W</div><div><small>RECUPERO E SONNO</small><h2>WHOOP</h2></div><span class="source-status waiting" id="whoop-source-status">Non collegato</span></div>
+            <p class="muted">Collega l’account per aggiornare automaticamente recupero, sonno e allenamenti quando apri l’app dal Mac. Lo ZIP resta disponibile come alternativa manuale.</p>
+            <div class="whoop-live-panel" id="whoop-live-panel">
+              <div class="whoop-live-state"><i id="whoop-live-dot"></i><div><strong id="whoop-live-title">Controllo del servizio Mac…</strong><small id="whoop-live-detail">La prima configurazione richiede circa due minuti.</small></div></div>
+              <div class="whoop-live-actions"><button class="primary whoop-button" id="whoop-live-primary" type="button">Configura collegamento</button><button class="ghost" id="whoop-live-permissions" type="button" hidden>Autorizza FC max</button><button class="ghost" id="whoop-live-settings" type="button" hidden>Impostazioni</button><button class="ghost danger-text" id="whoop-live-disconnect" type="button" hidden>Scollega</button></div>
+            </div>
+            <details class="whoop-manual-import"><summary>Importazione manuale da ZIP</summary><div class="import-safety"><span>✓ 4 tabelle controllate</span><span>✓ Duplicati esclusi</span><span>✓ Importazione annullabile</span></div><div class="import-source-actions"><label class="ghost file-button" for="whoop-import-input">Scegli ZIP WHOOP</label><input id="whoop-import-input" type="file" accept=".zip,application/zip"><small id="whoop-import-status" role="status" aria-live="polite">Nessun file selezionato.</small></div></details>
+          </article>
+          <article class="panel import-source-card plan-source">
+            <div class="import-source-head"><div class="source-logo plan">P</div><div><small>PROGRAMMAZIONE</small><h2>Piano Excel</h2></div><span class="source-status ready">Disponibile</span></div>
+            <p class="muted">Carica un file <code>.xlsx</code> con foglio Planner. La programmazione viene trasformata in sedute modificabili; date già svolte e valori reali restano distinti dai dati Strava e WHOOP.</p>
+            <div class="import-safety"><span>✓ Anteprima obbligatoria</span><span>✓ Sedute esistenti preservate</span><span>✓ Date settimanali modificabili</span></div>
+            <div class="import-source-actions"><label class="primary file-button plan-button" for="plan-import-input">Importa piano Excel</label><input id="plan-import-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><small id="plan-import-status" role="status" aria-live="polite">Il Piano dell’app non viene modificato finché non confermi.</small></div>
+          </article>
+        </div>
+        <div class="data-snapshot-note" id="data-snapshot-note"><strong id="data-connection-note-title">Importazioni manuali</strong><span id="data-connection-note-text">Strava e WHOOP sono fotografie locali, non connessioni continue. Oggi mostra i dati dispositivo soltanto quando la fotografia contiene una rilevazione realmente recente.</span></div>
+
+        <article class="panel import-preview" id="strava-import-preview" hidden aria-live="polite">
+          <div class="panel-head"><div><small>CONTROLLO PRIMA DEL SALVATAGGIO</small><h2 id="strava-preview-title">Anteprima importazione</h2><p class="muted" id="strava-preview-summary"></p></div><button class="icon-button" id="strava-preview-close" type="button" aria-label="Chiudi anteprima">×</button></div>
+          <div class="import-preview-metrics">
+            <span class="new"><strong id="strava-preview-new">0</strong><small>Nuove</small></span>
+            <span><strong id="strava-preview-duplicates">0</strong><small>Già presenti</small></span>
+            <span class="conflict"><strong id="strava-preview-conflicts">0</strong><small>Da verificare</small></span>
+            <span><strong id="strava-preview-originals">—</strong><small>File attività</small></span>
+          </div>
+          <div class="import-preview-note" id="strava-preview-note"></div>
+          <div class="modal-actions"><button class="ghost" id="strava-preview-cancel" type="button">Annulla</button><button class="primary" id="strava-import-confirm" type="button">Importa attività nuove</button></div>
+        </article>
+
+        <article class="panel import-preview whoop-preview" id="whoop-import-preview" hidden aria-live="polite">
+          <div class="panel-head"><div><small>CONTROLLO PRIMA DEL SALVATAGGIO</small><h2 id="whoop-preview-title">Anteprima WHOOP</h2><p class="muted" id="whoop-preview-summary"></p></div><button class="icon-button" id="whoop-preview-close" type="button" aria-label="Chiudi anteprima WHOOP">×</button></div>
+          <div class="import-preview-metrics">
+            <span><strong id="whoop-preview-cycles">0</strong><small>Cicli</small></span>
+            <span><strong id="whoop-preview-sleeps">0</strong><small>Sonni</small></span>
+            <span><strong id="whoop-preview-workouts">0</strong><small>Allenamenti</small></span>
+            <span><strong id="whoop-preview-journal">0</strong><small>Giorni diario</small></span>
+          </div>
+          <div class="import-preview-note" id="whoop-preview-note"></div>
+          <div class="modal-actions"><button class="ghost" id="whoop-preview-cancel" type="button">Annulla</button><button class="primary whoop-button" id="whoop-import-confirm" type="button">Importa dati nuovi</button></div>
+        </article>
+
+        <article class="panel import-preview plan-preview" id="plan-import-preview" hidden aria-live="polite">
+          <div class="panel-head"><div><small>CONTROLLO DELLA PROGRAMMAZIONE</small><h2 id="plan-preview-title">Anteprima piano Excel</h2><p class="muted" id="plan-preview-summary"></p></div><button class="icon-button" id="plan-preview-close" type="button" aria-label="Chiudi anteprima piano">×</button></div>
+          <div class="import-preview-metrics">
+            <span class="new"><strong id="plan-preview-new">0</strong><small>Nuove sedute</small></span>
+            <span><strong id="plan-preview-existing">0</strong><small>Già presenti</small></span>
+            <span class="conflict"><strong id="plan-preview-conflicts">0</strong><small>Preservate</small></span>
+            <span><strong id="plan-preview-completed">0</strong><small>Già svolte nel file</small></span>
+          </div>
+          <div class="import-preview-note" id="plan-preview-note"></div>
+          <div class="modal-actions"><button class="ghost" id="plan-preview-cancel" type="button">Annulla</button><button class="primary plan-button" id="plan-import-confirm" type="button">Aggiungi le sedute al Piano</button></div>
+        </article>
+
+        <div class="data-analysis-grid">
+          <article class="panel baseline-panel">
+            <div class="panel-head"><div><small>BASELINE OSSERVATA</small><h2>Carico recente</h2><p class="muted" id="baseline-period">Importa Strava per ricostruire la baseline.</p></div><label class="baseline-window-label">FINESTRA<select id="baseline-window"><option value="4">4 settimane</option><option value="8">8 settimane</option><option value="12">12 settimane</option></select></label></div>
+            <div class="baseline-empty" id="baseline-empty">Nessuna attività importata.</div>
+            <div id="baseline-content" hidden>
+              <div class="baseline-stats">
+                <span><small>KM CORSA / SETT.</small><strong id="baseline-run-km">0</strong></span>
+                <span><small>CORSE / SETT.</small><strong id="baseline-run-frequency">0</strong></span>
+                <span><small>SEDUTE / SETT.</small><strong id="baseline-session-frequency">0</strong></span>
+                <span><small>LUNGO MASSIMO</small><strong id="baseline-longest-run">0 km</strong></span>
+              </div>
+              <div class="baseline-weeks" id="baseline-weeks"></div>
+              <p class="baseline-disclaimer">La baseline descrive ciò che è stato registrato: non autorizza da sola aumenti di carico o diagnosi.</p>
+            </div>
+          </article>
+          <article class="panel import-history-panel">
+            <div class="panel-head"><div><small>TRACCIABILITÀ</small><h2>Importazioni</h2><p class="muted">Ogni operazione conserva fonte, data e attività aggiunte.</p></div></div>
+            <div class="import-history" id="import-history"></div>
+            <button class="ghost compact-more" id="import-history-more" type="button" hidden>Mostra altro</button>
+          </article>
+        </div>
+
+        <article class="panel whoop-summary-panel">
+          <div class="panel-head"><div><small>WHOOP · DATI OSSERVATI</small><h2>Recupero e sonno recenti</h2><p class="muted" id="whoop-summary-period">Importa WHOOP per mostrare i dati fisiologici disponibili.</p></div><label class="baseline-window-label">FINESTRA<select id="whoop-summary-window"><option value="7">7 giorni</option><option value="28">28 giorni</option><option value="84">12 settimane</option></select></label></div>
+          <div class="baseline-empty" id="whoop-summary-empty">Nessun dato WHOOP importato.</div>
+          <div id="whoop-summary-content" hidden>
+            <div class="whoop-summary-stats">
+              <span><small>RECOVERY MEDIA</small><strong id="whoop-summary-recovery">—</strong></span>
+              <span><small>HRV MEDIA</small><strong id="whoop-summary-hrv">—</strong></span>
+              <span><small>FC RIPOSO MEDIA</small><strong id="whoop-summary-rhr">—</strong></span>
+              <span><small>SONNO MEDIO</small><strong id="whoop-summary-sleep">—</strong></span>
+              <span><small>PERFORMANCE SONNO</small><strong id="whoop-summary-performance">—</strong></span>
+              <span><small>ALLENAMENTI WHOOP</small><strong id="whoop-summary-workouts">—</strong></span>
+            </div>
+            <div class="whoop-daily" id="whoop-summary-daily"></div>
+            <button class="ghost compact-more" id="whoop-summary-more" type="button" hidden>Mostra altro</button>
+            <p class="baseline-disclaimer">Le medie descrivono soltanto i dati registrati da WHOOP. I valori mancanti non vengono stimati e non costituiscono una diagnosi.</p>
+          </div>
+        </article>
+
+        <article class="panel reconciliation-panel" id="reconciliation-panel">
+          <div class="panel-head reconciliation-head">
+            <div><small>STRAVA · WHOOP · PIANO</small><h2>Abbina le sedute</h2><p class="muted" id="reconciliation-status">Importa almeno due fonti per confrontare le registrazioni.</p></div>
+            <button class="primary small" id="reconciliation-confirm-high" type="button" hidden>Conferma alta affidabilità</button>
+          </div>
+          <div class="reconciliation-safety"><strong>Revisione controllata</strong><span>Un abbinamento collega le registrazioni della stessa seduta, ma non la segna automaticamente come svolta nel piano.</span></div>
+          <div class="reconciliation-stats">
+            <span><small>DA VERIFICARE</small><strong id="reconciliation-pending">0</strong></span>
+            <span><small>CONFERMATI</small><strong id="reconciliation-confirmed">0</strong></span>
+            <span><small>STRAVA SENZA RISCONTRO</small><strong id="reconciliation-unmatched-strava">0</strong></span>
+            <span><small>WHOOP NON ABBINATI</small><strong id="reconciliation-unmatched-whoop">0</strong></span>
+          </div>
+          <div class="reconciliation-list" id="reconciliation-list"></div>
+          <button class="ghost reconciliation-more" id="reconciliation-more" type="button" hidden>Mostra altri abbinamenti</button>
+          <details class="reconciliation-history" id="reconciliation-history">
+            <summary>Decisioni già prese <span id="reconciliation-history-count">0</span></summary>
+            <div id="reconciliation-history-list"></div>
+          </details>
+        </article>
+      </section>
+
+      <section class="view" id="profile">
+        <div class="profile-hero panel">
+          <label class="avatar" title="Carica una foto"><input id="photo-input" type="file" accept="image/*"><img id="avatar-image" alt=""><span id="avatar-placeholder">♛</span></label>
+          <div><small><span id="profile-nickname">RE CARLO V</span> · ATLETA IBRIDO</small><h1 id="profile-name">Configura il profilo</h1><p class="muted" id="profile-summary">Dati atleta non ancora inseriti</p><label class="upload" for="photo-input">Carica foto profilo</label></div>
+          <div class="profile-actions"><button class="primary small" id="edit-profile">Modifica profilo</button><div class="level"><small>LIVELLO</small><strong id="profile-level">DA CONFIGURARE</strong></div></div>
+        </div>
+
+        <div class="profile-grid">
+          <article class="panel methodology-panel"><div class="methodology-head"><div><h2>Zone cardiache</h2><p class="muted" id="hr-summary">Frequenze cardiache non ancora disponibili.</p><div class="hr-source-strip" id="hr-source-strip"></div></div><label>METODO<select id="hr-zone-method" aria-label="Metodo zone cardiache"><option value="hrr">Karvonen · %HRR</option><option value="hrmax">% FC massima</option><option value="average">Media dei 2 metodi</option><option value="custom">Manuale</option></select></label></div><div id="hr-zones" class="zones"></div><p class="methodology-note" id="hr-method-note"></p><button class="ghost" id="save-hr-zones" type="button">Salva metodo e zone</button></article>
+          <article class="panel methodology-panel"><div class="methodology-head"><div><h2>Ciclismo indoor</h2><p class="muted">Zone espresse rispetto all’FTP attuale.</p></div><label>SCHEMA<select id="ftp-zone-method" aria-label="Schema zone FTP"><option value="coggan7">Coggan · 7 zone</option><option value="coggan5">Coggan · 5 zone</option></select></label></div><label class="field">FTP attuale <div><input id="ftp" type="number" min="1" max="800" step="1" placeholder="es. 260"><span>watt</span></div></label><div id="ftp-zones" class="zones compact"></div><p class="methodology-note">Gli schemi restano separati: una media tra sistemi con un numero diverso di zone non avrebbe un significato allenante chiaro.</p><button class="ghost" id="save-ftp-settings" type="button">Salva FTP e schema</button></article>
+          <article class="panel wide"><div class="panel-head methodology-strength-head"><div><h2>Forza massima stimata</h2><p class="muted" id="strength-method-summary">Stima sui migliori set da 1–10 ripetizioni registrati. Un riferimento manuale ha priorità.</p></div><label>FORMULA e1RM<select id="strength-formula" aria-label="Formula per il massimale stimato"><option value="epley">Epley</option><option value="brzycki">Brzycki</option><option value="lombardi">Lombardi</option><option value="average">Media delle 3</option></select></label></div><div class="strength-max-cards" id="strength-maxes"></div><p class="strength-estimate-note">Per le trazioni il calcolo applica la formula al peso corporeo più la zavorra, ma mostra soltanto la zavorra esterna stimata.</p></article>
+          <article class="panel wide body-monitor"><div class="panel-head"><div><h2>Mappa fastidi e recupero</h2><p class="muted">Segna soltanto i problemi attuali. Quando passano, archiviali: lo storico resta disponibile.</p></div><span class="body-active-count" id="body-active-count">0 attivi</span></div><div class="body-monitor-layout"><div class="body-maps"><div class="body-map"><small>VISTA ANTERIORE</small><div class="body-figure front" aria-label="Mappa corporea anteriore"><span class="body-silhouette">♙</span><button type="button" class="body-point" data-zone="head" data-label="Testa" style="--x:50%;--y:8%" aria-label="Testa"></button><button type="button" class="body-point" data-zone="shoulder-left" data-label="Spalla sinistra" style="--x:34%;--y:23%" aria-label="Spalla sinistra"></button><button type="button" class="body-point" data-zone="shoulder-right" data-label="Spalla destra" style="--x:66%;--y:23%" aria-label="Spalla destra"></button><button type="button" class="body-point" data-zone="elbow-left" data-label="Gomito sinistro" style="--x:25%;--y:38%" aria-label="Gomito sinistro"></button><button type="button" class="body-point" data-zone="elbow-right" data-label="Gomito destro" style="--x:75%;--y:38%" aria-label="Gomito destro"></button><button type="button" class="body-point" data-zone="wrist-left" data-label="Polso sinistro" style="--x:20%;--y:53%" aria-label="Polso sinistro"></button><button type="button" class="body-point" data-zone="wrist-right" data-label="Polso destro" style="--x:80%;--y:53%" aria-label="Polso destro"></button><button type="button" class="body-point" data-zone="chest" data-label="Petto" style="--x:50%;--y:29%" aria-label="Petto"></button><button type="button" class="body-point" data-zone="hip-left" data-label="Anca sinistra" style="--x:42%;--y:50%" aria-label="Anca sinistra"></button><button type="button" class="body-point" data-zone="hip-right" data-label="Anca destra" style="--x:58%;--y:50%" aria-label="Anca destra"></button><button type="button" class="body-point" data-zone="quad-left" data-label="Quadricipite sinistro" style="--x:42%;--y:64%" aria-label="Quadricipite sinistro"></button><button type="button" class="body-point" data-zone="quad-right" data-label="Quadricipite destro" style="--x:58%;--y:64%" aria-label="Quadricipite destro"></button><button type="button" class="body-point" data-zone="knee-left" data-label="Ginocchio sinistro" style="--x:42%;--y:76%" aria-label="Ginocchio sinistro"></button><button type="button" class="body-point" data-zone="knee-right" data-label="Ginocchio destro" style="--x:58%;--y:76%" aria-label="Ginocchio destro"></button><button type="button" class="body-point" data-zone="ankle-left" data-label="Caviglia sinistra" style="--x:42%;--y:92%" aria-label="Caviglia sinistra"></button><button type="button" class="body-point" data-zone="ankle-right" data-label="Caviglia destra" style="--x:58%;--y:92%" aria-label="Caviglia destra"></button></div></div><div class="body-map"><small>VISTA POSTERIORE</small><div class="body-figure back" aria-label="Mappa corporea posteriore"><span class="body-silhouette">♙</span><button type="button" class="body-point" data-zone="neck" data-label="Collo" style="--x:50%;--y:18%" aria-label="Collo"></button><button type="button" class="body-point" data-zone="upper-back" data-label="Dorso" style="--x:50%;--y:29%" aria-label="Dorso"></button><button type="button" class="body-point" data-zone="lower-back" data-label="Zona lombare" style="--x:50%;--y:44%" aria-label="Zona lombare"></button><button type="button" class="body-point" data-zone="glute-left" data-label="Gluteo sinistro" style="--x:42%;--y:54%" aria-label="Gluteo sinistro"></button><button type="button" class="body-point" data-zone="glute-right" data-label="Gluteo destro" style="--x:58%;--y:54%" aria-label="Gluteo destro"></button><button type="button" class="body-point" data-zone="hamstring-left" data-label="Femorale sinistro" style="--x:42%;--y:66%" aria-label="Femorale sinistro"></button><button type="button" class="body-point" data-zone="hamstring-right" data-label="Femorale destro" style="--x:58%;--y:66%" aria-label="Femorale destro"></button><button type="button" class="body-point" data-zone="calf-left" data-label="Polpaccio sinistro" style="--x:42%;--y:82%" aria-label="Polpaccio sinistro"></button><button type="button" class="body-point" data-zone="calf-right" data-label="Polpaccio destro" style="--x:58%;--y:82%" aria-label="Polpaccio destro"></button></div></div></div><div class="body-monitor-side"><form id="body-issue-form" class="body-issue-form" hidden><input name="zone" type="hidden"><div class="body-selection"><small>ZONA SELEZIONATA</small><strong id="body-selected-label"></strong></div><div class="form-grid compact"><label>Struttura<select name="type"><option>Articolare</option><option>Muscolare</option><option>Tendineo</option><option>Altro</option></select></label><label>Intensità attuale<input name="pain" type="number" min="0" max="10" value="1" required></label><label class="full">Descrizione breve<input name="description" maxlength="80" placeholder="Es. fastidio laterale nei cambi di ritmo" required></label><label class="full">Note facoltative<textarea name="notes" rows="2" placeholder="Quando compare, movimenti che lo modificano..."></textarea></label></div><div class="body-form-actions"><button class="ghost" id="cancel-body-issue" type="button">Annulla</button><button class="primary" type="submit">Inizia monitoraggio</button></div></form><div id="body-empty" class="body-empty">Seleziona un punto sulla mappa per iniziare a monitorarlo.</div><div id="active-body-issues" class="body-issue-list"></div></div></div><details class="body-history"><summary>Storico problemi archiviati <span id="archived-issues-count">0</span></summary><div id="archived-body-issues" class="body-issue-list archived"></div></details></article>
+          <article class="panel wide"><h2>Personal best</h2><div class="pb-cards" id="profile-pbs"></div></article>
+          <article class="panel wide"><div class="panel-head"><div><h2>Discipline e setup</h2><p class="muted">Informazioni usate dal coach per scegliere modalità e metriche.</p></div></div><div class="profile-lists"><div><small>DISCIPLINE</small><p id="profile-sports"></p></div><div><small>ATTREZZATURA, DISPOSITIVI E PIATTAFORME</small><div id="profile-devices" class="equipment-summary"></div></div></div></article>
+          <article class="panel wide data-panel"><div><h2>Backup completo</h2><p class="muted">Salva profilo, foto, piano, risultati, check-in, storico fastidi, dati Strava e WHOOP e decisioni di abbinamento in un unico file locale.</p><small id="backup-status">I dati restano sul tuo dispositivo.</small></div><div class="data-actions"><button class="ghost" id="export-profile">Esporta backup</button><label class="ghost file-button" for="import-profile">Ripristina backup</label><input id="import-profile" type="file" accept="application/json"></div></article>
+          <article class="panel wide data-panel demo-panel"><div><h2>Mese dimostrativo</h2><p class="muted">Aggiunge giugno 2026 con 20 sedute miste, risultati e check-in realistici ma esplicitamente marcati come demo.</p><small id="demo-data-status">Nessun dato dimostrativo caricato.</small></div><div class="data-actions"><button class="primary" id="load-demo-data" type="button">Carica giugno demo</button><button class="ghost" id="remove-demo-data" type="button" disabled>Rimuovi demo</button></div></article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="checkin-modal" id="weekly-checkin-modal" role="dialog" aria-modal="true" aria-labelledby="weekly-checkin-title" aria-hidden="true">
+    <form class="checkin-dialog" id="weekly-checkin-form">
+      <div class="panel-head"><div><small>PIANO ADATTIVO</small><h2 id="weekly-checkin-title" tabindex="-1">Disponibilità della settimana</h2></div><button class="icon-button" type="button" data-close-checkin="weekly" aria-label="Chiudi">×</button></div>
+      <p class="muted">Queste informazioni definiscono quante sedute generare e dove proteggere gli allenamenti essenziali.</p>
+      <div class="form-grid">
+        <label>Settimana dal<input name="weekStart" type="date" required></label>
+        <label>Numero massimo di sedute<select name="sessions"><option value="3">3 sedute</option><option value="4">4 sedute</option><option value="5" selected>5 sedute</option><option value="6">6 sedute</option></select></label>
+        <label>Durata abituale<input name="sessionMinutes" type="number" min="30" max="180" step="15" value="60" required></label>
+        <label>Tempo massimo per il lungo<input name="longRunMinutes" type="number" min="45" max="240" step="15" value="120" required></label>
+        <div class="full"><span class="checkin-label">Giorni potenzialmente disponibili</span><div class="day-picker"><label><input type="checkbox" name="days" value="Lun"><span>Lun</span></label><label><input type="checkbox" name="days" value="Mar"><span>Mar</span></label><label><input type="checkbox" name="days" value="Mer"><span>Mer</span></label><label><input type="checkbox" name="days" value="Gio"><span>Gio</span></label><label><input type="checkbox" name="days" value="Ven"><span>Ven</span></label><label><input type="checkbox" name="days" value="Sab" checked><span>Sab</span></label><label><input type="checkbox" name="days" value="Dom" checked><span>Dom</span></label></div></div>
+        <label>Lungo nel weekend<select name="weekendLong"><option value="yes">Sì</option><option value="maybe">Da confermare</option><option value="no">No</option></select></label><span></span>
+        <label class="full">Impegni, esami o vincoli<textarea name="constraints" rows="3" placeholder="Es. martedì università fino a tardi, giovedì solo 45 minuti"></textarea></label>
+      </div>
+      <div class="modal-actions"><button class="ghost" type="button" data-close-checkin="weekly">Annulla</button><button class="primary" type="submit">Salva disponibilità</button></div>
+    </form>
+  </div>
+  <div class="checkin-modal" id="pre-checkin-modal" role="dialog" aria-modal="true" aria-labelledby="pre-checkin-title" aria-hidden="true">
+    <form class="checkin-dialog" id="pre-checkin-form">
+      <div class="panel-head"><div><small>PRIMA DELLA SEDUTA</small><h2 id="pre-checkin-title" tabindex="-1">Come stai oggi?</h2></div><button class="icon-button" type="button" data-close-checkin="pre" aria-label="Chiudi">×</button></div>
+      <p class="muted">Il coach confronterà il tuo stato con lo stimolo programmato.</p>
+      <div class="pre-session-context" id="pre-session-context" hidden></div>
+      <div class="form-grid">
+        <label>Energia<select name="energy"><option value="1">1 · Molto bassa</option><option value="2">2 · Bassa</option><option value="3" selected>3 · Normale</option><option value="4">4 · Buona</option><option value="5">5 · Ottima</option></select></label>
+        <label>Fatica generale<select name="fatigue"><option value="1">1 · Minima</option><option value="2">2 · Bassa</option><option value="3" selected>3 · Normale</option><option value="4">4 · Alta</option><option value="5">5 · Molto alta</option></select></label>
+        <label>Dolore muscolare generale (0–10)<input name="soreness" type="number" min="0" max="10" value="2" required></label>
+        <div class="full active-issue-checkins" id="active-issue-checkins"></div>
+        <label>Motivazione<select name="motivation"><option value="1">1 · Molto bassa</option><option value="2">2 · Bassa</option><option value="3" selected>3 · Normale</option><option value="4">4 · Buona</option><option value="5">5 · Alta</option></select></label>
+        <label>Tempo disponibile oggi<input name="availableMinutes" type="number" min="15" max="240" step="5" value="75" required></label>
+        <label class="full">Note facoltative<textarea name="notes" rows="3" placeholder="Sensazioni, sonno, dolore o altri fattori rilevanti"></textarea></label>
+      </div>
+      <div class="checkin-result" id="pre-checkin-result" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="ghost" type="button" data-close-checkin="pre">Annulla</button><button class="primary" id="pre-checkin-submit" type="submit">Valuta la seduta</button></div>
+    </form>
+  </div>
+  <div class="generator-modal" id="generator-modal" aria-hidden="true">
+    <div class="generator-dialog">
+      <div class="panel-head"><div><small>COACH LOCALE</small><h2>Proposta per la settimana</h2></div><button class="icon-button" id="generator-close" type="button" aria-label="Chiudi">×</button></div>
+      <p class="muted" id="generator-summary"></p>
+      <div class="generator-adaptation" id="generator-adaptation"></div>
+      <div class="generator-alert" id="generator-alert" hidden></div>
+      <div class="generator-preview" id="generator-preview"></div>
+      <div class="generator-rationale" id="generator-rationale"></div>
+      <div class="modal-actions"><button class="ghost" id="generator-restore" type="button" hidden>Ripristina piano Excel</button><button class="ghost" id="generator-cancel" type="button">Annulla</button><button class="primary" id="generator-confirm" type="button">Conferma e aggiorna il Piano</button></div>
+    </div>
+  </div>
+  <div class="session-modal" id="session-modal" aria-hidden="true">
+    <form class="session-dialog" id="session-form">
+      <div class="panel-head"><div><small>PROGRAMMAZIONE</small><h2 id="session-form-title">Nuova seduta</h2></div><button class="icon-button" type="button" id="session-close" aria-label="Chiudi">×</button></div>
+      <input name="id" type="hidden">
+      <div class="form-grid session-common">
+        <label>Categoria<select name="category" id="session-category"><option value="running">Corsa</option><option value="cycling">Ciclismo indoor</option><option value="strength">Forza</option><option value="hyrox">HYROX Spec</option><option value="metcon">Metcon</option><option value="test">Test</option><option value="recovery">Recupero</option></select></label>
+        <label>Data<input name="date" type="date" required></label>
+        <label class="full">Titolo della seduta<input name="title" id="session-title" required maxlength="80" placeholder="Es. Easy run"><span class="field-hint" id="title-hint">Proposto automaticamente; puoi personalizzarlo.</span></label>
+        <label>Durata prevista (min)<input name="durationMin" type="number" inputmode="numeric" min="5" max="600" step="5" required></label>
+        <label>Priorità<select name="priority"><option value="essential">Essenziale</option><option value="important">Importante</option><option value="optional">Opzionale</option></select></label>
+      </div>
+
+      <section class="session-fields" data-session-category="running">
+        <h3>Parametri corsa</h3><div class="form-grid">
+          <label>Tipo<select name="runType" data-title-source><option>Easy run</option><option>Long run</option><option>Recovery run</option><option>Tempo / Threshold</option><option>Intervals</option><option>Progression run</option><option>Race</option></select></label>
+          <label>Distanza prevista (km)<input name="distanceKm" type="number" inputmode="decimal" min="0" max="100" step="0.1"></label>
+          <label>Target principale<select name="runTarget" id="run-target"><option value="hr">Zona cardiaca</option><option value="pace">Passo</option><option value="rpe">RPE</option></select></label>
+          <label data-run-target="hr">Zona HR<select name="hrZone"><option>Z1</option><option selected>Z2</option><option>Z3</option><option>Z4</option><option>Z5</option></select></label>
+          <label data-run-target="pace">Passo: minuti/km<input name="paceMin" type="number" min="2" max="15" step="1" value="5"></label>
+          <label data-run-target="pace">Passo: secondi<input name="paceSec" type="number" min="0" max="59" step="1" value="0"></label>
+          <label data-run-target="rpe">RPE target<input name="runRpe" type="number" min="1" max="10" step="0.5" value="6"></label>
+          <div class="full run-workout-builder"><div class="builder-heading"><div><strong>Struttura della corsa</strong><span>Crea una timeline oppure una sequenza di fasi da ripetere</span></div><div class="builder-buttons"><button class="ghost" id="add-run-segment" type="button">+ Segmento</button><button class="ghost" id="add-run-repeat" type="button">+ Blocco ripetuto</button></div></div><div id="run-workout-rows" class="run-workout-rows"></div><input name="runBlocks" type="hidden"></div>
+        </div>
+      </section>
+
+      <section class="session-fields" data-session-category="cycling">
+        <h3>Parametri ciclismo indoor</h3><div class="form-grid">
+          <label>Tipo<select name="rideType" data-title-source><option>Endurance ride</option><option>Recovery ride</option><option>Tempo ride</option><option>Sweet spot</option><option>Threshold ride</option><option>VO2max bike</option></select></label>
+          <label>Setup<select name="powerSource"><option>Technogym Ride</option><option>Garmin Tacx</option><option>Neo Bike</option><option>Altro / da scegliere</option></select></label>
+          <label>FTP minima (%)<input name="ftpMin" type="number" min="30" max="150" value="60"></label>
+          <label>FTP massima (%)<input name="ftpMax" type="number" min="30" max="150" value="70"></label>
+          <label>Cadenza target (rpm)<input name="cadence" type="number" min="40" max="150" value="90"></label>
+        </div>
+      </section>
+
+      <section class="session-fields" data-session-category="strength">
+        <h3>Parametri forza</h3><div class="form-grid">
+          <label>Focus<select name="strengthFocus" data-title-source><option>Upper body</option><option>Lower body</option><option>Full body</option><option>HYROX strength</option><option>Accessori / prevenzione</option></select></label>
+          <label>RIR target<input name="targetRir" type="number" min="0" max="6" step="0.5" value="2"></label>
+          <div class="full workout-builder" data-builder="strength"><div class="builder-heading"><div><strong>Esercizi</strong><span>Serie, ripetizioni, carico e recupero modificabili singolarmente</span></div><button class="ghost add-workout-row" type="button">+ Esercizio</button></div><div class="workout-rows"></div><input name="strengthBlocks" type="hidden"></div>
+          <label class="full">Complementari e indicazioni <span class="field-hint">note libere, escluse dal calcolo e1RM</span><textarea name="strengthAccessories" rows="4" placeholder="Es. 2–3 esercizi upper back, cuffia e core a scelta"></textarea></label>
+        </div>
+      </section>
+
+      <section class="session-fields" data-session-category="hyrox">
+        <h3>Parametri HYROX Spec</h3><div class="form-grid">
+          <label>Formato<select name="hyroxFormat" data-title-source><option>HYROX engine</option><option>HYROX stations</option><option>Compromised running</option><option>HYROX partial simulation</option><option>HYROX full simulation</option></select></label>
+          <label>RPE target<input name="hyroxRpe" type="number" min="1" max="10" step="0.5" value="7"></label>
+          <div class="full workout-builder" data-builder="hyrox"><div class="builder-heading"><div><strong>Blocchi e stazioni</strong><span>Ordine, volume, target e recupero della seduta</span></div><button class="ghost add-workout-row" type="button">+ Blocco</button></div><div class="workout-rows"></div><input name="hyroxStructuredBlocks" type="hidden"></div>
+        </div>
+      </section>
+
+      <section class="session-fields" data-session-category="metcon">
+        <h3>Parametri Metcon</h3><div class="form-grid">
+          <label>Formato<select name="metconType" data-title-source><option>AMRAP</option><option>EMOM</option><option>For time</option><option>Chipper</option><option>Intervals conditioning</option><option>Mixed modal conditioning</option></select></label>
+          <label>RPE target<input name="metconRpe" type="number" min="1" max="10" step="0.5" value="8"></label>
+          <div class="full workout-builder" data-builder="metcon"><div class="builder-heading"><div><strong>Struttura</strong><span>Blocchi, movimenti, intensità e recuperi</span></div><button class="ghost add-workout-row" type="button">+ Blocco</button></div><div class="workout-rows"></div><input name="metconStructuredBlocks" type="hidden"></div>
+        </div>
+      </section>
+
+      <section class="session-fields" data-session-category="test">
+        <h3>Parametri test</h3><div class="form-grid">
+          <label>Tipo di test<select name="testType" data-title-source><option>5 km time trial</option><option>10 km time trial</option><option>Running threshold test</option><option>FTP test</option><option>Strength 1RM test</option><option>Strength 3RM test</option><option>HYROX benchmark</option><option>Altro test</option></select></label>
+          <label>RPE massimo previsto<input name="testRpe" type="number" min="1" max="10" step="0.5" value="9"></label>
+          <label class="full">Protocollo <textarea name="testProtocol" rows="5" placeholder="Riscaldamento, protocollo, recuperi e metrica da registrare"></textarea></label>
+        </div>
+      </section>
+
+      <section class="session-fields" data-session-category="recovery">
+        <h3>Parametri recupero</h3><div class="form-grid"><label>Modalità<select name="recoveryType" data-title-source><option>Riposo completo</option><option>Mobilità</option><option>Camminata</option><option>Cardio rigenerante</option><option>Fisioterapia / trattamento</option></select></label></div>
+      </section>
+
+      <label class="session-notes">Note e indicazioni<textarea name="notes" rows="3" placeholder="Indicazioni tecniche, vincoli o obiettivo della seduta"></textarea></label>
+      <div class="modal-actions session-actions"><button class="danger" id="delete-session" type="button">Elimina</button><button class="ghost" id="session-outcome" type="button" hidden>Registra</button><span></span><button class="ghost" type="button" id="session-cancel">Annulla</button><button class="primary" type="submit">Salva seduta</button></div>
+    </form>
+  </div>
+  <div class="session-modal outcome-modal" id="outcome-modal" aria-hidden="true">
+    <form class="session-dialog outcome-dialog" id="outcome-form">
+      <div class="panel-head"><div><small>CHECK-IN POST-ALLENAMENTO</small><h2 id="outcome-title">Check-in post-allenamento</h2></div><button class="icon-button" type="button" id="outcome-close" aria-label="Chiudi">×</button></div>
+      <input name="sessionId" type="hidden">
+      <div class="outcome-session-context" id="outcome-session-context"></div>
+      <section class="outcome-observed" id="outcome-observed" hidden>
+        <div class="outcome-observed-head"><div><small>DATI OSSERVATI COLLEGATI</small><strong id="outcome-observed-title">Strava e WHOOP</strong></div><span id="outcome-observed-confidence"></span></div>
+        <div class="outcome-observed-metrics" id="outcome-observed-metrics"></div>
+        <p id="outcome-observed-note"></p>
+      </section>
+      <fieldset class="outcome-status-group">
+        <legend>Esito della seduta</legend>
+        <label><input name="status" type="radio" value="completed" checked><span><b>✓</b>Svolta</span></label>
+        <label><input name="status" type="radio" value="partial"><span><b>◐</b>Parziale</span></label>
+        <label><input name="status" type="radio" value="skipped"><span><b>–</b>Non svolta</span></label>
+      </fieldset>
+      <div id="outcome-performance-fields">
+        <div class="form-grid outcome-grid">
+          <label>Durata reale (min)<input name="actualDurationMin" type="number" inputmode="numeric" min="1" max="600" step="1" required></label>
+          <label id="outcome-distance-field" hidden>Distanza reale (km)<input name="actualDistanceKm" type="number" inputmode="decimal" min="0" max="200" step="0.01"></label>
+          <label>RPE della seduta<input name="rpe" type="number" inputmode="decimal" min="1" max="10" step="0.5" placeholder="Da compilare" required></label>
+          <label>Rispetto al previsto<select name="execution" required><option value="" selected disabled>Seleziona confronto</option><option value="easier">Più facile</option><option value="as-planned">Come previsto</option><option value="harder">Più impegnativa</option></select></label>
+          <label>Dolore massimo durante (0–10)<input name="pain" type="number" inputmode="numeric" min="0" max="10" step="1" placeholder="0 se assente" required></label>
+        </div>
+        <div class="outcome-load-preview"><span>CARICO INTERNO (sRPE)</span><strong id="outcome-load-value">0 AU</strong><small>durata reale × RPE</small></div>
+        <section class="strength-performance" id="strength-performance-fields" hidden>
+          <div class="strength-performance-heading"><div><strong>Set principali per e1RM</strong><span>Inserisci il miglior set effettivo. I complementari non vengono raccolti.</span></div><small>1–10 RIPETIZIONI</small></div>
+          <div class="strength-performance-rows" id="strength-performance-rows"></div>
+        </section>
+      </div>
+      <div id="outcome-skipped-fields" hidden>
+        <div class="form-grid outcome-grid"><label class="full">Perché non l’hai svolta?<select name="skipReason"><option value="time">Impegni, lavoro o università</option><option value="logistics">Viaggio o problema logistico</option><option value="fatigue">Fatica o recupero insufficiente</option><option value="pain">Fastidio o dolore</option><option value="motivation">Motivazione bassa o seduta poco sostenibile</option><option value="program-change">Cambio di programma o priorità</option><option value="other">Altro</option></select></label></div>
+        <p class="outcome-reason-impact" id="skip-reason-impact"></p>
+      </div>
+      <label class="session-notes">Note post-allenamento<textarea name="outcomeNotes" rows="3" placeholder="Sensazioni, modifiche effettuate, cosa tenere presente per la prossima seduta..."></textarea></label>
+      <div class="modal-actions outcome-actions"><button class="danger" id="outcome-delete" type="button" hidden>Elimina registrazione</button><span></span><button class="ghost" id="outcome-cancel" type="button">Annulla</button><button class="primary" type="submit">Salva check-in</button></div>
+    </form>
+  </div>
+  <div class="goal-modal" id="goal-modal" aria-hidden="true">
+    <form class="goal-dialog" id="goal-form">
+      <div class="panel-head"><div><small>OBIETTIVO</small><h2 id="goal-form-title">Nuovo obiettivo</h2></div><button class="icon-button" type="button" id="goal-close" aria-label="Chiudi">×</button></div>
+      <input name="id" type="hidden">
+      <div class="goal-form-grid">
+        <label class="goal-form-wide">Nome gara o test<input name="name" required maxlength="80" placeholder="Es. maratona autunnale"></label>
+        <label>Tipologia<select name="type"><option value="marathon">Maratona</option><option value="half-marathon">Mezza maratona</option><option value="running">Gara running</option><option value="hyrox">HYROX</option><option value="obstacle">Obstacle race</option><option value="cycling">Gara ciclismo</option><option value="strength-test">Test di forza</option><option value="test">Altro test</option><option value="other">Altro</option></select></label>
+        <label>Data<input name="date" type="date" required></label>
+        <label>Priorità<select name="priority"><option value="A">A · obiettivo principale</option><option value="B">B · gara importante</option><option value="C">C · gara preparatoria</option></select></label>
+        <label>Stato<select name="status"><option value="planned">Programmata</option><option value="completed">Completata</option><option value="cancelled">Annullata</option></select></label>
+        <label class="goal-form-wide">Target<input name="target" maxlength="100" placeholder="Es. completare senza dolore, migliorare il PB"></label>
+        <label class="goal-form-wide goal-result-field">Risultato<input name="result" maxlength="120" placeholder="Tempo, piazzamento o risultato del test"></label>
+        <label class="goal-form-wide">Note<textarea name="notes" rows="3" maxlength="1000" placeholder="Contesto, strategia, cosa dovrà ricordare il coach..."></textarea></label>
+      </div>
+      <div class="modal-actions goal-modal-actions"><button class="danger" id="goal-delete" type="button" hidden>Elimina</button><span></span><button class="ghost" id="goal-cancel" type="button">Annulla</button><button class="primary" type="submit">Salva obiettivo</button></div>
+    </form>
+  </div>
+  <div class="profile-modal" id="profile-modal" aria-hidden="true">
+    <form class="profile-dialog" id="profile-form">
+      <div class="panel-head"><div><small>PROFILO ATLETA</small><h2>Modifica i tuoi dati</h2></div><button class="icon-button" type="button" id="profile-close" aria-label="Chiudi">×</button></div>
+      <div class="form-grid">
+        <label>Nome<input name="firstName" autocomplete="given-name" required></label><label>Cognome<input name="lastName" autocomplete="family-name"></label>
+        <label>Soprannome<input name="nickname"></label><label>Data di nascita<input name="birthDate" type="date"></label>
+        <label>Livello<select name="level"><option>Principiante</option><option>Intermedio</option><option>Avanzato</option><option>Elite</option></select></label><span></span>
+        <label>Altezza (cm)<input name="heightCm" type="number" inputmode="decimal" min="100" max="250" step="0.1" required><small class="field-hint" id="profile-height-source">Valore manuale</small></label><label>Peso (kg)<input name="weightKg" type="number" inputmode="decimal" min="30" max="250" step="0.1" required><small class="field-hint" id="profile-weight-source">Valore manuale</small></label>
+        <label>FC massima<input name="maxHr" type="number" min="100" max="230"><small class="field-hint" id="profile-max-hr-source">Valore manuale</small></label><label>FC a riposo<input name="restingHr" type="number" min="25" max="120"><small class="field-hint" id="profile-resting-hr-source">Valore manuale</small></label>
+        <label>FTP (watt)<input name="ftp" type="number" min="0" max="800"></label><span></span>
+        <div class="full structured-field"><span>Massimali stimati (e1RM)</span><div class="strength-max-form"><label>Trazioni zavorrate<input name="maxPullup" type="number" inputmode="decimal" min="0" max="200" step="0.5" placeholder="kg aggiunti"></label><label>Panca piana<input name="maxBench" type="number" inputmode="decimal" min="0" max="400" step="0.5" placeholder="kg"></label><label>Military Press<input name="maxMilitary" type="number" inputmode="decimal" min="0" max="300" step="0.5" placeholder="kg"></label><label>Squat<input name="maxSquat" type="number" inputmode="decimal" min="0" max="600" step="0.5" placeholder="kg"></label><label>Stacco<input name="maxDeadlift" type="number" inputmode="decimal" min="0" max="700" step="0.5" placeholder="kg"></label></div><small class="field-hint">Nelle trazioni viene indicata solo la zavorra esterna. Puoi lasciare i valori vuoti: saranno stimati dai set allenanti registrati.</small></div>
+        <div class="full structured-field"><span>Personal best visualizzati</span><div class="selection-preview" id="pb-selection"></div><input name="personalBests" type="hidden"><button class="ghost" id="manage-pbs" type="button">Gestisci personal best</button></div>
+        <div class="full structured-field"><span>Discipline praticate</span><div class="selection-preview" id="sports-selection"></div><input name="sports" type="hidden"><button class="ghost selector-open" type="button" data-selector="sports">Scegli discipline</button></div>
+        <div class="full structured-field"><span>Attrezzatura, dispositivi e piattaforme</span><div class="selection-preview" id="equipment-selection"></div><input name="equipment" type="hidden"><button class="ghost selector-open" type="button" data-selector="equipment">Gestisci attrezzatura</button></div>
+      </div>
+      <div class="modal-actions"><button class="ghost" type="button" id="profile-cancel">Annulla</button><button class="primary" type="submit">Salva profilo</button></div>
+    </form>
+  </div>
+  <div class="pb-modal" id="pb-modal" aria-hidden="true">
+    <div class="pb-dialog">
+      <div class="panel-head"><div><small>PRESTAZIONI</small><h2>Gestisci personal best</h2></div><button class="icon-button" type="button" id="pb-close" aria-label="Chiudi">×</button></div>
+      <p class="muted">Scegli soltanto le categorie che vuoi mostrare nel profilo.</p>
+      <div class="pb-add"><select id="pb-type" aria-label="Categoria personal best"></select><button class="ghost" id="pb-add" type="button">+ Aggiungi categoria</button></div>
+      <div class="pb-editor" id="pb-editor"></div>
+      <div class="modal-actions"><button class="ghost" type="button" id="pb-cancel">Annulla</button><button class="primary" type="button" id="pb-confirm">Conferma PB</button></div>
+    </div>
+  </div>
+  <div class="selector-modal" id="selector-modal" aria-hidden="true">
+    <div class="selector-dialog">
+      <div class="panel-head"><div><small id="selector-kicker">SELEZIONE</small><h2 id="selector-title">Scegli</h2></div><button class="icon-button" type="button" id="selector-close" aria-label="Chiudi">×</button></div>
+      <label class="selector-search"><span>⌕</span><input id="selector-search" type="search" placeholder="Cerca..."></label>
+      <div class="selector-list" id="selector-list"></div>
+      <div class="custom-entry"><select id="custom-category" aria-label="Categoria"></select><input id="custom-value" placeholder="Aggiungi una voce personale"><button class="ghost" id="custom-add" type="button">Aggiungi</button></div>
+      <div class="modal-actions"><button class="ghost" type="button" id="selector-cancel">Annulla</button><button class="primary" type="button" id="selector-confirm">Conferma selezione</button></div>
+    </div>
+  </div>
+  <div class="whoop-setup-modal" id="whoop-setup-modal" aria-hidden="true">
+    <div class="whoop-setup-dialog">
+      <div class="panel-head"><div><small>COLLEGAMENTO LOCALE · MAC</small><h2>Configura WHOOP</h2></div><button class="icon-button" type="button" id="whoop-setup-close" aria-label="Chiudi">×</button></div>
+      <p class="muted">Questa operazione si fa una sola volta. Il Client Secret e i token saranno salvati nel Portachiavi del Mac, non nel browser e non nel backup dell’app.</p>
+      <ol class="whoop-setup-steps">
+        <li><span>1</span><div><strong>Crea una app personale WHOOP</strong><small>Nome consigliato: “Re Carlo V Personal Coach”. Abilita lettura profilo, cicli, recovery, sonno e allenamenti; non serve alcun permesso di scrittura.</small><a class="ghost whoop-developer-link" href="https://developer.whoop.com/" target="_blank" rel="noopener noreferrer">Apri WHOOP Developer ↗</a></div></li>
+        <li><span>2</span><div><strong>Imposta questo Redirect URI</strong><small>Copialo esattamente nel campo Redirect URL della app WHOOP.</small><div class="whoop-callback-row"><code id="whoop-callback-uri">recarlo://whoop/callback</code><button class="ghost" id="whoop-copy-callback" type="button">Copia</button></div></div></li>
+        <li><span>3</span><div><strong>Inserisci le due credenziali</strong><small>Le trovi nella schermata della app appena creata.</small></div></li>
+      </ol>
+      <form id="whoop-config-form" class="whoop-config-form" autocomplete="off">
+        <label>Client ID<input name="clientId" required maxlength="500" autocomplete="off" placeholder="Incolla il Client ID"></label>
+        <label>Client Secret<input name="clientSecret" type="password" required maxlength="500" autocomplete="new-password" placeholder="Incolla il Client Secret"></label>
+        <p id="whoop-config-status" role="status" aria-live="polite"></p>
+        <div class="modal-actions"><button class="ghost" id="whoop-setup-cancel" type="button">Annulla</button><button class="primary whoop-button" type="submit">Salva e continua</button></div>
+      </form>
+    </div>
+  </div>
+  <div class="cloud-sync-modal" id="cloud-sync-modal" role="dialog" aria-modal="true" aria-labelledby="cloud-sync-modal-title" aria-hidden="true">
+    <div class="cloud-sync-dialog">
+      <div class="panel-head"><div><small>ACCESSO PERSONALE</small><h2 id="cloud-sync-modal-title">Collega Mac e iPhone</h2></div><button class="icon-button" type="button" id="cloud-sync-close" aria-label="Chiudi">×</button></div>
+      <div id="cloud-auth-view">
+        <p class="muted">Usa lo stesso account sui due dispositivi. Il codice dell’app è pubblico, ma dati e piano sono accessibili soltanto al tuo utente.</p>
+        <form class="cloud-auth-form" id="cloud-auth-form">
+          <label>Email<input name="email" type="email" autocomplete="email" required placeholder="La tua email"></label>
+          <label>Password<input name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="Almeno 8 caratteri"></label>
+          <p id="cloud-auth-status" role="status" aria-live="polite"></p>
+          <div class="modal-actions"><button class="ghost" id="cloud-create-account" type="button">Crea account</button><button class="primary" type="submit">Accedi</button></div>
+        </form>
+      </div>
+      <div id="cloud-choice-view" hidden>
+        <p class="cloud-choice-alert" id="cloud-choice-alert">Sono presenti due copie diverse. Nessuna verrà sovrascritta senza la tua scelta.</p>
+        <div class="cloud-copy-grid">
+          <article><small>QUESTO DISPOSITIVO</small><strong id="cloud-local-name">Copia locale</strong><span id="cloud-local-summary">—</span><button class="ghost" id="cloud-use-local" type="button">Usa questa copia</button></article>
+          <article class="recommended"><small>CLOUD</small><strong id="cloud-remote-name">Copia condivisa</strong><span id="cloud-remote-summary">—</span><button class="primary" id="cloud-use-remote" type="button">Usa la copia cloud</button></article>
+        </div>
+        <p class="cloud-choice-note">Prima della sostituzione viene scaricato automaticamente un backup della copia esclusa.</p>
+      </div>
+    </div>
+  </div>
+  <div class="crop-modal" id="crop-modal" aria-hidden="true">
+    <div class="crop-dialog">
+      <div class="panel-head"><div><small>FOTO PROFILO</small><h2>Centra e ritaglia</h2></div><button class="icon-button" id="crop-close" aria-label="Chiudi">×</button></div>
+      <p class="muted">Trascina direttamente la foto per spostarla, poi regola lo zoom se necessario.</p>
+      <div class="crop-preview"><canvas id="crop-canvas" width="420" height="420"></canvas><div class="crop-ring"></div></div>
+      <div class="crop-controls">
+        <label>Zoom<input id="crop-zoom" type="range" min="1" max="3" step="0.01" value="1"></label>
+        <label>Orizzontale<input id="crop-x" type="range" min="-1" max="1" step="0.01" value="0"></label>
+        <label>Verticale<input id="crop-y" type="range" min="-1" max="1" step="0.01" value="0"></label>
+      </div>
+      <div class="modal-actions"><button class="ghost" id="crop-cancel">Annulla</button><button class="primary" id="crop-save">Usa questa foto</button></div>
+    </div>
+  </div>
+  <div id="toast">Salvato sul dispositivo</div>
+  <script src="data-store.js"></script>
+  <script src="activity-import-model.js"></script>
+  <script src="plan-import-model.js"></script>
+  <script src="whoop-import-model.js"></script>
+  <script src="whoop-api-model.js"></script>
+  <script src="reconciliation-model.js"></script>
+  <script src="training-zones-model.js"></script>
+  <script src="symptom-recency-model.js"></script>
+  <script src="skip-reason-model.js"></script>
+  <script src="recovery-trend-model.js"></script>
+  <script src="device-freshness-model.js"></script>
+  <script src="goals-model.js"></script>
+  <script src="weekly-plan-adjustment-model.js"></script>
+  <script src="adaptive-application-model.js"></script>
+  <script src="athlete-metrics-model.js"></script>
+  <script src="cloud-sync-model.js"></script>
+  <script src="cloud-config.js"></script>
+  <script src="app.js"></script>
+  <script src="selectors.js"></script>
+  <script src="pbs.js"></script>
+  <script src="strength-performance-model.js"></script>
+  <script src="profile.js"></script>
+  <script src="session-selection-model.js"></script>
+  <script src="plan-view-model.js"></script>
+  <script src="execution-evidence-model.js"></script>
+  <script src="sessions.js"></script>
+  <script src="goals.js"></script>
+  <script src="bodymap.js"></script>
+  <script src="checkin-model.js"></script>
+  <script src="checkins.js"></script>
+  <script src="adaptive-engine.js"></script>
+  <script src="today-model.js"></script>
+  <script src="today.js"></script>
+  <script src="weekly-recap-model.js"></script>
+  <script src="recap.js"></script>
+  <script src="generator.js"></script>
+  <script src="demo-data-model.js"></script>
+  <script src="demo-data.js"></script>
+  <script src="data-import.js"></script>
+  <script src="plan-import.js"></script>
+  <script src="whoop-import.js"></script>
+  <script src="whoop-live-sync.js"></script>
+  <script src="reconciliation.js"></script>
+  <script src="vendor/supabase-2.110.5.min.js"></script>
+  <script src="cloud-sync.js"></script>
+  <script src="pwa.js"></script>
+</body>
+</html>

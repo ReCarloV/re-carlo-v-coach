@@ -1,0 +1,17 @@
+.recap-next-plan .primary:disabled{cursor:not-allowed;opacity:.45}
+.recap-plan-lock{margin:0 0 14px;padding:12px 14px;border:1px solid #75572c;border-radius:9px;background:#2c2214}
+.recap-plan-lock strong,.recap-plan-lock span{display:block}
+.recap-plan-lock strong{color:#ffd08a;font-size:11px}
+.recap-plan-lock span{margin-top:5px;color:#ad9877;font-size:10px;line-height:1.45}
+.goal-hero{border-color:#8b682f;background:radial-gradient(circle at 85% 20%,rgba(224,170,74,.24),transparent 35%),linear-gradient(145deg,#3a2b16,#151a22 72%)}
+.goal-hero:after{color:rgba(244,195,100,.08)}
+.goal-badges span{border-color:#8b682f;background:#3a2a13;color:#f4ce83}
+.goal-edit-link{color:#e5b85d}
+.goal-countdown{border-color:rgba(230,180,85,.42);background:rgba(29,21,10,.72)}
+.goal-countdown span{color:#efc46e}
+.today-week-scale{margin:9px 0 0;color:#657d99;font-size:9px;line-height:1.45}
+.today-whoop-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.today-whoop-refresh{padding:6px 9px;border:1px solid #31597c;border-radius:999px;background:#10253b;color:#9ac7ee;font:inherit;font-size:9px;font-weight:800;cursor:pointer}
+.today-whoop-refresh:hover{border-color:#4a7da8;background:#15304c;color:#fff}
+.today-whoop-refresh:disabled{cursor:not-allowed;opacity:.48}
+@media(max-width:560px){.today-whoop-overview .panel-head{gap:10px}.today-whoop-head-actions{align-items:flex-end;flex-direction:column}.today-whoop-refresh{font-size:8px}}

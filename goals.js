@@ -1,0 +1,57 @@
+(function(){
+  'use strict';
+  const model=window.rcGoalsModel,store=window.rcDataStore;if(!model||!store)return;
+  const form=document.getElementById('goal-form'),modal=document.getElementById('goal-modal'),goalKey=window.rcDataStoreCore?.DATASETS?.goals?.key||'rc-goals-v1';
+  let goals=[];
+
+  function localDate(){const now=new Date();return model.iso(now);}
+  function read(){try{return store.getDataset('goals')||[];}catch(_){return[];}}
+  function sessions(){return window.rcSessions?.getAll?.()||[];}
+  function formatDate(key,options={day:'numeric',month:'long',year:'numeric'}){return new Date(`${key}T12:00:00`).toLocaleDateString('it-IT',options);}
+  function dateBox(key){const date=new Date(`${key}T12:00:00`);return`<div class="goal-list-item-date"><small>${date.toLocaleDateString('it-IT',{month:'short'}).replace('.','')}</small><strong>${String(date.getDate()).padStart(2,'0')}</strong></div>`;}
+  function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));}
+  function goalId(){return`goal-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;}
+  function toast(message='Obiettivo salvato'){const node=document.getElementById('toast');node.textContent=message;node.classList.add('show');setTimeout(()=>node.classList.remove('show'),1900);}
+  function save(next,reason){store.setDataset('goals',next);goals=read();document.dispatchEvent(new CustomEvent('rc:goals-updated',{detail:{reason}}));render();}
+  function ensureInferredGoal(){
+    if(localStorage.getItem(goalKey)!==null)return;const inferred=model.inferGoalFromPlan(sessions(),{today:localDate()});if(inferred)save([inferred],'goal-inferred-from-plan');
+  }
+  function synchronizeGoalDates(){const current=read(),result=model.syncGoalDates(current,sessions());if(!result.changed)return false;store.setDataset('goals',result.goals);goals=result.goals;document.dispatchEvent(new CustomEvent('rc:goals-updated',{detail:{reason:'goal-date-synced-to-race'}}));return true;}
+  function synchronizeGoalSessions(){read().filter(goal=>goal.status==='planned').forEach(goal=>window.rcSessions?.syncGoalSession?.(goal));}
+  function close(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');}
+  function toggleResult(){form.querySelector('.goal-result-field').hidden=form.elements.status.value!=='completed';}
+  function open(goal=null,registerResult=false){
+    form.reset();form.elements.id.value=goal?.id||'';form.elements.name.value=goal?.name||'';form.elements.type.value=goal?.type||'marathon';form.elements.date.value=goal?.date||'';form.elements.priority.value=goal?.priority||'A';form.elements.status.value=registerResult?'completed':goal?.status||'planned';form.elements.target.value=goal?.target||'';form.elements.result.value=goal?.result||'';form.elements.notes.value=goal?.notes||'';
+    document.getElementById('goal-form-title').textContent=registerResult?'Registra il risultato':goal?'Modifica obiettivo':'Nuovo obiettivo';document.getElementById('goal-delete').hidden=!goal;toggleResult();modal.classList.add('open');modal.setAttribute('aria-hidden','false');setTimeout(()=>form.elements.name.focus(),0);
+  }
+  function renderSidebar(current){
+    const name=document.getElementById('sidebar-goal-name'),summary=document.getElementById('sidebar-goal-summary');if(!current){name.textContent='Nessun obiettivo';summary.textContent='Aggiungi la prossima gara';return;}const days=Math.max(0,model.daysBetween(localDate(),current.date));name.textContent=current.name;summary.textContent=[current.target||null,days===0?'oggi':days===1?'domani':`${days} giorni`].filter(Boolean).join(' · ');
+  }
+  function renderKeySessions(items){
+    const holder=document.getElementById('goal-key-sessions');if(!items.length){holder.innerHTML='<div class="goal-empty-list">Nessuna seduta essenziale futura collegata al piano.</div>';return;}
+    holder.innerHTML=items.map(item=>`<div class="goal-list-item">${dateBox(item.date)}<div class="goal-list-item-copy"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.planImport?.phase||model.typeLabels[item.category]||item.category)} · ${item.durationMin} min${Number(item.details?.distanceKm)>0?` · ${Number(item.details.distanceKm)} km`:''}</span></div><span class="goal-priority ${item.priority==='essential'?'A':'B'}">${item.priority==='essential'?'KEY':'IMP'}</span></div>`).join('');
+  }
+  function renderUpcoming(current,items){
+    const holder=document.getElementById('goal-upcoming-list');if(!items.length){holder.innerHTML='<div class="goal-empty-list">Nessun altro appuntamento inserito.</div>';return;}
+    holder.innerHTML=items.map(item=>`<div class="goal-list-item">${dateBox(item.date)}<div class="goal-list-item-copy"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(model.typeLabels[item.type]||'Obiettivo')}${item.target?` · ${escapeHtml(item.target)}`:''}</span></div><button class="goal-list-action" type="button" data-edit-goal="${escapeHtml(item.id)}">Modifica</button></div>`).join('');
+  }
+  function renderAttention(items){
+    const panel=document.getElementById('goal-attention-panel'),holder=document.getElementById('goal-attention-list');panel.hidden=!items.length;if(!items.length){holder.replaceChildren();return;}holder.innerHTML=items.map(item=>`<div class="goal-list-item">${dateBox(item.date)}<div class="goal-list-item-copy"><strong>${escapeHtml(item.name)}</strong><span>La gara non viene archiviata finché non registri esplicitamente il risultato.</span></div><button class="primary small" type="button" data-result-goal="${escapeHtml(item.id)}">Registra risultato</button></div>`).join('');
+  }
+  function renderHistory(items){
+    const holder=document.getElementById('goal-history-list');if(!items.length){holder.innerHTML='<div class="goal-empty-list">Lo storico si costruirà dopo la prima gara conclusa.</div>';return;}holder.innerHTML=items.map(item=>`<button class="goal-history-card" type="button" data-edit-goal="${escapeHtml(item.id)}"><span><small>${escapeHtml(formatDate(item.date))} · ${item.status==='cancelled'?'ANNULLATA':'COMPLETATA'}</small><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.target||model.typeLabels[item.type]||'')}</span></span><span class="goal-history-result">${escapeHtml(item.result||'Nessun risultato inserito')}</span></button>`).join('');
+  }
+  function render(){
+    goals=read();const classified=model.classifyGoals(goals,localDate()),current=classified.current,dashboard=model.goalDashboard(current,sessions(),localDate());renderSidebar(current);renderAttention(classified.awaitingResult);renderHistory(classified.history);
+    document.getElementById('goal-empty').hidden=Boolean(current);document.getElementById('goal-content').hidden=!current;if(!current)return;
+    document.getElementById('goal-current-priority').textContent=`PRIORITÀ ${current.priority}`;document.getElementById('goal-current-type').textContent=(model.typeLabels[current.type]||current.type).toUpperCase();document.getElementById('goal-current-name').textContent=current.name;document.getElementById('goal-current-target').textContent=current.target||'Nessun target specifico';document.getElementById('goal-countdown-days').textContent=dashboard.days;document.getElementById('goal-countdown-label').textContent=dashboard.days===0?'GARA OGGI':dashboard.days===1?'GIORNO ALLA GARA':'GIORNI ALLA GARA';document.getElementById('goal-current-date').textContent=formatDate(current.date,{weekday:'long',day:'numeric',month:'long',year:'numeric'});document.getElementById('goal-weeks').textContent=dashboard.weeks;
+    document.getElementById('goal-phase').textContent=dashboard.phase?.label||'—';document.getElementById('goal-phase-note').textContent=dashboard.phase?`Settimana ${dashboard.phase.week} · ${dashboard.phase.weekLabel}`:'Nessuna fase collegata';document.getElementById('goal-week-sessions').textContent=`${dashboard.week.completed}/${dashboard.week.sessions}`;document.getElementById('goal-week-note').textContent=dashboard.week.sessions?'sedute svolte nella settimana':'Nessuna seduta attiva';document.getElementById('goal-week-km').textContent=dashboard.week.plannedKm?`${dashboard.week.plannedKm} km`:'—';document.getElementById('goal-week-km-note').textContent=dashboard.week.distanceKnown?`${dashboard.week.actualKm} km registrati finora`:'distanza prevista dal piano';renderKeySessions(dashboard.keySessions);renderUpcoming(current,classified.upcoming);
+  }
+
+  form.elements.status.addEventListener('change',toggleResult);form.addEventListener('submit',event=>{event.preventDefault();if(!form.reportValidity())return;const existing=goals.find(item=>item.id===form.elements.id.value),stamp=new Date().toISOString();const goal={id:existing?.id||goalId(),name:form.elements.name.value.trim(),type:form.elements.type.value,date:form.elements.date.value,dateAuthority:'manual',priority:form.elements.priority.value,status:form.elements.status.value,target:form.elements.target.value.trim(),result:form.elements.status.value==='completed'?form.elements.result.value.trim():'',notes:form.elements.notes.value.trim(),createdAt:existing?.createdAt||stamp,updatedAt:stamp,...(existing?.inferredFromSessionId?{inferredFromSessionId:existing.inferredFromSessionId}:{})};const next=existing?goals.map(item=>item.id===goal.id?goal:item):[...goals,goal];save(next,existing?'goal-updated':'goal-created');if(goal.status==='planned')window.rcSessions?.syncGoalSession?.(goal,{authoritativeDate:true});close();toast();});
+  document.getElementById('goal-delete').addEventListener('click',()=>{const id=form.elements.id.value,goal=goals.find(item=>item.id===id);if(!goal||!window.confirm(`Eliminare “${goal.name}”? L’eventuale seduta calendario creata automaticamente verrà rimossa; una registrazione già compilata resterà nello storico.`))return;window.rcSessions?.removeGoalSession?.(id);save(goals.filter(item=>item.id!==id),'goal-deleted');close();toast('Obiettivo eliminato');});
+  document.getElementById('add-goal').addEventListener('click',()=>open());document.getElementById('goal-empty-add').addEventListener('click',()=>open());document.getElementById('edit-current-goal').addEventListener('click',()=>{const current=model.classifyGoals(goals,localDate()).current;if(current)open(current);});document.getElementById('goal-close').addEventListener('click',close);document.getElementById('goal-cancel').addEventListener('click',close);document.getElementById('sidebar-goal').addEventListener('click',()=>window.rcNavigation?.show('goals'));
+  document.getElementById('goals').addEventListener('click',event=>{const edit=event.target.closest('[data-edit-goal]'),result=event.target.closest('[data-result-goal]');if(edit){const goal=goals.find(item=>item.id===edit.dataset.editGoal);if(goal)open(goal);}else if(result){const goal=goals.find(item=>item.id===result.dataset.resultGoal);if(goal)open(goal,true);}});
+  document.addEventListener('rc:sessions-updated',event=>{if(event.detail?.reason==='excel-plan-imported')ensureInferredGoal();synchronizeGoalDates();render();});document.addEventListener('rc:data-restored',()=>{ensureInferredGoal();synchronizeGoalDates();synchronizeGoalSessions();render();});document.addEventListener('rc:view-changed',event=>{if(event.detail?.view==='goals')render();});
+  window.rcGoals={getAll:()=>structuredClone(goals),open,render};ensureInferredGoal();synchronizeGoalDates();synchronizeGoalSessions();render();
+})();

@@ -1,0 +1,82 @@
+.crop-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  padding: 24px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(1, 6, 14, .86);
+  backdrop-filter: blur(8px);
+}
+
+.crop-modal.open { display: flex; }
+
+.crop-dialog {
+  width: min(540px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #0e1a2c;
+  box-shadow: 0 30px 80px #000;
+}
+
+.icon-button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 27px;
+  cursor: pointer;
+}
+
+.crop-preview {
+  position: relative;
+  width: min(420px, 100%);
+  aspect-ratio: 1;
+  margin: 20px auto;
+  overflow: hidden;
+  background: #050b15;
+}
+
+.crop-preview canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+.crop-preview canvas.dragging { cursor: grabbing; }
+.crop-preview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 80px rgba(1, 6, 14, .72);
+}
+
+.crop-ring {
+  position: absolute;
+  z-index: 2;
+  inset: 80px;
+  border: 2px solid white;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.crop-controls { display: grid; gap: 11px; }
+.crop-controls label {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+.crop-controls input { accent-color: var(--blue); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+@media (max-width: 560px) {
+  .crop-preview::after { box-shadow: inset 0 0 0 58px rgba(1, 6, 14, .72); }
+  .crop-ring { inset: 58px; }
+}
