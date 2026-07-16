@@ -96,9 +96,9 @@
     const readinessUsable=Boolean(input.readiness&&(input.readiness.recovery?.usable||input.readiness.sleep?.usable||input.readiness.confidence));
     return[
       {key:'session',label:'Oggi / sessione',purpose:'Prontezza e contesto immediato',state:readinessUsable?'used':'missing',summary:readinessUsable?'Segnali recenti disponibili':'Nessun segnale recente utilizzabile'},
-      {key:'acute',label:'7 giorni',purpose:'Carico acuto ed esecuzione',state:input.windows?.acute?.runs?'used':'sparse',summary:windowSummary(input.windows?.acute)},
-      {key:'mesocycle',label:'28 giorni',purpose:'Trend operativo del mesociclo',state:input.windows?.mesocycle?.runs?'used':'sparse',summary:windowSummary(input.windows?.mesocycle||input.observed)},
-      {key:'chronic',label:'84 giorni',purpose:'Robustezza e tendenza di fondo',state:input.windows?.chronic?.runs?'used':'sparse',summary:windowSummary(input.windows?.chronic)},
+      {key:'acute',label:'7 giorni',purpose:'Corsa osservata recente',state:input.windows?.acute?.runs?'used':'sparse',summary:windowSummary(input.windows?.acute)},
+      {key:'mesocycle',label:'28 giorni',purpose:'Baseline running operativa',state:input.windows?.mesocycle?.runs?'used':'sparse',summary:windowSummary(input.windows?.mesocycle||input.observed)},
+      {key:'chronic',label:'84 giorni',purpose:'Tendenza running di fondo',state:input.windows?.chronic?.runs?'used':'sparse',summary:windowSummary(input.windows?.chronic)},
       {key:'goal',label:'Orizzonte obiettivo',purpose:'Fase e specificità gara',state:input.goal?.date?'used':'missing',summary:input.phase?`${input.phase.label} · ${input.phase.days} giorni`:'Obiettivo non datato'}
     ];
   }
