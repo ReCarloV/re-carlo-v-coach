@@ -197,7 +197,7 @@
       const events=document.createElement('div');events.className='calendar-events';
       items.forEach(session=>{
         const meta=categoryMeta[session.category],outcome=session.outcome,paused=isPaused(session),evidence=!paused?currentEvidenceIndex.get(session.id):null,status=outcome?outcomeMeta[outcome.status]:paused?pausedOutcomeMeta:evidence?{label:'Dati collegati',symbol:'◆'}:plannedOutcomeMeta;
-        const movePolicy=planViewModel.calendarMovePolicy(session,calendarMoveOptions(session,evidence));const compactCalendar=window.matchMedia?.('(max-width: 620px)').matches;const movable=movePolicy.allowed&&!selectionMode&&!compactCalendar;const selected=selectedIds.has(String(session.id));const button=document.createElement('button');button.type='button';button.className=`calendar-event ${meta.css} priority-${session.priority} outcome-${outcome?.status||(paused?'paused':evidence?'observed':'planned')}${selectionMode?' selection-mode':''}${selected?' selected':''}${movable?' calendar-event-movable':' calendar-event-locked'}`;button.dataset.sessionId=session.id;button.dataset.sessionDate=session.date;button.draggable=false;
+        const movePolicy=planViewModel.calendarMovePolicy(session,calendarMoveOptions(session,evidence));const compactCalendar=window.matchMedia?.('(max-width: 620px) and (orientation: portrait)').matches;const movable=movePolicy.allowed&&!selectionMode&&!compactCalendar;const selected=selectedIds.has(String(session.id));const button=document.createElement('button');button.type='button';button.className=`calendar-event ${meta.css} priority-${session.priority} outcome-${outcome?.status||(paused?'paused':evidence?'observed':'planned')}${selectionMode?' selection-mode':''}${selected?' selected':''}${movable?' calendar-event-movable':' calendar-event-locked'}`;button.dataset.sessionId=session.id;button.dataset.sessionDate=session.date;button.draggable=false;
         if(evidence)button.classList.add('has-observed-data');
         button.title=`${session.title} · ${outcome?outcomeSummary(session):targetText(session)} · ${movePolicy.message}`;
         button.setAttribute('aria-label',`${session.title}, ${date.toLocaleDateString('it-IT')}, ${status.label}${evidence?`, dati ${evidenceSourceLabel(evidence)} collegati`:''}${movable?', trascinabile su un altro giorno':''}`);
@@ -217,7 +217,7 @@
     document.getElementById('plan-calendar').hidden=!isCalendar;
     document.getElementById('calendar-status-legend').hidden=!isCalendar;
     document.getElementById('calendar-navigation').hidden=false;
-    const dragHelp=document.querySelector('.calendar-drag-help');if(dragHelp)dragHelp.textContent=window.matchMedia?.('(max-width: 620px)').matches?'Tocca una seduta per aprirla':'↔ Trascina le sedute programmate per cambiare giorno';
+    const dragHelp=document.querySelector('.calendar-drag-help');if(dragHelp)dragHelp.textContent=window.matchMedia?.('(max-width: 620px) and (orientation: portrait)').matches?'Tocca un indicatore per aprire la seduta':'↔ Trascina le sedute programmate per cambiare giorno';
     document.querySelectorAll('[data-plan-view]').forEach(button=>{const active=button.dataset.planView===planView;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
     if(isCalendar)renderCalendar();
   }

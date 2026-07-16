@@ -21,3 +21,46 @@
   input,select,textarea{font-size:16px!important}
 }
 @media(max-width:390px){.metrics{grid-template-columns:1fr}.nav:after{font-size:8px}.nav:before{font-size:15px}.cloud-sync-copy{align-items:flex-start}}
+
+/* Portrait phone calendar: compact month overview. Landscape keeps full cards and drag/drop. */
+@media(max-width:620px) and (orientation:portrait){
+  .plan-calendar{margin:0;overflow:hidden}
+  .plan-calendar .calendar-weekdays,.plan-calendar .calendar-grid{width:100%;min-width:0}
+  .calendar-weekdays span{padding:7px 0;font-size:8px}
+  .calendar-day{min-height:70px;padding:3px}
+  .calendar-day-head{min-height:20px;margin-bottom:2px}
+  .calendar-day-number{width:20px;height:20px;font-size:9px}
+  .calendar-day-count{display:none}
+  .calendar-events{display:flex;align-items:center;align-content:flex-start;gap:3px;flex-wrap:wrap}
+  .calendar-event,.calendar-event[class*="outcome-"]{
+    position:relative;display:grid;width:28px;height:28px;min-height:28px;flex:0 0 28px;
+    place-items:center;padding:0;border:1px solid #36516f;border-radius:50%;
+    background:#11243a;box-shadow:inset 0 0 0 2px #55749f
+  }
+  .calendar-event.priority-essential{background:#11243a;box-shadow:inset 0 0 0 2px #ff6678}
+  .calendar-event.priority-important{background:#11243a;box-shadow:inset 0 0 0 2px #ffba63}
+  .calendar-event.priority-optional{background:#11243a;box-shadow:inset 0 0 0 2px #7f98b8}
+  .calendar-event>*{display:none}
+  .calendar-event-title{display:none!important}
+  .calendar-event::before{content:'';display:block;width:8px;height:8px;border-radius:50%;background:#86b8ff}
+  .calendar-event.strength::before{background:#ff9f76}
+  .calendar-event.bike::before{background:#7cdbc2}
+  .calendar-event.hyrox::before,.calendar-event.metcon::before{background:#d69cff}
+  .calendar-event.test::before{background:#ffd46d}
+  .calendar-event[class*="outcome-"]::after{
+    content:'';position:absolute;top:-1px;right:-1px;width:7px;height:7px;border:2px solid #07101d;border-radius:50%
+  }
+  .calendar-race-marker{
+    display:grid;width:28px;height:28px;min-height:28px;padding:0;border:1px solid #c28a42;
+    border-radius:50%;place-items:center;background:#3b2a16
+  }
+  .calendar-race-marker>*{display:none}
+  .calendar-race-marker::before{content:'⚑';display:block;color:#f4c879;font-size:12px;line-height:1}
+  .today-whoop-rings{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;overflow:visible}
+  .today-whoop-dial{width:72px;height:72px}
+  .today-whoop-dial:before{inset:7px}
+  .today-whoop-dial strong{font-size:14px}
+  .today-whoop-ring>span{font-size:8px;letter-spacing:.04em}
+}
+
+@media(hover:none) and (pointer:coarse){.today-whoop-refresh{display:none}}
