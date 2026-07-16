@@ -115,6 +115,7 @@
     document.getElementById('pre-checkin-submit').textContent='Aggiorna valutazione';toast();document.dispatchEvent(new CustomEvent('rc:pre-checkin-updated',{detail:{id:activeCheckin.id,sessionId:activeCheckin.sessionId,sessionDate:activeCheckin.sessionDate}}));
   });
   document.addEventListener('rc:body-issues-updated',()=>{if(preModal.classList.contains('open'))renderIssueInputs(activeCheckin?.issueReadings||[]);});
+  window.addEventListener('rc:data-restored',()=>{activeSession=null;activeCheckin=null;renderWeekly();renderIssueInputs();});
   window.rcCheckins={openPre,openWeekly,getHistory:()=>structuredClone(parse(PRE_KEY,[])),getAvailabilityHistory:()=>structuredClone(parse(WEEKLY_HISTORY_KEY,[])),today:sessionId=>structuredClone(todayCheckins(sessionId))};
   renderWeekly();renderIssueInputs();
 })();

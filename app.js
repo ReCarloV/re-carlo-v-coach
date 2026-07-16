@@ -39,9 +39,9 @@ if(dataHealth.warnings?.length){
 
 function toast() { const el = document.getElementById('toast'); el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1800); }
 
-const photo = localStorage.getItem('rc-profile-photo');
-function showPhoto(src) { if (!src) return; const img = document.getElementById('avatar-image'); img.src = src; img.style.display = 'block'; document.getElementById('avatar-placeholder').style.display = 'none'; }
-showPhoto(photo);
+function showPhoto(src) { const img = document.getElementById('avatar-image'),placeholder=document.getElementById('avatar-placeholder');if(!src){img.removeAttribute('src');img.style.display='none';placeholder.style.display='';return;}img.src=src;img.style.display='block';placeholder.style.display='none'; }
+showPhoto(localStorage.getItem('rc-profile-photo'));
+window.addEventListener('rc:data-restored',()=>showPhoto(localStorage.getItem('rc-profile-photo')));
 const cropModal = document.getElementById('crop-modal');
 const cropCanvas = document.getElementById('crop-canvas');
 const cropContext = cropCanvas.getContext('2d');

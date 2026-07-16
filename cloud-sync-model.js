@@ -35,6 +35,18 @@
     };
   }
 
+  function planRemoteAcceptance(input={}){
+    const remoteRevision=Number(input.remoteRevision);
+    const remoteFingerprint=fingerprintSnapshot(input.remoteSnapshot);
+    const restoredFingerprint=fingerprintSnapshot(input.restoredSnapshot);
+    return{
+      revision:Number.isFinite(remoteRevision)?remoteRevision:null,
+      remoteFingerprint,
+      restoredFingerprint,
+      requiresCloudRewrite:remoteFingerprint!==restoredFingerprint
+    };
+  }
+
   function decideSync(input={}){
     const local=String(input.localFingerprint||'');
     const remote=input.remoteFingerprint===null||input.remoteFingerprint===undefined?null:String(input.remoteFingerprint);
@@ -52,5 +64,5 @@
 
   function safeDeviceName(value){return String(value||'Dispositivo').replace(/[<>]/g,'').trim().slice(0,60)||'Dispositivo';}
 
-  return{stable,sameData,fnv1a,fingerprintSnapshot,snapshotSummary,decideSync,safeDeviceName};
+  return{stable,sameData,fnv1a,fingerprintSnapshot,snapshotSummary,planRemoteAcceptance,decideSync,safeDeviceName};
 });

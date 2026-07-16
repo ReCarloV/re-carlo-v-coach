@@ -52,19 +52,30 @@
   }
   async function fetchRemoteResilient(){try{return await fetchRemote();}catch(error){if(!navigator.onLine)throw error;await new Promise(resolve=>setTimeout(resolve,450));return fetchRemote();}}
 
+  async function persistSnapshot(current,expectedRevision){
+      const currentFingerprint=fingerprint(current);const{data,error}=await client.rpc('push_athlete_snapshot',{expected_revision:Number(expectedRevision)||0,snapshot:current,source_device:deviceName});if(error)throw error;
+      const result=Array.isArray(data)?data[0]:data;if(!result||result.status!=='saved'){await fetchRemote();setMode('conflict');return false;}
+      remote={revision:Number(result.revision),payload:current,device_name:deviceName,updated_at:result.updated_at};baseRevision=remote.revision;baseFingerprint=currentFingerprint;lastSyncAt=result.updated_at||new Date().toISOString();return true;
+  }
+
   async function pushCurrent(expectedRevision){
     if(busy)return false;busy=true;render();
     try{
-      const current=snapshot(),currentFingerprint=fingerprint(current);const{data,error}=await client.rpc('push_athlete_snapshot',{expected_revision:Number(expectedRevision)||0,snapshot:current,source_device:deviceName});if(error)throw error;
-      const result=Array.isArray(data)?data[0]:data;if(!result||result.status!=='saved'){await fetchRemote();setMode('conflict');return false;}
-      remote={revision:Number(result.revision),payload:current,device_name:deviceName,updated_at:result.updated_at};baseRevision=remote.revision;baseFingerprint=currentFingerprint;lastSyncAt=result.updated_at||new Date().toISOString();setMode('synced');return true;
+      const saved=await persistSnapshot(snapshot(),expectedRevision);if(saved)setMode('synced');return saved;
     }catch(error){detail.textContent=error?.message||'Non è stato possibile salvare la copia cloud.';setMode(navigator.onLine?'error':'offline');return false;}
     finally{busy=false;render();}
   }
 
   async function applyRemote(){
     if(!remote?.payload)return false;
-    store.inspectBackup(remote.payload);store.restoreBackup(remote.payload);baseRevision=Number(remote.revision);baseFingerprint=fingerprint(remote.payload);lastSyncAt=remote.updated_at||new Date().toISOString();setMode('synced');setTimeout(()=>window.location.reload(),120);return true;
+    const accepted={...remote};store.inspectBackup(accepted.payload);store.restoreBackup(accepted.payload);
+    const restored=snapshot(),plan=model.planRemoteAcceptance({remoteSnapshot:accepted.payload,restoredSnapshot:restored,remoteRevision:accepted.revision});
+    if(plan.requiresCloudRewrite){
+      const saved=await persistSnapshot(restored,accepted.revision);if(!saved)return false;
+    }else{
+      remote={...accepted,payload:restored};baseRevision=plan.revision;baseFingerprint=plan.restoredFingerprint;lastSyncAt=accepted.updated_at||new Date().toISOString();
+    }
+    setMode('synced');return true;
   }
 
   async function reconcile(){
@@ -112,8 +123,11 @@
     if(data.session){user=data.user;closeModal();await reconcile();}else authStatus.textContent='Account creato. Controlla l’email di conferma, poi torna qui e premi Accedi.';
   });
   document.getElementById('cloud-use-remote').addEventListener('click',async()=>{
-    if(!remote||!window.confirm('Usare la copia cloud su questo dispositivo? Prima verrà esportato un backup completo della copia locale.'))return;
-    try{store.downloadBackup();}catch(_){}closeModal();await applyRemote();
+    if(!remote||!window.confirm('Usare la copia cloud su questo dispositivo? La copia locale attuale verrà sostituita.'))return;
+    closeModal();busy=true;render();
+    try{await applyRemote();}
+    catch(error){detail.textContent=error?.message||'Non è stato possibile applicare la copia cloud.';setMode(navigator.onLine?'error':'offline');}
+    finally{busy=false;render();}
   });
   document.getElementById('cloud-use-local').addEventListener('click',async()=>{
     if(!remote||!window.confirm('Usare la copia di questo dispositivo come principale? La copia cloud attuale verrà prima scaricata come backup.'))return;

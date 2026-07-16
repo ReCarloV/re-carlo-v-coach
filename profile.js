@@ -300,6 +300,7 @@
 
   document.addEventListener('rc:sessions-updated',renderStrengthMaxes);
   document.addEventListener('rc:whoop-updated',event=>syncWhoopMetrics(event.detail||{}));
+  window.addEventListener('rc:data-restored',()=>{athlete=loadProfile();renderProfile();syncWhoopMetrics();});
 
   if(!(window.rcDataStore?.health?.().warnings||[]).includes('profile')){
     let storedProfile=null;
