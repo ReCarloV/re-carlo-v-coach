@@ -37,7 +37,7 @@ if(dataHealth.warnings?.length){
   const status=document.getElementById('local-data-status');status.classList.add('warning');status.querySelector('span').textContent='Dati da verificare';
 }
 
-function toast() { const el = document.getElementById('toast'); el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1800); }
+function toast(message='Salvato sul dispositivo') { const el = document.getElementById('toast'); el.textContent=message;el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1800); }
 
 function showPhoto(src) { const img = document.getElementById('avatar-image'),placeholder=document.getElementById('avatar-placeholder');if(!src){img.removeAttribute('src');img.style.display='none';placeholder.style.display='';return;}img.src=src;img.style.display='block';placeholder.style.display='none'; }
 showPhoto(localStorage.getItem('rc-profile-photo'));
