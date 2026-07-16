@@ -1,8 +1,18 @@
 const views = { today: 'Oggi', goals:'Obiettivi e gare', plan: 'Piano adattivo', recap:'Recap settimanale', profile: 'Il tuo profilo atleta', data:'Dati di allenamento' };
+const transientDialogIds = [
+  '#weekly-checkin-modal','#pre-checkin-modal','#generator-modal','#session-modal','#outcome-modal',
+  '#goal-modal','#profile-modal','#pb-modal','#selector-modal','#whoop-setup-modal','#cloud-sync-modal','#crop-modal'
+];
+const transientDialogSelector=transientDialogIds.join(','),openDialogSelector=transientDialogIds.map(id=>`${id}.open`).join(',');
+function syncDialogLayer(){document.body.classList.toggle('dialog-open',Boolean(document.querySelector(openDialogSelector)));}
+function closeTransientDialogs(){document.querySelectorAll(openDialogSelector).forEach(dialog=>{dialog.classList.remove('open');dialog.setAttribute('aria-hidden','true');});syncDialogLayer();}
+document.querySelectorAll(transientDialogSelector).forEach(dialog=>new MutationObserver(syncDialogLayer).observe(dialog,{attributes:true,attributeFilter:['class']}));
+document.addEventListener('keydown',event=>{if(event.key==='Escape')closeTransientDialogs();});
 function showView(name) {
   const button = document.querySelector(`.nav[data-view="${name}"]`);
   const view = document.getElementById(name);
   if (!button || !view) return;
+  closeTransientDialogs();
   document.querySelectorAll('.nav, .view').forEach(el => el.classList.remove('active'));
   button.classList.add('active');
   view.classList.add('active');
@@ -13,6 +23,7 @@ function showView(name) {
 document.querySelectorAll('.nav').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
 window.rcNavigation = {
   show:showView,
+  closeDialogs:closeTransientDialogs,
   setTitle:(name,title)=>{views[name]=title;if(document.getElementById(name)?.classList.contains('active'))document.getElementById('page-title').textContent=title;},
   active:()=>document.querySelector('.view.active')?.id || 'today'
 };

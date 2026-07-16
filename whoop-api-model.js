@@ -13,6 +13,10 @@
   const rounded=(value,digits=2)=>value===null?null:+Number(value).toFixed(digits);
   const millisToMinutes=value=>{const parsed=number(value);return parsed===null?null:rounded(parsed/60000);};
   const offsetMinutes=value=>{const match=/^([+-])(\d{2}):(\d{2})$/.exec(String(value||''));if(!match)return 0;const total=(Number(match[2])*60)+Number(match[3]);return match[1]==='-'?-total:total;};
+  function isAppleMobileDevice(device={}){
+    const userAgent=String(device.userAgent||'');const platform=String(device.platform||'');const touchPoints=Number(device.maxTouchPoints)||0;
+    return /iphone|ipad|ipod/i.test(userAgent)||(/macintosh/i.test(userAgent)&&platform==='MacIntel'&&touchPoints>1);
+  }
   function localTimestamp(value,offset='+00:00'){
     const timestamp=Date.parse(String(value||''));
     if(!Number.isFinite(timestamp))return null;
@@ -63,5 +67,5 @@
     return {batch,records:incoming,addedCount,updatedCount,unchangedCount:duplicates};
   }
 
-  return{localTimestamp,normalizeSleep,normalizeWorkout,normalizeWhoopApiPayload,buildWhoopApiSync};
+  return{isAppleMobileDevice,localTimestamp,normalizeSleep,normalizeWorkout,normalizeWhoopApiPayload,buildWhoopApiSync};
 });

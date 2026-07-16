@@ -50,6 +50,7 @@
     if(data?.payload)store.inspectBackup(data.payload);
     remote=data||null;return remote;
   }
+  async function fetchRemoteResilient(){try{return await fetchRemote();}catch(error){if(!navigator.onLine)throw error;await new Promise(resolve=>setTimeout(resolve,450));return fetchRemote();}}
 
   async function pushCurrent(expectedRevision){
     if(busy)return false;busy=true;render();
@@ -71,7 +72,7 @@
     if(!navigator.onLine){setMode('offline');return;}
     busy=true;render();
     try{
-      await fetchRemote();const localFingerprint=fingerprint();const remoteFingerprint=remote?fingerprint(remote.payload):null;
+      await fetchRemoteResilient();const localFingerprint=fingerprint();const remoteFingerprint=remote?fingerprint(remote.payload):null;
       const decision=model.decideSync({localFingerprint,remoteFingerprint,remoteRevision:remote?.revision??null,baseRevision,baseFingerprint});
       if(decision.action==='in-sync'){baseRevision=Number(remote.revision);baseFingerprint=localFingerprint;lastSyncAt=remote.updated_at||new Date().toISOString();setMode('synced');}
       else if(decision.action==='upload'&&decision.reason==='cloud-empty')setMode('first-upload');
