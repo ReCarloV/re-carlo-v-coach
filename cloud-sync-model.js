@@ -47,6 +47,16 @@
     };
   }
 
+  const localMutationEvents=new Set([
+    'rc:sessions-updated','rc:goals-updated','rc:profile-updated','rc:body-issues-updated',
+    'rc:pre-checkin-updated','rc:weekly-checkin-updated','rc:weekly-availability-history-updated',
+    'rc:whoop-updated','rc:reconciliation-updated'
+  ]);
+  function shouldQueueLocalSync(eventName,detail={}){
+    if(localMutationEvents.has(String(eventName||'')))return true;
+    return eventName==='rc:data-restored'&&Boolean(detail&&typeof detail==='object'&&detail.type);
+  }
+
   function decideSync(input={}){
     const local=String(input.localFingerprint||'');
     const remote=input.remoteFingerprint===null||input.remoteFingerprint===undefined?null:String(input.remoteFingerprint);
@@ -64,5 +74,5 @@
 
   function safeDeviceName(value){return String(value||'Dispositivo').replace(/[<>]/g,'').trim().slice(0,60)||'Dispositivo';}
 
-  return{stable,sameData,fnv1a,fingerprintSnapshot,snapshotSummary,planRemoteAcceptance,decideSync,safeDeviceName};
+  return{stable,sameData,fnv1a,fingerprintSnapshot,snapshotSummary,planRemoteAcceptance,shouldQueueLocalSync,decideSync,safeDeviceName};
 });

@@ -6,14 +6,14 @@
   const modal=document.getElementById('cloud-sync-modal'),authView=document.getElementById('cloud-auth-view'),choiceView=document.getElementById('cloud-choice-view'),authForm=document.getElementById('cloud-auth-form'),authStatus=document.getElementById('cloud-auth-status');
   const configured=/^https:\/\/[^/]+\.supabase\.co\/?$/.test(String(config.supabaseUrl||''))&&String(config.supabasePublishableKey||'').length>20;
   const deviceName=model.safeDeviceName(/iphone|ipad|ipod/i.test(navigator.userAgent)?'iPhone personale':/macintosh/i.test(navigator.userAgent)?'Mac personale':'Dispositivo personale');
-  let client=null,user=null,remote=null,baseRevision=null,baseFingerprint=null,mode=configured?'signed-out':'not-configured',busy=false,lastSyncAt=null,timer=null;
+  let client=null,user=null,remote=null,baseRevision=null,baseFingerprint=null,mode=configured?'signed-out':'not-configured',busy=false,lastSyncAt=null,timer=null,localSyncTimer=null,pendingLocalChange=false;
 
   function snapshot(){return store.createSnapshot();}
   function fingerprint(value=snapshot()){return model.fingerprintSnapshot(value);}
   function formatTime(value){return value?new Date(value).toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';}
   function setHeader(className,text){headerStatus.classList.remove('synced','pending','error','conflict');if(className)headerStatus.classList.add(className);headerStatus.querySelector('span').textContent=text;}
   function setMode(next,message){mode=next;if(message)detail.textContent=message;render();document.dispatchEvent(new CustomEvent('rc:cloud-sync-state',{detail:publicState()}));}
-  function publicState(){return{configured,user:Boolean(user),mode,busy,revision:baseRevision,lastSyncAt,deviceName};}
+  function publicState(){return{configured,user:Boolean(user),mode,busy,pendingLocalChange,revision:baseRevision,lastSyncAt,deviceName};}
   function render(){
     panel.classList.remove('synced','pending','error','conflict');primary.hidden=false;primary.disabled=busy;syncNow.hidden=true;syncNow.disabled=busy;signout.hidden=!user;
     if(!configured){panel.classList.add('pending');title.textContent='iPhone · struttura pronta';detail.textContent='Manca soltanto il progetto cloud gratuito. I dati attuali restano esclusivamente sul Mac.';meta.textContent='Nessun dato trasferito';primary.textContent='Configurazione cloud richiesta';setHeader('', 'Dati locali');locationBadge.textContent='Solo su questo dispositivo';return;}
@@ -23,6 +23,7 @@
     if(mode==='choose'||mode==='conflict'){panel.classList.add('conflict');title.textContent=mode==='conflict'?'Modifiche da confrontare':'Scegli la copia iniziale';detail.textContent=mode==='conflict'?'Mac e cloud sono cambiati separatamente. Nessun dato verrà sovrascritto automaticamente.':'Su questo dispositivo e nel cloud sono presenti copie diverse.';meta.textContent=`Revisione cloud ${remote?.revision||'—'} · controllo richiesto`;primary.textContent='Confronta le copie';setHeader('conflict','Scelta richiesta');return;}
     if(mode==='error'){panel.classList.add('error');title.textContent='Sincronizzazione non disponibile';meta.textContent=navigator.onLine?'Controlla configurazione e account':'Questo dispositivo è offline';primary.textContent='Riprova';syncNow.hidden=false;setHeader('error','Sync non disponibile');return;}
     if(mode==='offline'){panel.classList.add('pending');title.textContent='Offline · dati salvati sul dispositivo';detail.textContent='Puoi continuare a usare l’app. Le modifiche verranno sincronizzate quando torna la connessione.';meta.textContent=`Ultima sincronizzazione ${formatTime(lastSyncAt)}`;primary.hidden=true;syncNow.hidden=false;setHeader('pending','Offline');return;}
+    if(mode==='local-pending'){panel.classList.add('pending');title.textContent='Salvataggio nel cloud…';detail.textContent='La modifica è già salvata su questo dispositivo e sta raggiungendo la copia condivisa.';meta.textContent=`${deviceName} · sincronizzazione automatica`;primary.hidden=true;syncNow.hidden=true;setHeader('pending','Salvo nel cloud…');return;}
     panel.classList.add('synced');title.textContent=busy?'Sincronizzazione in corso…':'Mac e iPhone sincronizzati';detail.textContent='Piano, check-in, profilo e dati osservati usano una sola copia condivisa, mantenendo il funzionamento offline.';meta.textContent=`${user.email||'Account personale'} · rev. ${baseRevision||'—'} · ${formatTime(lastSyncAt||remote?.updated_at)}`;primary.hidden=true;syncNow.hidden=false;setHeader('synced',busy?'Sincronizzo…':'Cloud sincronizzato');
   }
 
@@ -95,6 +96,18 @@
     finally{busy=false;render();}
   }
 
+  function scheduleLocalSync(event){
+    if(!model.shouldQueueLocalSync(event?.type,event?.detail)||!user||['choose','conflict','first-upload','signed-out'].includes(mode))return;
+    pendingLocalChange=true;clearTimeout(localSyncTimer);
+    if(!navigator.onLine){setMode('offline');return;}
+    setMode('local-pending');localSyncTimer=setTimeout(flushLocalSync,180);
+  }
+  async function flushLocalSync(){
+    clearTimeout(localSyncTimer);localSyncTimer=null;if(!pendingLocalChange||!user)return;
+    if(busy){localSyncTimer=setTimeout(flushLocalSync,250);return;}
+    pendingLocalChange=false;await reconcile();
+  }
+
   async function connectSession(){
     const{data,error}=await client.auth.getSession();if(error)throw error;user=data.session?.user||null;
     if(user){setMode('pending');await reconcile();}else setMode('signed-out');
@@ -134,8 +147,9 @@
     downloadSnapshot(remote.payload,'backup-copia-cloud');closeModal();await pushCurrent(remote.revision);
   });
 
-  window.addEventListener('online',reconcile);window.addEventListener('offline',()=>{if(user)setMode('offline');});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&user)reconcile();});
-  window.rcCloudSync={state:publicState,reconcile,show:()=>user&&(mode==='choose'||mode==='conflict')?showChoice():openModal('auth')};
+  ['rc:sessions-updated','rc:goals-updated','rc:profile-updated','rc:body-issues-updated','rc:pre-checkin-updated','rc:weekly-checkin-updated','rc:weekly-availability-history-updated','rc:whoop-updated','rc:reconciliation-updated'].forEach(name=>document.addEventListener(name,scheduleLocalSync));window.addEventListener('rc:data-restored',scheduleLocalSync);
+  window.addEventListener('online',()=>pendingLocalChange?flushLocalSync():reconcile());window.addEventListener('offline',()=>{if(user)setMode('offline');});document.addEventListener('visibilitychange',()=>{if(!user)return;if(document.hidden&&pendingLocalChange)flushLocalSync();else if(!document.hidden)pendingLocalChange?flushLocalSync():reconcile();});
+  window.rcCloudSync={state:publicState,reconcile,flush:flushLocalSync,show:()=>user&&(mode==='choose'||mode==='conflict')?showChoice():openModal('auth')};
 
   if(configured&&window.supabase?.createClient){
     client=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});

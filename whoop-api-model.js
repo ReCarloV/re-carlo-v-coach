@@ -17,6 +17,10 @@
     const userAgent=String(device.userAgent||'');const platform=String(device.platform||'');const touchPoints=Number(device.maxTouchPoints)||0;
     return /iphone|ipad|ipod/i.test(userAgent)||(/macintosh/i.test(userAgent)&&platform==='MacIntel'&&touchPoints>1);
   }
+  function isLocalWhoopServiceOrigin(location={}){
+    const hostname=String(location.hostname||'').toLowerCase();
+    return String(location.protocol||'')==='http:'&&['127.0.0.1','localhost'].includes(hostname);
+  }
   function localTimestamp(value,offset='+00:00'){
     const timestamp=Date.parse(String(value||''));
     if(!Number.isFinite(timestamp))return null;
@@ -67,5 +71,5 @@
     return {batch,records:incoming,addedCount,updatedCount,unchangedCount:duplicates};
   }
 
-  return{isAppleMobileDevice,localTimestamp,normalizeSleep,normalizeWorkout,normalizeWhoopApiPayload,buildWhoopApiSync};
+  return{isAppleMobileDevice,isLocalWhoopServiceOrigin,localTimestamp,normalizeSleep,normalizeWorkout,normalizeWhoopApiPayload,buildWhoopApiSync};
 });

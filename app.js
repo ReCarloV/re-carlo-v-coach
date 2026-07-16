@@ -143,5 +143,5 @@ document.getElementById('crop-save').addEventListener('click', () => {
   output.getContext('2d').drawImage(cropCanvas, cropInset, cropInset, cropSize, cropSize, 0, 0, 512, 512);
   const croppedPhoto = output.toDataURL('image/jpeg', .88);
   localStorage.setItem('rc-profile-photo', croppedPhoto);
-  showPhoto(croppedPhoto); closeCrop(); toast();
+  showPhoto(croppedPhoto); closeCrop(); toast();document.dispatchEvent(new CustomEvent('rc:profile-updated',{detail:{reason:'profile-photo-saved'}}));
 });
