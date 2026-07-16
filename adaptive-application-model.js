@@ -9,12 +9,12 @@
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   function stableAnalysis(analysis={}){
     const settings={};settingFields.forEach(field=>{const value=analysis?.settings?.[field];if(value!==undefined)settings[field]=value;});
-    return{level:analysis.level||'steady',settings};
+    const phase=analysis?.phaseConstraints?{version:analysis.phaseConstraints.version||null,goalId:analysis.phaseConstraints.goal?.id||null,phaseKey:analysis.phaseConstraints.phase?.key||null}:null;return{level:analysis.level||'steady',settings,phase};
   }
   function hash(value){let result=2166136261;for(let index=0;index<value.length;index+=1){result^=value.charCodeAt(index);result=Math.imul(result,16777619);}return(result>>>0).toString(16).padStart(8,'0');}
   function signatureFor(analysis={}){return`adaptive-v1-${hash(JSON.stringify(stableAnalysis(analysis)))}`;}
   function markSessions(sessions,analysis,weekStart,now=new Date()){
-    const appliedAt=now instanceof Date?now.toISOString():new Date(now).toISOString();const application={version:1,weekStart,appliedAt,signature:signatureFor(analysis),level:analysis?.level||'steady',confidence:analysis?.confidence||'low'};
+    const appliedAt=now instanceof Date?now.toISOString():new Date(now).toISOString();const phase=analysis?.phaseConstraints?{version:analysis.phaseConstraints.version||null,goalId:analysis.phaseConstraints.goal?.id||null,phaseKey:analysis.phaseConstraints.phase?.key||null,label:analysis.phaseConstraints.phase?.label||null}:null;const application={version:2,weekStart,appliedAt,signature:signatureFor(analysis),level:analysis?.level||'steady',confidence:analysis?.confidence||'low',phase};
     return(Array.isArray(sessions)?sessions:[]).map(session=>({...clone(session),coachApplication:{...application}}));
   }
   function applicationState(sessions,analysis,weekStart){

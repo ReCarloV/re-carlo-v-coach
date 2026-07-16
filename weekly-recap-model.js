@@ -53,7 +53,7 @@
     if(!isPast&&level==='high')level='medium';
     return {level,...confidenceMeta[level],coverage,outcomeCompleteness};
   }
-  function planSuggestion({weekStart,isPast,confidence,analysis,availabilityHistory,weeklyCheckin}){
+  function planSuggestion({weekStart,isPast,confidence,analysis,availabilityHistory,weeklyCheckin,phaseConstraints}){
     const nextWeekStart=addDays(weekStart,7);const exact=(Array.isArray(availabilityHistory)?availabilityHistory:[]).find(item=>item.weekStart===nextWeekStart)||null;
     const source=exact||availabilityFor(availabilityHistory,nextWeekStart,weeklyCheckin);const base=source||{sessions:5,sessionMinutes:60,longRunMinutes:120,days:[]};
     const rawLevel=analysis?.level||'steady';const level=!isPast&&rawLevel==='progress'?'steady':rawLevel;
@@ -66,10 +66,11 @@
       ...rawSettings
     };
     if(level!==rawLevel&&rawLevel==='progress')settings.longFactor=1;
-    const sessions=Math.max(1,Math.min(6,number(base.sessions||5)+number(settings.sessionDelta)));
+    const readinessSessions=Math.max(1,Math.min(6,number(base.sessions||5)+number(settings.sessionDelta))),phaseCap=number(phaseConstraints?.limits?.maxActiveSessions)||6,sessions=Math.min(readinessSessions,phaseCap);
     const sessionMinutes=Math.max(30,roundFive(number(base.sessionMinutes||60)*number(settings.volumeFactor||1)));
-    const longRunMinutes=Math.max(45,roundFive(number(base.longRunMinutes||120)*number(settings.longFactor||1)));
-    const changes=[];
+    const phaseLongFactor=number(phaseConstraints?.generated?.longFactor)||1,longRunMinutes=Math.max(30,roundFive(number(base.longRunMinutes||120)*number(settings.longFactor||1)*phaseLongFactor));
+    const changes=[...(analysis?.phaseDecisionChanges||[])];
+    if(sessions<readinessSessions)changes.push(`La fase ${phaseConstraints.phase.label} limita la proposta a ${sessions} sedute attive.`);
     if(sessions!==number(base.sessions))changes.push(analysis?.organization?.level==='adapt'?`${sessions} sedute suggerite invece di ${base.sessions} per i vincoli organizzativi ripetuti; non è una riduzione attribuita alla fatica.`:`${sessions} sedute suggerite invece di ${base.sessions}.`);
     if(sessionMinutes!==number(base.sessionMinutes))changes.push(`Durata abituale circa ${sessionMinutes} min invece di ${base.sessionMinutes}.`);
     if(longRunMinutes!==number(base.longRunMinutes))changes.push(`Lungo indicativo ${longRunMinutes} min invece di ${base.longRunMinutes}.`);
@@ -80,7 +81,7 @@
     return {
       weekStart:nextWeekStart,level,label:levelMeta[level].title,tone:levelMeta[level].tone,
       provisional:!isPast||confidence.level==='low',availabilityConfirmed:Boolean(exact),source,
-      sessions,sessionMinutes,longRunMinutes,days:Array.isArray(base.days)?base.days:[],weekendLong:base.weekendLong||'maybe',constraints:base.constraints||'',changes
+      sessions,sessionMinutes,longRunMinutes,days:Array.isArray(base.days)?base.days:[],weekendLong:base.weekendLong||'maybe',constraints:base.constraints||'',changes,phaseConstraints:phaseConstraints||null
     };
   }
 
@@ -116,7 +117,7 @@
     if(!sessions.length)reasons.push('Non ci sono sedute programmate o registrate in questa settimana.');
     const availability=(Array.isArray(input.availabilityHistory)?input.availabilityHistory:[]).find(item=>item?.weekStart===weekStart)
       ||(input.weeklyCheckin?.weekStart===weekStart?input.weeklyCheckin:null);
-    const closure=weekClosure(sessions);const nextWeek={...planSuggestion({weekStart,isPast,confidence,analysis,availabilityHistory:input.availabilityHistory,weeklyCheckin:availability||input.weeklyCheckin||null}),closure};
+    const closure=weekClosure(sessions);const nextWeek={...planSuggestion({weekStart,isPast,confidence,analysis,availabilityHistory:input.availabilityHistory,weeklyCheckin:availability||input.weeklyCheckin||null,phaseConstraints:input.phaseConstraints||analysis.phaseConstraints||null}),closure};
     const coachTitle=!sessions.length?'Settimana senza dati':!recorded.length&&due.length?'Recap ancora incompleto':meta.title;
     const coachSummary=!sessions.length?'Il coach non deduce carico o recupero senza uno storico reale.':!recorded.length&&due.length?'Registra gli esiti delle sedute passate prima di usare il recap per modificare il piano.':analysis.summary||`${meta.title}. Le decisioni restano proporzionate alla qualità dei dati.`;
     return {

@@ -9,7 +9,7 @@
   function safeDataset(name,fallback){try{return window.rcDataStore?.getDataset(name)??fallback;}catch(_){return fallback;}}
   function currentModel(){
     const input={sessions:window.rcSessions?.getAll?.()||safeDataset('sessions',[]),preCheckins:window.rcCheckins?.getHistory?.()||safeDataset('preSessionCheckins',[]),bodyIssues:window.rcBodyIssues?.all?.()||safeDataset('bodyIssues',[]),whoopCycles:safeDataset('whoopCycles',[]),whoopSleeps:safeDataset('whoopSleeps',[]),whoopImportBatches:safeDataset('whoopImportBatches',[])};
-    const adaptiveAnalysis=window.rcAdaptiveEngine?.analyze?.(input);return window.rcTodayModel.buildTodayModel({...input,adaptiveAnalysis});
+    const rawAnalysis=window.rcAdaptiveEngine?.analyze?.(input);const now=new Date(),today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,weekStart=window.rcGoalsModel?.mondayFor(today)||today,goal=window.rcGoalsModel?.classifyGoals(safeDataset('goals',[]),weekStart)?.current||null,phaseConstraints=window.rcPhaseConstraintsModel?.forWeek({goal,weekStart,sessions:input.sessions,analysis:rawAnalysis})||null,adaptiveAnalysis=window.rcPhaseConstraintsModel?.constrainAnalysis(rawAnalysis,phaseConstraints)||rawAnalysis;return window.rcTodayModel.buildTodayModel({...input,adaptiveAnalysis});
   }
   function setMetric(valueId,summaryId,metric){
     const value=document.getElementById(valueId);value.textContent=String(metric.value);value.classList.remove('metric-good','metric-warn','metric-danger');
