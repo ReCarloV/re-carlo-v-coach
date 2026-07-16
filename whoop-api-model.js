@@ -19,7 +19,8 @@
   }
   function isLocalWhoopServiceOrigin(location={}){
     const hostname=String(location.hostname||'').toLowerCase();
-    return String(location.protocol||'')==='http:'&&['127.0.0.1','localhost'].includes(hostname);
+    const protocol=String(location.protocol||'');
+    return protocol==='file:'||(protocol==='http:'&&['127.0.0.1','localhost'].includes(hostname));
   }
   function localTimestamp(value,offset='+00:00'){
     const timestamp=Date.parse(String(value||''));
