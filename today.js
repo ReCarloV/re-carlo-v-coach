@@ -11,14 +11,16 @@
     const input={sessions:window.rcSessions?.getAll?.()||safeDataset('sessions',[]),preCheckins:window.rcCheckins?.getHistory?.()||safeDataset('preSessionCheckins',[]),bodyIssues:window.rcBodyIssues?.all?.()||safeDataset('bodyIssues',[]),whoopCycles:safeDataset('whoopCycles',[]),whoopSleeps:safeDataset('whoopSleeps',[]),whoopImportBatches:safeDataset('whoopImportBatches',[])};
     const rawAnalysis=window.rcAdaptiveEngine?.analyze?.(input);const now=new Date(),today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,weekStart=window.rcGoalsModel?.mondayFor(today)||today,goal=window.rcGoalsModel?.classifyGoals(safeDataset('goals',[]),weekStart)?.current||null,phaseConstraints=window.rcPhaseConstraintsModel?.forWeek({goal,weekStart,sessions:input.sessions,analysis:rawAnalysis})||null,adaptiveAnalysis=window.rcPhaseConstraintsModel?.constrainAnalysis(rawAnalysis,phaseConstraints)||rawAnalysis;return window.rcTodayModel.buildTodayModel({...input,adaptiveAnalysis});
   }
-  function setMetric(valueId,summaryId,metric){
-    const value=document.getElementById(valueId);value.textContent=String(metric.value);value.classList.remove('metric-good','metric-warn','metric-danger');
+  function setMetric(valueId,summaryId,metric,highlightCard=false){
+    const value=document.getElementById(valueId);value.textContent=String(metric.value);value.classList.remove('metric-good','metric-warn','metric-danger','metric-rest');
     if(metric.tone&&metric.tone!=='neutral')value.classList.add(`metric-${metric.tone}`);
+    const card=value.closest('article');card?.classList.remove('metric-card-good','metric-card-warn','metric-card-danger','metric-card-rest');
+    if(highlightCard&&metric.tone&&metric.tone!=='neutral')card?.classList.add(`metric-card-${metric.tone}`);
     document.getElementById(summaryId).textContent=metric.summary;
   }
   function renderMetrics(model){
-    setMetric('today-subjective-value','today-subjective-summary',model.subjective);
-    const sleepCard=document.getElementById('today-sleep-card'),metrics=document.getElementById('today-metrics');sleepCard.hidden=!model.sleep.visible;metrics.classList.toggle('without-sleep',!model.sleep.visible);if(model.sleep.visible)setMetric('today-sleep-value','today-sleep-summary',model.sleep);
+    setMetric('today-subjective-value','today-subjective-summary',model.subjective,true);
+    const sleepCard=document.getElementById('today-sleep-card'),metrics=document.getElementById('today-metrics');sleepCard.hidden=!model.sleep.visible;metrics.classList.toggle('without-sleep',!model.sleep.visible);if(model.sleep.visible)setMetric('today-sleep-value','today-sleep-summary',model.sleep,true);
     setMetric('today-load-value','today-load-summary',model.load7);
     setMetric('today-issues-count','today-issues-summary',model.issuesMetric);
   }

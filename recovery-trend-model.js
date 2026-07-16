@@ -54,7 +54,8 @@
     const today=input.today||iso(new Date());const days=mergedDays(input.cycles,input.sleeps,today);if(!days.length)return{value:'—',summary:'Nessun dato WHOOP importato',tone:'neutral',date:null};
     const latest=days.at(-1),age=ageDays(latest.date,today);const sleepMinutes=finite(latest.sleepDurationMin)?Math.round(Number(latest.sleepDurationMin)):null;const value=sleepMinutes===null?'—':`${Math.floor(sleepMinutes/60)}h ${String(sleepMinutes%60).padStart(2,'0')}`;const parts=[];
     if(age)parts.push(`Ultimo dato ${age===1?'ieri':`${age} giorni fa`}`);else parts.push('WHOOP oggi');if(finite(latest.sleepPerformancePct))parts.push(`performance ${Math.round(Number(latest.sleepPerformancePct))}%`);if(finite(latest.recoveryScore))parts.push(`recovery ${Math.round(Number(latest.recoveryScore))}%`);if(sleepMinutes===null)parts.push('durata non disponibile');
-    return{value,summary:parts.join(' · '),tone:age>2?'warn':'neutral',date:latest.date,recoveryScore:finite(latest.recoveryScore)?Number(latest.recoveryScore):null,sleepPerformancePct:finite(latest.sleepPerformancePct)?Number(latest.sleepPerformancePct):null};
+    const performance=finite(latest.sleepPerformancePct)?Number(latest.sleepPerformancePct):null;const tone=age>2||performance===null?'neutral':performance>66?'good':performance>=33?'warn':'danger';
+    return{value,summary:parts.join(' · '),tone,date:latest.date,recoveryScore:finite(latest.recoveryScore)?Number(latest.recoveryScore):null,sleepPerformancePct:performance};
   }
 
   return{analyzeRecoveryTrend,todaySleepMetric,mergedDays,median,percentDelta,addDays};

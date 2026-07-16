@@ -228,6 +228,7 @@
     const maxDayLoad=Math.max(1,...days.map(day=>day.load));days.forEach(day=>{day.height=day.load?Math.max(12,Math.round(day.load/maxDayLoad*100)):day.performed?12:day.planned?12:day.skipped?6:0;});
     const recommendation=checkin?.recommendation; const subjectiveMeta=recommendationMeta[recommendation?.level];
     const sleepObserved=recoveryModel?recoveryModel.todaySleepMetric({today,cycles:input.whoopCycles,sleeps:input.whoopSleeps}):{value:'—',summary:'Nessun dato WHOOP importato'};const freshness=freshnessModel?freshnessModel.analyzeDeviceFreshness({today,whoopCycles:input.whoopCycles,whoopSleeps:input.whoopSleeps,whoopImportBatches:input.whoopImportBatches}):{whoop:{showOnDashboard:false}};const sleep={...sleepObserved,visible:Boolean(freshness.whoop.showOnDashboard&&sleepObserved.value!=='—'),freshness:freshness.whoop};const application=applicationModel?.applicationState?.(sessions,input.adaptiveAnalysis,weekStart,{today})||{applied:false,stale:false,application:null};
+    const subjective=subjectiveMeta?{value:subjectiveMeta.value,tone:subjectiveMeta.tone,summary:recommendation.title}:primary?{value:'—',tone:'neutral',summary:'Compila il check-in pre sessione'}:weekSessions.length?{value:'REST DAY',tone:'rest',summary:'Nessuna seduta programmata oggi'}:{value:'PIANO LIBERO',tone:'neutral',summary:'Nessuna settimana programmata'};
     return {
       today,weekStart,weekEnd,
       todaySessions,primary,secondary:todaySessions.slice(1),nextSession,
@@ -236,7 +237,7 @@
       prescription:[...(primary?.adaptiveAdjustment?.instructions?.length?[{label:'Adattamento settimanale',value:primary.adaptiveAdjustment.instructions.join(' ')}]:[]),...(execution?.prescription||[])],execution,
       checkin,issues,staleIssues,worstIssue:issues.find(issue=>issue.isFresh)||issues[0]||null,
       coachNote:coachNote(primary,checkin,issues),
-      subjective:{value:subjectiveMeta?.value||'—',tone:subjectiveMeta?.tone||'neutral',summary:recommendation?.title||(primary?'Compila il check-in pre sessione':'Nessun check-in necessario')},
+      subjective,
       adaptiveCoach:buildAdaptiveCoach(input.adaptiveAnalysis,application),
       whoopOverview:buildWhoopOverview({...input,today}),
       sleep,
