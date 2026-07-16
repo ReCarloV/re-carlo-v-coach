@@ -15,10 +15,27 @@
 
   function sameData(first,second){return stable(first)===stable(second);}
 
+  function synchronizedData(snapshot){
+    const data={...(snapshot?.data||{})};delete data.cloudSyncCursor;
+    if(data.preferences&&typeof data.preferences==='object'&&!Array.isArray(data.preferences)){
+      const preferences={...data.preferences};
+      if(preferences.value&&typeof preferences.value==='object'&&!Array.isArray(preferences.value)){
+        preferences.value={...preferences.value};delete preferences.value.cloudSyncCursor;
+      }
+      data.preferences=preferences;
+    }
+    return data;
+  }
   function fingerprintSnapshot(snapshot){
     if(!snapshot||typeof snapshot!=='object'||!snapshot.data||typeof snapshot.data!=='object')throw new Error('La copia dati da sincronizzare non è valida.');
-    return`v${Number(snapshot.backupVersion)||0}-${fnv1a(stable(snapshot.data))}`;
+    return`athlete-${fnv1a(stable(synchronizedData(snapshot)))}`;
   }
+
+  function cursorForUser(value,userId){
+    if(!value||typeof value!=='object'||String(value.userId||'')!==String(userId||'')||!Number.isInteger(Number(value.revision))||Number(value.revision)<1||!/^athlete-[0-9a-f]{8}$/.test(String(value.fingerprint||'')))return null;
+    return{revision:Number(value.revision),fingerprint:String(value.fingerprint),updatedAt:value.updatedAt||null};
+  }
+  function createCursor(userId,revision,fingerprint,updatedAt){return{userId:String(userId||''),revision:Number(revision),fingerprint:String(fingerprint||''),updatedAt:String(updatedAt||new Date().toISOString())};}
 
   function value(snapshot,name){return snapshot?.data?.[name]?.value;}
   function count(snapshot,name){const item=value(snapshot,name);return Array.isArray(item)?item.length:0;}
@@ -74,5 +91,5 @@
 
   function safeDeviceName(value){return String(value||'Dispositivo').replace(/[<>]/g,'').trim().slice(0,60)||'Dispositivo';}
 
-  return{stable,sameData,fnv1a,fingerprintSnapshot,snapshotSummary,planRemoteAcceptance,shouldQueueLocalSync,decideSync,safeDeviceName};
+  return{stable,sameData,fnv1a,fingerprintSnapshot,cursorForUser,createCursor,snapshotSummary,planRemoteAcceptance,shouldQueueLocalSync,decideSync,safeDeviceName};
 });

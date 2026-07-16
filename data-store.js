@@ -49,6 +49,7 @@
     reconciliationDecisions: { key:'rc-reconciliation-decisions-v1', version:1, kind:'json', fallback:[] },
     goals: { key:'rc-goals-v1', version:1, kind:'json', fallback:[] },
     planView: { key:'rc-plan-view-v1', version:1, kind:'raw', fallback:'list' },
+    cloudSyncCursor: { key:'rc-cloud-sync-cursor-v1', version:1, kind:'json', fallback:null },
     legacyFtp: { key:'rc-ftp', version:1, kind:'raw', fallback:null, compatibilityOnly:true }
   });
   const allKeys = Object.freeze(Object.values(datasets).map(item => item.key));
@@ -465,6 +466,9 @@
       case 'planView':
         if (!['list','calendar'].includes(value)) throw new DataStoreError('INVALID_PREFERENCE', 'La preferenza del piano non è valida.');
         break;
+      case 'cloudSyncCursor':
+        if(value!==null&&(!isObject(value)||typeof value.userId!=='string'||!value.userId.trim()||!Number.isInteger(Number(value.revision))||Number(value.revision)<1||!/^athlete-[0-9a-f]{8}$/.test(String(value.fingerprint||''))||!isTimestamp(value.updatedAt)))throw new DataStoreError('INVALID_CLOUD_SYNC_CURSOR','Lo stato locale della sincronizzazione cloud non è valido.');
+        break;
     }
     return value;
   }
@@ -518,6 +522,7 @@
     const preferences = entryValue(backup.data,'preferences',datasets.planView);
     if (!isObject(preferences)) throw new DataStoreError('INVALID_PREFERENCES', 'Le preferenze del backup non sono valide.');
     values.planView = preferences.planView || 'list';
+    values.cloudSyncCursor = Object.prototype.hasOwnProperty.call(preferences,'cloudSyncCursor') ? preferences.cloudSyncCursor : null;
     Object.entries(values).forEach(([name,value]) => validate(name,value));
     validateImportConsistency(values.importedActivities,values.importBatches);
     validateWhoopConsistency(values,values.whoopImportBatches);
@@ -625,7 +630,7 @@
         result.warnings.push('sessions');
         result.migrated=result.migrated.filter(item=>item!=='sessions');
       }
-      ['hrZones','profilePhoto','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','goals','planView'].forEach(name=>{
+      ['hrZones','profilePhoto','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','goals','planView','cloudSyncCursor'].forEach(name=>{
         try {
           const definition=datasets[name];const raw=storage.getItem(definition.key);
           if(raw===null)return;
@@ -679,10 +684,14 @@
         whoopImportBatches:{version:datasets.whoopImportBatches.version,value:read('whoopImportBatches')},
         reconciliationDecisions:{version:datasets.reconciliationDecisions.version,value:read('reconciliationDecisions')},
         goals:{version:datasets.goals.version,value:read('goals')},
-        preferences:{version:datasets.planView.version,value:{planView:read('planView')}}
+        preferences:{version:datasets.planView.version,value:{planView:read('planView'),cloudSyncCursor:read('cloudSyncCursor')}}
       };
       prepareFullBackup({ backupVersion:BACKUP_VERSION, data });
       return { app:APP_NAME, backupVersion:BACKUP_VERSION, exportedAt:now().toISOString(), data };
+    }
+
+    function createCloudSnapshot(){
+      const result=createSnapshot();result.data.preferences.value.cloudSyncCursor=null;return result;
     }
 
     function inspectBackup(raw) {
@@ -706,11 +715,11 @@
       };
     }
 
-    function restoreBackup(raw) {
-      const prepared = prepareBackup(raw); const touched = new Map();
+    function restorePrepared(prepared,{preserveCloudSyncCursor=false}={}) {
+      const touched = new Map();
       const apply = (name,value) => { const key=datasets[name].key; remember(touched,key); write(name,value); };
       try {
-        Object.entries(prepared.values).forEach(([name,value]) => apply(name,value));
+        Object.entries(prepared.values).forEach(([name,value]) => {if(preserveCloudSyncCursor&&name==='cloudSyncCursor')return;apply(name,value);});
         if (Object.prototype.hasOwnProperty.call(prepared.values,'profile')) {
           const key=datasets.legacyFtp.key; remember(touched,key); const ftp=Number(prepared.values.profile?.ftp);
           if (Number.isFinite(ftp) && ftp > 0) storage.setItem(key,String(ftp));
@@ -724,9 +733,12 @@
         }
         throw new DataStoreError('RESTORE_FAILED', `Ripristino annullato senza modificare i dati: ${error.message || 'errore di scrittura'}`);
       }
-      const detail = { mode:prepared.mode, restoredAt:now().toISOString(), datasets:Object.keys(prepared.values) };
+      const detail = { mode:prepared.mode, restoredAt:now().toISOString(), datasets:Object.keys(prepared.values).filter(name=>!(preserveCloudSyncCursor&&name==='cloudSyncCursor')) };
       dispatch(detail); return detail;
     }
+
+    function restoreBackup(raw){return restorePrepared(prepareBackup(raw));}
+    function restoreCloudSnapshot(raw){return restorePrepared(prepareBackup(raw),{preserveCloudSyncCursor:true});}
 
     function writeImportState(nextActivities,nextBatches,detail,nextDecisions=null) {
       validateImportConsistency(nextActivities,nextBatches);if(nextDecisions!==null)validateReconciliationDecisions(nextDecisions);const touched=new Map();
@@ -834,7 +846,7 @@
       return snapshot;
     }
 
-    return { bootstrap, health:()=>clone(health), getDataset:read, setDataset:write, createSnapshot, inspectBackup, restoreBackup, commitImportBatch, removeImportBatch, commitWhoopImportBatch, commitWhoopApiSync, removeWhoopImportBatch, saveReconciliationDecision, saveReconciliationDecisions, removeReconciliationDecision, downloadBackup };
+    return { bootstrap, health:()=>clone(health), getDataset:read, setDataset:write, createSnapshot, createCloudSnapshot, inspectBackup, restoreBackup, restoreCloudSnapshot, commitImportBatch, removeImportBatch, commitWhoopImportBatch, commitWhoopApiSync, removeWhoopImportBatch, saveReconciliationDecision, saveReconciliationDecisions, removeReconciliationDecision, downloadBackup };
   }
 
   return {

@@ -8,8 +8,10 @@
   const deviceName=model.safeDeviceName(/iphone|ipad|ipod/i.test(navigator.userAgent)?'iPhone personale':/macintosh/i.test(navigator.userAgent)?'Mac personale':'Dispositivo personale');
   let client=null,user=null,remote=null,baseRevision=null,baseFingerprint=null,mode=configured?'signed-out':'not-configured',busy=false,lastSyncAt=null,timer=null,localSyncTimer=null,pendingLocalChange=false;
 
-  function snapshot(){return store.createSnapshot();}
+  function snapshot(){return store.createCloudSnapshot();}
   function fingerprint(value=snapshot()){return model.fingerprintSnapshot(value);}
+  function loadCursor(){const cursor=model.cursorForUser(store.getDataset('cloudSyncCursor'),user?.id);baseRevision=cursor?.revision??null;baseFingerprint=cursor?.fingerprint??null;lastSyncAt=cursor?.updatedAt??null;return cursor;}
+  function rememberBase(revision,valueFingerprint,updatedAt){baseRevision=Number(revision);baseFingerprint=String(valueFingerprint||'');lastSyncAt=updatedAt||new Date().toISOString();if(user?.id&&Number.isInteger(baseRevision)&&baseRevision>=1&&baseFingerprint){try{store.setDataset('cloudSyncCursor',model.createCursor(user.id,baseRevision,baseFingerprint,lastSyncAt));}catch(_){}}}
   function formatTime(value){return value?new Date(value).toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';}
   function setHeader(className,text){headerStatus.classList.remove('synced','pending','error','conflict');if(className)headerStatus.classList.add(className);headerStatus.querySelector('span').textContent=text;}
   function setMode(next,message){mode=next;if(message)detail.textContent=message;render();document.dispatchEvent(new CustomEvent('rc:cloud-sync-state',{detail:publicState()}));}
@@ -19,7 +21,7 @@
     if(!configured){panel.classList.add('pending');title.textContent='iPhone · struttura pronta';detail.textContent='Manca soltanto il progetto cloud gratuito. I dati attuali restano esclusivamente sul Mac.';meta.textContent='Nessun dato trasferito';primary.textContent='Configurazione cloud richiesta';setHeader('', 'Dati locali');locationBadge.textContent='Solo su questo dispositivo';return;}
     if(!user){title.textContent='Sincronizzazione dispositivi';detail.textContent='Accedi con il tuo account personale per collegare Mac e iPhone.';meta.textContent='Disconnesso';primary.textContent='Accedi e collega';setHeader('', 'Dati locali');locationBadge.textContent='Solo su questo dispositivo';return;}
     locationBadge.textContent='Locale + cloud protetto';
-    if(mode==='first-upload'){panel.classList.add('pending');title.textContent='Pronto per il primo caricamento';detail.textContent='La copia cloud è vuota. Esporta un backup e porta nel cloud tutti i dati attuali del Mac.';meta.textContent=`${user.email||'Account collegato'} · ${deviceName}`;primary.textContent='Porta i dati nel cloud';setHeader('pending','Da sincronizzare');return;}
+    if(mode==='first-upload'){panel.classList.add('pending');title.textContent='Pronto per il primo caricamento';detail.textContent='La copia cloud è vuota. Porta nel cloud tutti i dati attuali di questo dispositivo.';meta.textContent=`${user.email||'Account collegato'} · ${deviceName}`;primary.textContent='Porta i dati nel cloud';setHeader('pending','Da sincronizzare');return;}
     if(mode==='choose'||mode==='conflict'){panel.classList.add('conflict');title.textContent=mode==='conflict'?'Modifiche da confrontare':'Scegli la copia iniziale';detail.textContent=mode==='conflict'?'Mac e cloud sono cambiati separatamente. Nessun dato verrà sovrascritto automaticamente.':'Su questo dispositivo e nel cloud sono presenti copie diverse.';meta.textContent=`Revisione cloud ${remote?.revision||'—'} · controllo richiesto`;primary.textContent='Confronta le copie';setHeader('conflict','Scelta richiesta');return;}
     if(mode==='error'){panel.classList.add('error');title.textContent='Sincronizzazione non disponibile';meta.textContent=navigator.onLine?'Controlla configurazione e account':'Questo dispositivo è offline';primary.textContent='Riprova';syncNow.hidden=false;setHeader('error','Sync non disponibile');return;}
     if(mode==='offline'){panel.classList.add('pending');title.textContent='Offline · dati salvati sul dispositivo';detail.textContent='Puoi continuare a usare l’app. Le modifiche verranno sincronizzate quando torna la connessione.';meta.textContent=`Ultima sincronizzazione ${formatTime(lastSyncAt)}`;primary.hidden=true;syncNow.hidden=false;setHeader('pending','Offline');return;}
@@ -42,10 +44,6 @@
     openModal('choice');
   }
 
-  function downloadSnapshot(value,label){
-    const blob=new Blob([JSON.stringify(value,null,2)],{type:'application/json'}),link=document.createElement('a'),url=URL.createObjectURL(blob);link.href=url;link.download=`re-carlo-v-${label}-${new Date().toISOString().slice(0,10)}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),0);
-  }
-
   async function fetchRemote(){
     const{data,error}=await client.from('athlete_snapshots').select('revision,payload,device_name,updated_at').maybeSingle();if(error)throw error;
     if(data?.payload)store.inspectBackup(data.payload);
@@ -56,7 +54,7 @@
   async function persistSnapshot(current,expectedRevision){
       const currentFingerprint=fingerprint(current);const{data,error}=await client.rpc('push_athlete_snapshot',{expected_revision:Number(expectedRevision)||0,snapshot:current,source_device:deviceName});if(error)throw error;
       const result=Array.isArray(data)?data[0]:data;if(!result||result.status!=='saved'){await fetchRemote();setMode('conflict');return false;}
-      remote={revision:Number(result.revision),payload:current,device_name:deviceName,updated_at:result.updated_at};baseRevision=remote.revision;baseFingerprint=currentFingerprint;lastSyncAt=result.updated_at||new Date().toISOString();return true;
+      remote={revision:Number(result.revision),payload:current,device_name:deviceName,updated_at:result.updated_at};rememberBase(remote.revision,currentFingerprint,result.updated_at);return true;
   }
 
   async function pushCurrent(expectedRevision){
@@ -69,12 +67,12 @@
 
   async function applyRemote(){
     if(!remote?.payload)return false;
-    const accepted={...remote};store.inspectBackup(accepted.payload);store.restoreBackup(accepted.payload);
+    const accepted={...remote};store.inspectBackup(accepted.payload);store.restoreCloudSnapshot(accepted.payload);
     const restored=snapshot(),plan=model.planRemoteAcceptance({remoteSnapshot:accepted.payload,restoredSnapshot:restored,remoteRevision:accepted.revision});
     if(plan.requiresCloudRewrite){
       const saved=await persistSnapshot(restored,accepted.revision);if(!saved)return false;
     }else{
-      remote={...accepted,payload:restored};baseRevision=plan.revision;baseFingerprint=plan.restoredFingerprint;lastSyncAt=accepted.updated_at||new Date().toISOString();
+      remote={...accepted,payload:restored};rememberBase(plan.revision,plan.restoredFingerprint,accepted.updated_at);
     }
     setMode('synced');return true;
   }
@@ -86,7 +84,7 @@
     try{
       await fetchRemoteResilient();const localFingerprint=fingerprint();const remoteFingerprint=remote?fingerprint(remote.payload):null;
       const decision=model.decideSync({localFingerprint,remoteFingerprint,remoteRevision:remote?.revision??null,baseRevision,baseFingerprint});
-      if(decision.action==='in-sync'){baseRevision=Number(remote.revision);baseFingerprint=localFingerprint;lastSyncAt=remote.updated_at||new Date().toISOString();setMode('synced');}
+      if(decision.action==='in-sync'){rememberBase(remote.revision,localFingerprint,remote.updated_at);setMode('synced');}
       else if(decision.action==='upload'&&decision.reason==='cloud-empty')setMode('first-upload');
       else if(decision.action==='upload'){busy=false;await pushCurrent(decision.expectedRevision);return;}
       else if(decision.action==='download'){await applyRemote();return;}
@@ -110,30 +108,30 @@
 
   async function connectSession(){
     const{data,error}=await client.auth.getSession();if(error)throw error;user=data.session?.user||null;
-    if(user){setMode('pending');await reconcile();}else setMode('signed-out');
+    if(user){loadCursor();setMode('pending');await reconcile();}else setMode('signed-out');
   }
 
   primary.addEventListener('click',async()=>{
     if(!configured){window.alert('La struttura iPhone è pronta. Ora devo collegarla al progetto cloud gratuito: nessun dato è ancora uscito dal Mac.');return;}
     if(!user){openModal('auth');return;}
     if(mode==='first-upload'){
-      if(!window.confirm('Creare ora la prima copia condivisa? Prima verrà esportato anche un backup locale completo.'))return;
-      try{store.downloadBackup();}catch(_){}await pushCurrent(0);return;
+      if(!window.confirm('Creare ora la prima copia condivisa? I dati locali resteranno disponibili su questo dispositivo.'))return;
+      await pushCurrent(0);return;
     }
     if(mode==='choose'||mode==='conflict'){showChoice();return;}
     await reconcile();
   });
   syncNow.addEventListener('click',reconcile);
-  signout.addEventListener('click',async()=>{if(!window.confirm('Disconnettere questo dispositivo? I dati locali e la copia cloud resteranno intatti.'))return;await client.auth.signOut();user=null;remote=null;baseRevision=null;baseFingerprint=null;setMode('signed-out');});
+  signout.addEventListener('click',async()=>{if(!window.confirm('Disconnettere questo dispositivo? I dati locali e la copia cloud resteranno intatti.'))return;await client.auth.signOut();user=null;remote=null;baseRevision=null;baseFingerprint=null;lastSyncAt=null;setMode('signed-out');});
   document.getElementById('cloud-sync-close').addEventListener('click',closeModal);modal.addEventListener('click',event=>{if(event.target===modal)closeModal();});
   authForm.addEventListener('submit',async event=>{
     event.preventDefault();authStatus.textContent='Accesso in corso…';const values=new FormData(authForm);
-    const{data,error}=await client.auth.signInWithPassword({email:String(values.get('email')||'').trim(),password:String(values.get('password')||'')});if(error){authStatus.textContent=error.message;return;}user=data.user;closeModal();await reconcile();
+    const{data,error}=await client.auth.signInWithPassword({email:String(values.get('email')||'').trim(),password:String(values.get('password')||'')});if(error){authStatus.textContent=error.message;return;}user=data.user;loadCursor();closeModal();await reconcile();
   });
   document.getElementById('cloud-create-account').addEventListener('click',async()=>{
     if(!authForm.reportValidity())return;authStatus.textContent='Creo l’account personale…';const values=new FormData(authForm);
     const{data,error}=await client.auth.signUp({email:String(values.get('email')||'').trim(),password:String(values.get('password')||''),options:{data:{display_name:'Atleta'}}});if(error){authStatus.textContent=error.message;return;}
-    if(data.session){user=data.user;closeModal();await reconcile();}else authStatus.textContent='Account creato. Controlla l’email di conferma, poi torna qui e premi Accedi.';
+    if(data.session){user=data.user;loadCursor();closeModal();await reconcile();}else authStatus.textContent='Account creato. Controlla l’email di conferma, poi torna qui e premi Accedi.';
   });
   document.getElementById('cloud-use-remote').addEventListener('click',async()=>{
     if(!remote||!window.confirm('Usare la copia cloud su questo dispositivo? La copia locale attuale verrà sostituita.'))return;
@@ -143,8 +141,8 @@
     finally{busy=false;render();}
   });
   document.getElementById('cloud-use-local').addEventListener('click',async()=>{
-    if(!remote||!window.confirm('Usare la copia di questo dispositivo come principale? La copia cloud attuale verrà prima scaricata come backup.'))return;
-    downloadSnapshot(remote.payload,'backup-copia-cloud');closeModal();await pushCurrent(remote.revision);
+    if(!remote||!window.confirm('Usare la copia di questo dispositivo come principale? La copia cloud attuale verrà sostituita.'))return;
+    closeModal();await pushCurrent(remote.revision);
   });
 
   ['rc:sessions-updated','rc:goals-updated','rc:profile-updated','rc:body-issues-updated','rc:pre-checkin-updated','rc:weekly-checkin-updated','rc:weekly-availability-history-updated','rc:whoop-updated','rc:reconciliation-updated'].forEach(name=>document.addEventListener(name,scheduleLocalSync));window.addEventListener('rc:data-restored',scheduleLocalSync);
@@ -153,7 +151,7 @@
 
   if(configured&&window.supabase?.createClient){
     client=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-    client.auth.onAuthStateChange((_event,session)=>{const next=session?.user||null;if(Boolean(next)!==Boolean(user)){user=next;setTimeout(()=>user?reconcile():setMode('signed-out'),0);}});
+    client.auth.onAuthStateChange((_event,session)=>{const next=session?.user||null;if((next?.id||null)!==(user?.id||null)){user=next;setTimeout(()=>{if(user){loadCursor();reconcile();}else setMode('signed-out');},0);}});
     connectSession().catch(error=>{detail.textContent=error?.message||'Accesso cloud non disponibile.';setMode('error');});
     timer=setInterval(()=>{if(user&&!document.hidden)reconcile();},30000);
   }else if(configured){detail.textContent='La libreria di sincronizzazione non è disponibile. L’app locale continua a funzionare.';setMode('error');}
