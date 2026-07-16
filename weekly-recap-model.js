@@ -59,29 +59,33 @@
     const rawLevel=analysis?.level||'steady';const level=!isPast&&rawLevel==='progress'?'steady':rawLevel;
     const rawSettings=analysis?.settings||{};const settings={
       volumeFactor:level==='protect'?.75:level==='reduce'?.9:1,
+      aerobicVolumeFactor:level==='protect'?.75:level==='reduce'?.9:level==='progress'?1.05:1,
       longFactor:level==='protect'?.75:level==='reduce'?.85:level==='progress'?1.05:1,
       sessionDelta:level==='protect'?-1:0,
       qualityMode:level==='protect'||level==='reduce'?'controlled':'normal',
       strengthRir:level==='protect'?4:level==='reduce'?3:2,
       ...rawSettings
     };
-    if(level!==rawLevel&&rawLevel==='progress')settings.longFactor=1;
+    const tolerance=analysis?.tolerance?JSON.parse(JSON.stringify(analysis.tolerance)):null;
+    if(level!==rawLevel&&rawLevel==='progress'){settings.longFactor=1;settings.aerobicVolumeFactor=1;if(tolerance){[tolerance.volume,tolerance.long].filter(Boolean).forEach(target=>{target.allowed=false;target.factor=1;target.reason='La settimana è ancora in corso: la progressione resta provvisoria fino alla chiusura di tutti gli esiti.';});tolerance.status='blocked';tolerance.summary='La tolleranza viene rivalutata quando la settimana è completa.';}}
     const readinessSessions=Math.max(1,Math.min(6,number(base.sessions||5)+number(settings.sessionDelta))),phaseCap=number(phaseConstraints?.limits?.maxActiveSessions)||6,sessions=Math.min(readinessSessions,phaseCap);
     const sessionMinutes=Math.max(30,roundFive(number(base.sessionMinutes||60)*number(settings.volumeFactor||1)));
+    const easyRunMinutes=Math.max(30,roundFive(number(base.sessionMinutes||60)*number(settings.aerobicVolumeFactor??settings.volumeFactor??1)));
     const phaseLongFactor=number(phaseConstraints?.generated?.longFactor)||1,longRunMinutes=Math.max(30,roundFive(number(base.longRunMinutes||120)*number(settings.longFactor||1)*phaseLongFactor));
     const changes=[...(analysis?.phaseDecisionChanges||[])];
     if(sessions<readinessSessions)changes.push(`La fase ${phaseConstraints.phase.label} limita la proposta a ${sessions} sedute attive.`);
     if(sessions!==number(base.sessions))changes.push(analysis?.organization?.level==='adapt'?`${sessions} sedute suggerite invece di ${base.sessions} per i vincoli organizzativi ripetuti; non è una riduzione attribuita alla fatica.`:`${sessions} sedute suggerite invece di ${base.sessions}.`);
     if(sessionMinutes!==number(base.sessionMinutes))changes.push(`Durata abituale circa ${sessionMinutes} min invece di ${base.sessionMinutes}.`);
+    if(easyRunMinutes!==sessionMinutes)changes.push(`Corsa facile indicativa ${easyRunMinutes} min; qualità, forza e lavoro ibrido restano a ${sessionMinutes} min.`);
     if(longRunMinutes!==number(base.longRunMinutes))changes.push(`Lungo indicativo ${longRunMinutes} min invece di ${base.longRunMinutes}.`);
     if(settings.qualityMode==='controlled')changes.push('Qualità mantenuta in forma controllata, senza aumentare la densità.');
     if(number(settings.strengthRir)>2)changes.push(`Forza con margine almeno RIR ${settings.strengthRir}.`);
-    if(!changes.length)changes.push(level==='progress'?'Solo il lungo può crescere del 5%; intensità e forza restano stabili.':'Struttura settimanale mantenuta senza progressioni automatiche.');
+    if(!changes.length)changes.push(level==='progress'?'Progrediscono solo volume facile e/o lungo autorizzati dai controlli di tolleranza; intensità e forza restano stabili.':'Struttura settimanale mantenuta senza progressioni automatiche.');
     if(!source)changes.push('Disponibilità ancora da confermare: la base 5 × 60 min è soltanto una precompilazione.');
     return {
       weekStart:nextWeekStart,level,label:levelMeta[level].title,tone:levelMeta[level].tone,
       provisional:!isPast||confidence.level==='low',availabilityConfirmed:Boolean(exact),source,
-      sessions,sessionMinutes,longRunMinutes,days:Array.isArray(base.days)?base.days:[],weekendLong:base.weekendLong||'maybe',constraints:base.constraints||'',changes,phaseConstraints:phaseConstraints||null
+      sessions,sessionMinutes,easyRunMinutes,longRunMinutes,days:Array.isArray(base.days)?base.days:[],weekendLong:base.weekendLong||'maybe',constraints:base.constraints||'',changes,phaseConstraints:phaseConstraints||null,tolerance
     };
   }
 

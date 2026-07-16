@@ -336,7 +336,7 @@
         <label>Settimana dal<input name="weekStart" type="date" required></label>
         <label>Numero massimo di sedute<select name="sessions"><option value="3">3 sedute</option><option value="4">4 sedute</option><option value="5" selected>5 sedute</option><option value="6">6 sedute</option></select></label>
         <label>Durata abituale<input name="sessionMinutes" type="number" min="30" max="180" step="15" value="60" required></label>
-        <label>Tempo massimo per il lungo<input name="longRunMinutes" type="number" min="45" max="240" step="15" value="120" required></label>
+        <label>Tempo massimo per il lungo<input name="longRunMinutes" type="number" min="45" max="240" step="5" value="120" required></label>
         <div class="full"><span class="checkin-label">Giorni potenzialmente disponibili</span><div class="day-picker"><label><input type="checkbox" name="days" value="Lun"><span>Lun</span></label><label><input type="checkbox" name="days" value="Mar"><span>Mar</span></label><label><input type="checkbox" name="days" value="Mer"><span>Mer</span></label><label><input type="checkbox" name="days" value="Gio"><span>Gio</span></label><label><input type="checkbox" name="days" value="Ven"><span>Ven</span></label><label><input type="checkbox" name="days" value="Sab" checked><span>Sab</span></label><label><input type="checkbox" name="days" value="Dom" checked><span>Dom</span></label></div></div>
         <label>Lungo nel weekend<select name="weekendLong"><option value="yes">Sì</option><option value="maybe">Da confermare</option><option value="no">No</option></select></label><span></span>
         <label class="full">Impegni, esami o vincoli<textarea name="constraints" rows="3" placeholder="Es. martedì università fino a tardi, giovedì solo 45 minuti"></textarea></label>
@@ -368,6 +368,7 @@
       <p class="muted" id="generator-summary"></p>
       <div class="generator-adaptation" id="generator-adaptation"></div>
       <div class="generator-phase" id="generator-phase" hidden></div>
+      <div class="generator-tolerance" id="generator-tolerance" hidden></div>
       <div class="generator-alert" id="generator-alert" hidden></div>
       <div class="generator-preview" id="generator-preview"></div>
       <div class="generator-rationale" id="generator-rationale"></div>
@@ -627,6 +628,7 @@
   <script src="bodymap.js"></script>
   <script src="checkin-model.js"></script>
   <script src="checkins.js"></script>
+  <script src="progression-tolerance-model.js"></script>
   <script src="adaptive-engine.js"></script>
   <script src="today-model.js"></script>
   <script src="today.js"></script>

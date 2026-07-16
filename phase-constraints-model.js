@@ -7,7 +7,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(raceCoach,methodology){
   'use strict';
 
-  const VERSION='1.0.0';
+  const VERSION='1.1.0';
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const guard=(key,label,state,detail,tone='neutral')=>({key,label,state,detail,tone});
 
@@ -50,15 +50,22 @@
   }
   function forWeek(input={}){
     const goal=input.goal||null,weekStart=input.weekStart||input.today;if(!goal?.date||!weekStart||!raceCoach?.phaseFor)return null;
-    const phase=raceCoach.phaseFor(goal,weekStart);if(!phase)return null;const profile=profileFor(goal.type,phase.key);
-    return{version:VERSION,standard:methodology?{version:methodology.VERSION,label:methodology.LABEL}:null,goal:{id:goal.id||null,name:goal.name||'Obiettivo',type:goal.type||'other',priority:goal.priority||null,date:goal.date,target:goal.target||''},targetPace:raceCoach.targetPace?.(goal)||null,weekStart,phase,summary:profile.summary,limits:clone(profile.limits),generated:clone(profile.generated),guards:clone(profile.guards),priorities:prioritiesFor(goal.type,phase.key),confidence:goal.type==='hyrox'?'contextual':'supported'};
+    const phase=raceCoach.phaseFor(goal,weekStart);if(!phase)return null;const profile=profileFor(goal.type,phase.key),limits=clone(profile.limits);
+    limits.aerobicProgressionCap=['peak','taper','race-week'].includes(phase.key)?1:1.05;
+    return{version:VERSION,standard:methodology?{version:methodology.VERSION,label:methodology.LABEL}:null,goal:{id:goal.id||null,name:goal.name||'Obiettivo',type:goal.type||'other',priority:goal.priority||null,date:goal.date,target:goal.target||''},targetPace:raceCoach.targetPace?.(goal)||null,weekStart,phase,summary:profile.summary,limits,generated:clone(profile.generated),guards:clone(profile.guards),priorities:prioritiesFor(goal.type,phase.key),confidence:goal.type==='hyrox'?'contextual':'supported'};
   }
   function constrainAnalysis(analysis,context){
     const next=clone(analysis||{level:'steady',confidence:'low',settings:{},reasons:[]});next.settings=next.settings||{};next.reasons=Array.isArray(next.reasons)?next.reasons:[];next.phaseDecisionChanges=[];if(!context)return next;
     const limits=context.limits||{},settings=next.settings;
     const beforeLong=Number(settings.longFactor||1),cap=Number(limits.longProgressionCap||1);if(beforeLong>cap){settings.longFactor=cap;next.phaseDecisionChanges.push(`La fase ${context.phase.label} blocca la progressione automatica del lungo oltre ×${cap.toFixed(2)}.`);}
+    const beforeAerobic=Number(settings.aerobicVolumeFactor??settings.volumeFactor??1),aerobicCap=Number(limits.aerobicProgressionCap||1);if(beforeAerobic>aerobicCap){settings.aerobicVolumeFactor=aerobicCap;next.phaseDecisionChanges.push(`La fase ${context.phase.label} blocca nuovi aumenti del volume aerobico facile oltre ×${aerobicCap.toFixed(2)}.`);}
     const beforeRir=Number(settings.strengthRir||0),minRir=Number(limits.minStrengthRir||0);if(beforeRir<minRir){settings.strengthRir=minRir;next.phaseDecisionChanges.push(`La forza passa ad almeno RIR ${minRir} per contenere il costo della fase ${context.phase.label}.`);}
     const beforeReduction=Number(settings.strengthSetReduction||0),minReduction=Number(limits.minStrengthSetReduction||0);if(beforeReduction<minReduction){settings.strengthSetReduction=minReduction;next.phaseDecisionChanges.push(`${minReduction===1?'Una serie in meno':'Volume ridotto'} sui fondamentali per mantenere forza senza aggiungere fatica non necessaria.`);}
+    if(next.tolerance){
+      if(next.tolerance.long){next.tolerance.long.allowed=Boolean(next.tolerance.long.eligible)&&Number(settings.longFactor||1)>1;next.tolerance.long.factor=Number(settings.longFactor||1);next.tolerance.long.phase=context.phase.label;}
+      if(next.tolerance.volume){next.tolerance.volume.allowed=Boolean(next.tolerance.volume.eligible)&&Number(settings.aerobicVolumeFactor||1)>1;next.tolerance.volume.factor=Number(settings.aerobicVolumeFactor||1);next.tolerance.volume.phase=context.phase.label;}
+    }
+    if(next.level==='progress'&&Number(settings.longFactor||1)<=1&&Number(settings.aerobicVolumeFactor||1)<=1){next.level='steady';next.label='Carico mantenuto';next.summary=`La tolleranza recente è adeguata, ma la fase ${context.phase.label} non autorizza nuovi aumenti.`;}
     settings.phaseMaxActiveSessions=limits.maxActiveSessions;next.phaseConstraints=context;
     if(next.phaseDecisionChanges.length)next.reasons=[...next.reasons,...next.phaseDecisionChanges];
     return next;

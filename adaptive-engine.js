@@ -3,11 +3,12 @@
   const symptomModel=root.rcSymptomRecencyModel;
   const skipReasonModel=root.rcSkipReasonModel;
   const recoveryModel=typeof module!=='undefined'&&module.exports?require('./recovery-trend-model.js'):root.rcRecoveryTrendModel;
+  const toleranceModel=typeof module!=='undefined'&&module.exports?require('./progression-tolerance-model.js'):root.rcProgressionToleranceModel;
   const levelMeta={
     protect:{label:'Protezione del recupero',summary:'I segnali recenti richiedono una settimana conservativa: volume ridotto e niente qualità aggressiva.'},
     reduce:{label:'Carico ridotto',summary:'Mantengo gli stimoli principali, ma riduco volume e densità per assorbire fatica o fastidi.'},
     steady:{label:'Carico mantenuto',summary:'I dati non richiedono correzioni: il piano resta stabile e continua a raccogliere informazioni.'},
-    progress:{label:'Progressione controllata',summary:'Due settimane sufficientemente complete permettono un piccolo aumento del solo volume aerobico.'}
+    progress:{label:'Progressione controllata',summary:'I controlli di tolleranza autorizzano una piccola progressione selettiva, senza aumentare automaticamente l’intensità.'}
   };
 
   function localDate(){const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;}
@@ -106,11 +107,11 @@
     const loadRatio=baselineValid?recent.load/previous.load:null;
     const fatigueSignals=recent.hardSessions+recent.fatigueSkips;
     const combinedPain=Math.max(recent.maxPain,body.max);
+    const tolerance=toleranceModel?toleranceModel.assess({today,sessions,recent,previous,loadRatio,body,recovery,preSummary}):{status:'blocked',summary:'Controlli di tolleranza non disponibili.',checks:[],volume:{allowed:false,factor:1},long:{allowed:false,factor:1}};
     let level='steady';
     if(combinedPain>=5||recent.painSkips>0||recent.fatigueSkips>=2||preSummary.weeklyLevel==='protect'||(loadRatio!==null&&loadRatio>1.5))level='protect';
     else if(combinedPain>=3||fatigueSignals>=2||(loadRatio!==null&&loadRatio>1.2)||preSummary.weeklyLevel==='reduce')level='reduce';
-    else if(baselineValid&&(recent.adherence??0)>=.8&&(previous.adherence??0)>=.8&&combinedPain<=2&&fatigueSignals===0&&loadRatio>=.8&&loadRatio<=1.15)level='progress';
-    if(level==='progress'&&body.staleCount)level='steady';
+    else if(tolerance.volume.allowed||tolerance.long.allowed)level='progress';
     if(recovery.usable&&recovery.level==='protect')level=(fatigueSignals||preSummary.weeklyLevel||combinedPain>=3)?'protect':level==='protect'?'protect':'reduce';
     else if(recovery.usable&&recovery.level==='caution'){
       if(level==='progress')level='steady';
@@ -133,19 +134,25 @@
     if(recent.planningSkips)reasons.push('Un cambio di programma o una difficoltà di sostenibilità viene trattato come informazione di pianificazione, non come fatica fisica.');
     if(recent.unrecorded)reasons.push(`${recent.unrecorded} sedut${recent.unrecorded===1?'a passata è ancora da registrare':'e passate sono ancora da registrare'}: nessuna progressione viene dedotta da questi dati mancanti.`);
     if(recovery.usable&&['caution','protect'].includes(recovery.level))reasons.push(...recovery.reasons.map(reason=>`WHOOP: ${reason}`));
-    if(level==='progress')reasons.push('Aderenza, dolore e carico sono stabili in entrambe le ultime due settimane.');
+    if(level==='progress'){
+      const targets=[tolerance.volume.allowed?'volume aerobico facile':null,tolerance.long.allowed?'lungo':null].filter(Boolean);
+      reasons.push(`I controlli di tolleranza autorizzano un piccolo aumento del ${targets.join(' e del ')}; intensità e forza non aumentano automaticamente.`);
+    }else if(level==='steady'&&recent.recorded){
+      tolerance.checks.filter(item=>item.required&&!item.passed).slice(0,2).forEach(item=>reasons.push(`${item.label}: ${item.detail}`));
+    }
     if(!reasons.length)reasons.push(recent.recorded?'Nessun segnale recente richiede una modifica del carico.':'Dati recenti ancora limitati: mantengo una proposta prudente e stabile.');
 
     const settings={
-      protect:{volumeFactor:.75,longFactor:.75,qualityMode:'controlled',strengthRir:4,strengthSetReduction:1,sessionDelta:-1},
-      reduce:{volumeFactor:.9,longFactor:.85,qualityMode:'controlled',strengthRir:3,strengthSetReduction:1,sessionDelta:0},
-      steady:{volumeFactor:1,longFactor:1,qualityMode:'normal',strengthRir:2,strengthSetReduction:0,sessionDelta:0},
-      progress:{volumeFactor:1,longFactor:1.05,qualityMode:'normal',strengthRir:2,strengthSetReduction:0,sessionDelta:0}
+      protect:{volumeFactor:.75,aerobicVolumeFactor:.75,longFactor:.75,qualityMode:'controlled',strengthRir:4,strengthSetReduction:1,sessionDelta:-1},
+      reduce:{volumeFactor:.9,aerobicVolumeFactor:.9,longFactor:.85,qualityMode:'controlled',strengthRir:3,strengthSetReduction:1,sessionDelta:0},
+      steady:{volumeFactor:1,aerobicVolumeFactor:1,longFactor:1,qualityMode:'normal',strengthRir:2,strengthSetReduction:0,sessionDelta:0},
+      progress:{volumeFactor:1,aerobicVolumeFactor:tolerance.volume.factor,longFactor:tolerance.long.factor,qualityMode:'normal',strengthRir:2,strengthSetReduction:0,sessionDelta:0}
     }[level];
     settings.physiologySessionDelta=settings.sessionDelta;settings.organizationSessionDelta=organization.sessionDelta;settings.sessionDelta=Math.min(settings.physiologySessionDelta,settings.organizationSessionDelta);
     const runningRelevantPain=Math.max(body.lowerMax,recent.maxRunningPain);
     settings.lowerBodyCaution=runningRelevantPain>=3;settings.lowerBodyProtection=runningRelevantPain>=5;settings.suspendRunning=runningRelevantPain>=7;
-    const meta=levelMeta[level];
+    const meta={...levelMeta[level]};
+    if(level==='progress')meta.summary=tolerance.volume.allowed&&tolerance.long.allowed?'La risposta recente consente un piccolo aumento del volume facile e del lungo.':tolerance.volume.allowed?'La risposta recente consente un piccolo aumento del volume facile; il lungo resta stabile.':'La risposta recente consente un piccolo aumento del lungo; il restante volume resta stabile.';
     const metrics=[
       metric('Dati',recent.due?`${recent.recorded}/${recent.due}`:'—',recent.coverage!==null&&recent.coverage<.6?'warn':'neutral'),
       metric('Aderenza',recent.adherence!==null?`${Math.round(recent.adherence*100)}%`:'—',recent.adherence!==null&&recent.adherence<.65?'warn':'neutral'),
@@ -155,7 +162,7 @@
       metric('WHOOP',recovery.label,recovery.tone)
     ];
     const confidence=baselineValid?'high':recent.recorded>=3||recovery.usable?'medium':'low';
-    return {level,label:meta.label,summary:meta.summary,reasons,metrics,settings,recent,previous,loadRatio,preSummary,body,organization,recovery,confidence};
+    return {level,label:meta.label,summary:meta.summary,reasons,metrics,settings,recent,previous,loadRatio,preSummary,body,organization,recovery,tolerance,confidence};
   }
 
   root.rcAdaptiveEngine={analyze,periodStats,summarizeRecentPreCheckins,organizationSignals};
