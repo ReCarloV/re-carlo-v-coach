@@ -1,8 +1,9 @@
 (function(root,factory){
-  const api=factory();
+  const methodology=typeof module!=='undefined'&&module.exports?require('./coach-methodology-model.js'):root?.rcCoachMethodologyModel;
+  const api=factory(methodology);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcRaceCoachModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(methodology){
   'use strict';
 
   const DAY_MS=86400000;
@@ -49,15 +50,16 @@
   function range(value,start,end){return value>=start&&value<=end;}
   function dailyTotals(){return new Map();}
   function addDaily(map,date,value){map.set(date,(map.get(date)||0)+value);}
-  function observedRunning(input={}){
-    const today=input.today,start=addDays(today,-27),activities=(Array.isArray(input.activities)?input.activities:[]).filter(item=>!item.demoDataset&&item.category==='running'&&range(item.date,start,today)),sessions=(Array.isArray(input.sessions)?input.sessions:[]).filter(item=>active(item)&&isRun(item)&&performed(item)&&range(item.date,start,today));
+  function observedRunningWindow(input={},days=28){
+    const today=input.today,windowDays=Math.max(1,Math.round(Number(days)||28)),start=addDays(today,-windowDays+1),activities=(Array.isArray(input.activities)?input.activities:[]).filter(item=>!item.demoDataset&&item.category==='running'&&range(item.date,start,today)),sessions=(Array.isArray(input.sessions)?input.sessions:[]).filter(item=>active(item)&&isRun(item)&&performed(item)&&range(item.date,start,today));
     const activityKm=dailyTotals(),sessionKm=dailyTotals(),activityCounts=dailyTotals(),sessionCounts=dailyTotals(),longCandidates=[];
     activities.forEach(item=>{const km=Math.max(0,(Number(item.distanceM)||0)/1000);addDaily(activityCounts,item.date,1);if(km){addDaily(activityKm,item.date,km);longCandidates.push(km);}});
     sessions.forEach(item=>{const km=Math.max(0,Number(item.outcome?.actualDistanceKm)||0);addDaily(sessionCounts,item.date,1);if(km){addDaily(sessionKm,item.date,km);longCandidates.push(km);}});
     const dates=[...new Set([...activityCounts.keys(),...sessionCounts.keys()])].sort(),distanceDates=[...new Set([...activityKm.keys(),...sessionKm.keys()])];
     const totalKm=distanceDates.reduce((sum,date)=>sum+Math.max(activityKm.get(date)||0,sessionKm.get(date)||0),0),runs=dates.reduce((sum,date)=>sum+Math.max(activityCounts.get(date)||0,sessionCounts.get(date)||0),0),latestDate=dates.at(-1)||null;
-    return{start,end:today,days:28,weeks:4,runs,runFrequency:round(runs/4,1),totalKm:round(totalKm,1),kmPerWeek:totalKm?round(totalKm/4,1):null,longestKm:longCandidates.length?round(Math.max(...longCandidates),1):null,latestDate,latestAgeDays:latestDate===null?null:daysBetween(latestDate,today),distanceKnown:distanceDates.length>0,source:{strava:activities.length>0,outcomes:sessions.length>0}};
+    const weeks=windowDays/7;return{start,end:today,days:windowDays,weeks,runs,runFrequency:round(runs/weeks,1),totalKm:round(totalKm,1),kmPerWeek:totalKm?round(totalKm/weeks,1):null,longestKm:longCandidates.length?round(Math.max(...longCandidates),1):null,latestDate,latestAgeDays:latestDate===null?null:daysBetween(latestDate,today),distanceKnown:distanceDates.length>0,source:{strava:activities.length>0,outcomes:sessions.length>0}};
   }
+  function observedRunning(input={}){return observedRunningWindow(input,28);}
   function executionCredit(session){const outcome=session?.outcome;if(!outcome||outcome.status==='skipped')return 0;if(outcome.status==='completed')return 1;const ratio=Number(outcome.actualDurationMin)/(Number(session.durationMin)||1);return clamp(ratio||.5,.25,.9);}
   function historyQuality(input={}){
     const today=input.today,start=addDays(today,-27),sessions=(Array.isArray(input.sessions)?input.sessions:[]).filter(item=>active(item)&&item.category!=='recovery'&&range(item.date,start,today)&&(item.date<today||item.outcome));const recorded=sessions.filter(item=>item.outcome),key=sessions.filter(item=>item.priority==='essential'),keyRecorded=key.filter(item=>item.outcome);
@@ -89,7 +91,7 @@
     return{key,...meta,loadRatio,longRatio};
   }
   function audit(input={}){
-    const today=input.today||iso(new Date()),goal=input.goal||null;if(!goal)return null;const sessions=Array.isArray(input.sessions)?input.sessions:[],observed=observedRunning({today,sessions,activities:input.activities}),history=historyQuality({today,sessions}),plan=futurePlan({today,goal,sessions}),phase=phaseFor(goal,today),readiness=input.readiness||null,confidence=confidenceFor({observed,history,plan,readiness}),assessment=assessmentFor({observed,history,plan,readiness}),pace=targetPace(goal),focus=[phase.focus];
+    const today=input.today||iso(new Date()),goal=input.goal||null;if(!goal)return null;const sessions=Array.isArray(input.sessions)?input.sessions:[],windowInput={today,sessions,activities:input.activities},observed=observedRunning(windowInput),windows={acute:observedRunningWindow(windowInput,7),mesocycle:observed,chronic:observedRunningWindow(windowInput,84)},history=historyQuality({today,sessions}),plan=futurePlan({today,goal,sessions}),phase=phaseFor(goal,today),readiness=input.readiness||null,confidence=confidenceFor({observed,history,plan,readiness}),assessment=assessmentFor({observed,history,plan,readiness}),pace=targetPace(goal),focus=[phase.focus];
     if(assessment.loadRatio!==null&&assessment.loadRatio>1.15)focus.push(`Progressione prevista: ${Math.round((assessment.loadRatio-1)*100)}% sopra la media osservata; confermarla con tolleranza reale, non con una percentuale automatica.`);
     if(assessment.longRatio!==null&&assessment.longRatio>1.25)focus.push(`Il lungo massimo programmato supera del ${Math.round((assessment.longRatio-1)*100)}% quello osservato negli ultimi 28 giorni.`);
     if(goal.type==='marathon'&&observed.runs>=3&&observed.runFrequency<2.5)focus.push('Prima del volume specifico va consolidata una frequenza di corsa sostenibile.');
@@ -100,8 +102,9 @@
     reasons.push(history.due?`Registrazioni recenti: ${history.recorded}/${history.due}; aderenza osservabile ${history.adherence===null?'non disponibile':`${Math.round(history.adherence*100)}%`}.`:'Nessuna seduta recente dovuta da valutare.');
     if(readiness?.recovery?.usable)reasons.push(`WHOOP: ${readiness.recovery.label}; viene usato come segnale di recupero e non decide da solo la periodizzazione.`);
     if(plan.continuity<.75)reasons.push(`Il calendario copre ${plan.coveredWeeks}/${plan.remainingWeeks} settimane rimanenti verso la gara.`);
-    return{today,goal,phase,pace,observed,history,plan,readiness,confidence,assessment,focus:[...new Set(focus)].slice(0,3),reasons};
+    const result={today,goal,phase,pace,observed,windows,history,plan,readiness,confidence,assessment,focus:[...new Set(focus)].slice(0,3),reasons};
+    result.methodology=methodology?.contextForAudit({...result,sessions})||null;return result;
   }
 
-  return{audit,phaseFor,observedRunning,historyQuality,futurePlan,targetPace,isLong,isQuality,addDays,daysBetween};
+  return{audit,phaseFor,observedRunning,observedRunningWindow,historyQuality,futurePlan,targetPace,isLong,isQuality,addDays,daysBetween};
 });
