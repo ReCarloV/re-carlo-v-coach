@@ -413,7 +413,7 @@
         <h3>Parametri forza</h3><div class="form-grid">
           <label>Focus<select name="strengthFocus" data-title-source><option>Upper body</option><option>Lower body</option><option>Full body</option><option>HYROX strength</option><option>Accessori / prevenzione</option></select></label>
           <label>RIR target<input name="targetRir" type="number" min="0" max="6" step="0.5" value="2"></label>
-          <div class="full workout-builder" data-builder="strength"><div class="builder-heading"><div><strong>Esercizi</strong><span>Serie, ripetizioni, carico e recupero modificabili singolarmente</span></div><button class="ghost add-workout-row" type="button">+ Esercizio</button></div><div class="workout-rows"></div><input name="strengthBlocks" type="hidden"></div>
+          <div class="full workout-builder" data-builder="strength"><div class="builder-heading"><div><strong>Esercizi</strong><span>Carico previsto separato dal target; il carico effettivo verrà registrato dopo la seduta</span></div><button class="ghost add-workout-row" type="button">+ Esercizio</button></div><div class="workout-rows"></div><input name="strengthBlocks" type="hidden"></div>
           <label class="full">Complementari e indicazioni <span class="field-hint">note libere, escluse dal calcolo e1RM</span><textarea name="strengthAccessories" rows="4" placeholder="Es. 2–3 esercizi upper back, cuffia e core a scelta"></textarea></label>
         </div>
       </section>
@@ -476,7 +476,7 @@
         </div>
         <div class="outcome-load-preview"><span>CARICO INTERNO (sRPE)</span><strong id="outcome-load-value">0 AU</strong><small>durata reale × RPE</small></div>
         <section class="strength-performance" id="strength-performance-fields" hidden>
-          <div class="strength-performance-heading"><div><strong>Set principali per e1RM</strong><span>Inserisci il miglior set effettivo. I complementari non vengono raccolti.</span></div><small>1–10 RIPETIZIONI</small></div>
+          <div class="strength-performance-heading"><div><strong>Set principali effettivi per e1RM</strong><span>Inserisci il miglior set realmente svolto: il carico previsto non aggiorna i massimali. I complementari non vengono raccolti.</span></div><small>1–10 RIPETIZIONI</small></div>
           <div class="strength-performance-rows" id="strength-performance-rows"></div>
         </section>
       </div>

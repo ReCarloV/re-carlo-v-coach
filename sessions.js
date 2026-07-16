@@ -40,7 +40,7 @@
   let currentEvidenceIndex=new Map();
   let activeOutcomeEvidence=null;
   const builderFields = {
-    strength:[['name','Esercizio','Es. Bench press'],['sets','Serie','4'],['reps','Ripetizioni','5'],['target','Carico / target','80% 1RM'],['rest','Recupero','2 min']],
+    strength:[['name','Esercizio','Es. Bench press'],['sets','Serie','4'],['reps','Ripetizioni','5'],['loadKg','Carico previsto (kg)','80'],['target','Target','RIR 2 / 80% 1RM'],['rest','Recupero','2 min']],
     hyrox:[['name','Blocco / stazione','Es. Sled push'],['volume','Volume','4 × 25 m'],['target','Target','RPE 8'],['rest','Recupero','90 s']],
     metcon:[['name','Blocco / movimento','Es. Row'],['volume','Volume','12 cal'],['target','Target','RPE 8'],['rest','Recupero','30 s']]
   };
@@ -104,7 +104,7 @@
       return [`${session.durationMin} min`,d.rideType,ftpRange,watts,d.cadence ? `${d.cadence} rpm` : '',d.powerSource].filter(Boolean).join(' · ');
     }
     if (session.category === 'strength') {
-      const exercises = Array.isArray(d.strengthBlocks) ? d.strengthBlocks.slice(0,3).map(item => [item.name,item.sets && item.reps ? `${item.sets}×${item.reps}` : ''].filter(Boolean).join(' ')).join(' · ') : String(d.exercises || '').split('\n').map(item => item.trim()).filter(Boolean).slice(0,3).join(' · ');
+      const exercises = Array.isArray(d.strengthBlocks) ? d.strengthBlocks.slice(0,3).map(item => [item.name,item.sets && item.reps ? `${item.sets}×${item.reps}` : '',item.loadKg!==''&&item.loadKg!==null&&item.loadKg!==undefined?`@ ${item.loadKg} kg`:null].filter(Boolean).join(' ')).join(' · ') : String(d.exercises || '').split('\n').map(item => item.trim()).filter(Boolean).slice(0,3).join(' · ');
       return [`${session.durationMin} min`,d.strengthFocus,d.targetRir !== '' ? `RIR ${d.targetRir}` : '',exercises].filter(Boolean).join(' · ');
     }
     if (session.category === 'hyrox') return [`${session.durationMin} min`,d.hyroxFormat,d.hyroxRpe ? `RPE ${d.hyroxRpe}` : '',Array.isArray(d.hyroxStructuredBlocks)&&d.hyroxStructuredBlocks.length ? `${d.hyroxStructuredBlocks.length} blocchi` : ''].filter(Boolean).join(' · ');
@@ -274,7 +274,7 @@
   }
   function close() { modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
   function legacyRows(text, type) {
-    return String(text || '').split('\n').map(value => value.trim()).filter(Boolean).map(name => type === 'strength' ? {name,sets:'',reps:'',target:'',rest:''} : {name,volume:'',target:'',rest:''});
+    return String(text || '').split('\n').map(value => value.trim()).filter(Boolean).map(name => type === 'strength' ? {name,sets:'',reps:'',loadKg:'',target:'',rest:''} : {name,volume:'',target:'',rest:''});
   }
   function builderRows(type) {
     const input = form.elements.namedItem(builderInputNames[type]);
@@ -292,7 +292,7 @@
       const row = document.createElement('div'); row.className = `workout-row ${type}`;
       builderFields[type].forEach(([key,label,placeholder]) => { const wrap=document.createElement('label'); wrap.textContent=label; let input;
         if(type==='strength'&&key==='name'){input=document.createElement('select'); const preserved=values[key]&&!strengthExerciseLibrary.includes(values[key])?[values[key]]:[]; [...preserved,...strengthExerciseLibrary].forEach(name=>{const option=document.createElement('option');option.value=name;option.textContent=name;input.append(option);}); input.value=values[key]||strengthExerciseLibrary[0]; input.addEventListener('change',()=>syncBuilder(type));}
-        else {input=document.createElement('input');input.type='text';input.placeholder=placeholder;input.value=values[key]||'';input.addEventListener('input',()=>syncBuilder(type));}
+        else {input=document.createElement('input');input.type=type==='strength'&&key==='loadKg'?'number':'text';if(input.type==='number'){input.inputMode='decimal';input.min='0';input.max='700';input.step='0.5';}input.placeholder=placeholder;input.value=values[key]??'';input.addEventListener('input',()=>syncBuilder(type));}
         input.dataset.field=key; wrap.append(input); row.append(wrap); });
       const actions=document.createElement('div'); actions.className='row-actions';
       [['↑','Sposta su',-1],['↓','Sposta giù',1]].forEach(([symbol,label,direction]) => { const button=document.createElement('button'); button.type='button'; button.className='row-action'; button.textContent=symbol; button.title=label; button.disabled=(direction<0&&index===0)||(direction>0&&index===rows.length-1); button.addEventListener('click',()=>{const current=syncBuilder(type); const next=index+direction; [current[index],current[next]]=[current[next],current[index]]; renderBuilder(type,current);}); actions.append(button); });
@@ -369,9 +369,10 @@
     const existing=new Map((Array.isArray(outcome?.strengthPerformance)?outcome.strengthPerformance:[]).map(entry=>[strengthModel.liftKey(entry.exercise),entry]));
     lifts.forEach(lift=>{
       const saved=existing.get(lift.key)||{};const row=document.createElement('div');row.className='strength-performance-row';row.dataset.liftKey=lift.key;row.dataset.exercise=lift.exercise;
-      const name=document.createElement('div');name.className='strength-performance-name';const type=document.createElement('small');type.textContent=lift.externalLoad?`ZAVORRA ESTERNA · BW ${athleteWeightKg()||'—'} KG`:'CARICO TOTALE';const title=document.createElement('strong');title.textContent=lift.label;name.append(type,title);
+      const name=document.createElement('div');name.className='strength-performance-name';const type=document.createElement('small');const plannedLoad=lift.plannedLoadKg!==undefined?`${lift.externalLoad?'+':''}${lift.plannedLoadKg} kg`:null,plannedReps=lift.plannedReps?` × ${lift.plannedReps}`:'';type.textContent=`${lift.externalLoad?`ZAVORRA ESTERNA · BW ${athleteWeightKg()||'—'} KG`:'CARICO TOTALE'}${plannedLoad?` · PREVISTO ${plannedLoad}${plannedReps}`:''}`;const title=document.createElement('strong');title.textContent=lift.label;name.append(type,title);
       const loadLabel=document.createElement('label');loadLabel.textContent=lift.externalLoad?'Zavorra (kg)':'Carico (kg)';const loadInput=document.createElement('input');loadInput.type='number';loadInput.inputMode='decimal';loadInput.min='0.5';loadInput.max=lift.externalLoad?'200':'700';loadInput.step='0.5';loadInput.value=saved.loadKg??'';loadInput.setAttribute('aria-label',`${loadLabel.textContent} ${lift.label}`);loadLabel.append(loadInput);
       const repsLabel=document.createElement('label');repsLabel.textContent='Ripetizioni';const repsInput=document.createElement('input');repsInput.type='number';repsInput.inputMode='numeric';repsInput.min='1';repsInput.max='10';repsInput.step='1';repsInput.value=saved.reps??'';repsInput.setAttribute('aria-label',`Ripetizioni ${lift.label}`);repsLabel.append(repsInput);
+      if(lift.plannedLoadKg!==undefined)loadInput.placeholder=`Previsto ${lift.externalLoad?'+':''}${lift.plannedLoadKg}`;if(lift.plannedReps)repsInput.placeholder=`Previsto ${lift.plannedReps}`;
       const preview=document.createElement('div');preview.className='strength-performance-preview';const previewLabel=document.createElement('small');previewLabel.textContent=`e1RM · ${strengthModel.FORMULAS[formula].shortLabel}`;const previewValue=document.createElement('strong');preview.append(previewLabel,previewValue);
       const update=()=>{const hasLoad=loadInput.value!=='',hasReps=repsInput.value!=='';loadInput.required=hasReps;repsInput.required=hasLoad;const value=strengthModel.estimateE1rm(loadInput.value,repsInput.value,{externalLoad:lift.externalLoad,bodyweightKg:athleteWeightKg(),formula});previewValue.textContent=value===null?'—':`${lift.externalLoad?'+':''}${value.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`;};
       loadInput.addEventListener('input',update);repsInput.addEventListener('input',update);update();row.append(name,loadLabel,repsLabel,preview);container.append(row);
@@ -434,7 +435,7 @@
   categoryInput.addEventListener('change', () => { toggleFields(); updateSuggestedTitle(); });
   runTargetInput.addEventListener('change', toggleFields);
   document.querySelectorAll('[data-title-source]').forEach(field => field.addEventListener('change', () => updateSuggestedTitle()));
-  document.querySelectorAll('.add-workout-row').forEach(button => button.addEventListener('click', () => { const type=button.closest('[data-builder]').dataset.builder; const rows=syncBuilder(type); rows.push(type==='strength'?{name:strengthExerciseLibrary[0],sets:'',reps:'',target:'',rest:''}:{name:'',volume:'',target:'',rest:''}); renderBuilder(type,rows); const inputs=document.querySelectorAll(`[data-builder="${type}"] .workout-row input`); inputs[inputs.length-(builderFields[type].length-1)]?.focus(); }));
+  document.querySelectorAll('.add-workout-row').forEach(button => button.addEventListener('click', () => { const type=button.closest('[data-builder]').dataset.builder; const rows=syncBuilder(type); rows.push(type==='strength'?{name:strengthExerciseLibrary[0],sets:'',reps:'',loadKg:'',target:'',rest:''}:{name:'',volume:'',target:'',rest:''}); renderBuilder(type,rows); const inputs=document.querySelectorAll(`[data-builder="${type}"] .workout-row input`); inputs[inputs.length-(builderFields[type].length-1)]?.focus(); }));
   document.getElementById('add-run-segment').addEventListener('click',()=>{const items=syncRunBuilder();items.push({type:'segment',phase:items.length?'work':'warmup',unit:'min',amount:items.length?5:10,targetType:'free',target:''});renderRunBuilder(items);});
   document.getElementById('add-run-repeat').addEventListener('click',()=>{const items=syncRunBuilder();items.push({type:'repeat',repeats:6,steps:[{type:'segment',phase:'work',unit:'min',amount:3,targetType:'pace',target:''},{type:'segment',phase:'recovery',unit:'min',amount:2,targetType:'free',target:''}]});renderRunBuilder(items);});
   titleInput.addEventListener('input', () => { titleMode = titleInput.value.trim() ? 'custom' : 'auto'; updateSuggestedTitle(); });

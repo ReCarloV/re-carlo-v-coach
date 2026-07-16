@@ -1,5 +1,7 @@
 .tag.metcon { color:#ff92d0; background:#421a36; }
 .tag.test { color:#ffe07a; background:#463c13; }
+.workout-row.strength{grid-template-columns:minmax(135px,1.7fr) repeat(2,minmax(55px,.6fr)) minmax(85px,.8fr) minmax(95px,1fr) minmax(70px,.75fr) auto}
+@media(max-width:760px){.workout-row.strength{grid-template-columns:1fr 1fr}}
 #title-hint { display:block; margin-top:6px; }
 .day { transition:border-color .2s, background .2s, transform .2s; }
 .day:hover { transform:translateY(-1px); }

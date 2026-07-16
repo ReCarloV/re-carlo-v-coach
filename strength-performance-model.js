@@ -39,10 +39,13 @@
     const key=liftKey(entry?.exercise),loadKg=Number(entry?.loadKg),reps=Number(entry?.reps);if(!key||!Number.isFinite(loadKg)||loadKg<=0||!Number.isInteger(reps)||reps<1||reps>10)return null;
     const bodyweightKg=Number(entry?.bodyweightKg);return {key,exercise:String(entry.exercise).trim(),loadKg:roundHalf(loadKg),reps,...(key==='pullup'&&Number.isFinite(bodyweightKg)&&bodyweightKg>0?{bodyweightKg:roundHalf(bodyweightKg)}:{})};
   }
+  function plannedValues(block){
+    const hasLoad=block?.loadKg!==''&&block?.loadKg!==null&&block?.loadKg!==undefined,load=Number(block?.loadKg),reps=Number(block?.reps);return{...(hasLoad&&Number.isFinite(load)&&load>=0?{plannedLoadKg:roundHalf(load)}:{}),...(Number.isInteger(reps)&&reps>0?{plannedReps:reps}:{})};
+  }
   function editableLifts(session){
     const result=[],seen=new Set();
-    const add=exercise=>{const key=liftKey(exercise);if(!key||seen.has(key))return;seen.add(key);result.push({key,label:LIFTS[key].label,exercise:String(exercise).trim(),externalLoad:LIFTS[key].externalLoad});};
-    (Array.isArray(session?.details?.strengthBlocks)?session.details.strengthBlocks:[]).forEach(item=>add(item?.name));
+    const add=(exercise,block=null)=>{const key=liftKey(exercise);if(!key||seen.has(key))return;seen.add(key);result.push({key,label:LIFTS[key].label,exercise:String(exercise).trim(),externalLoad:LIFTS[key].externalLoad,...plannedValues(block)});};
+    (Array.isArray(session?.details?.strengthBlocks)?session.details.strengthBlocks:[]).forEach(item=>add(item?.name,item));
     (Array.isArray(session?.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[]).forEach(item=>add(item?.exercise));
     return result;
   }
@@ -61,5 +64,5 @@
     return result;
   }
 
-  return {LIFTS,FORMULAS,liftKey,estimateE1rm,normalizedEntry,editableLifts,deriveMaxes};
+  return {LIFTS,FORMULAS,liftKey,estimateE1rm,normalizedEntry,plannedValues,editableLifts,deriveMaxes};
 });
