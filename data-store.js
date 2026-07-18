@@ -120,11 +120,38 @@
     return value;
   }
 
+  function validateEnduranceBlocks(blocks,{actual=false}={}){
+    const phases=new Set(['warmup','work','recovery','cooldown','free']),units=new Set(['min','km','m']),targets=new Set(['free','pace','hr','rpe','ftp']),intensities=new Set(['recovery','easy','steady','tempo','threshold','vo2','race']);
+    const validSegment=item=>{
+      if(!isObject(item)||item.type!=='segment'||!phases.has(item.phase)||!units.has(item.unit)||!isFiniteValue(item.amount)||Number(item.amount)<(actual?0:.01)||Number(item.amount)>2000)return false;
+      if(owns(item,'targetType')&&!targets.has(item.targetType))return false;
+      if(owns(item,'target')&&typeof item.target!=='string')return false;
+      if(owns(item,'paceHint')&&typeof item.paceHint!=='string')return false;
+      if(owns(item,'intensity')&&!intensities.has(item.intensity))return false;
+      if(owns(item,'completed')&&typeof item.completed!=='boolean')return false;
+      if(owns(item,'plannedAmount')&&(!isFiniteValue(item.plannedAmount)||Number(item.plannedAmount)<0||Number(item.plannedAmount)>2000))return false;
+      if(owns(item,'targetSource')&&!isObject(item.targetSource))return false;
+      return true;
+    };
+    if(!Array.isArray(blocks)||blocks.length>40)return false;
+    return blocks.every(item=>{
+      if(item?.type==='segment')return validSegment(item);
+      if(!isObject(item)||item.type!=='repeat'||!Number.isInteger(Number(item.repeats))||Number(item.repeats)<(actual?0:1)||Number(item.repeats)>100||!Array.isArray(item.steps)||!item.steps.length||item.steps.length>20||!item.steps.every(validSegment))return false;
+      if(owns(item,'plannedRepeats')&&(!Number.isInteger(Number(item.plannedRepeats))||Number(item.plannedRepeats)<0||Number(item.plannedRepeats)>100))return false;
+      if(owns(item,'completed')&&typeof item.completed!=='boolean')return false;
+      if(owns(item,'intensity')&&!intensities.has(item.intensity))return false;
+      return true;
+    });
+  }
+
   function validateSession(session) {
     if (!isObject(session)) invalid('INVALID_SESSIONS','Una seduta del backup non è valida.');
     if (typeof session.id !== 'string' || !session.id.trim() || !isDateKey(session.date) || !sessionCategories.has(session.category) || typeof session.title !== 'string' || !session.title.trim()) invalid('INVALID_SESSIONS','Una seduta contiene identificativo, data, categoria o titolo non validi.');
     if (!isFiniteValue(session.durationMin) || Number(session.durationMin) <= 0 || !sessionPriorities.has(session.priority)) invalid('INVALID_SESSIONS','Una seduta contiene durata o priorità non valide.');
     if (!isObject(session.details)) invalid('INVALID_SESSIONS','I dettagli di una seduta non sono validi.');
+    if(owns(session.details,'runBlocks')&&!validateEnduranceBlocks(session.details.runBlocks))invalid('INVALID_SESSIONS','La struttura della corsa non è valida.');
+    if(owns(session.details,'rideBlocks')&&!validateEnduranceBlocks(session.details.rideBlocks))invalid('INVALID_SESSIONS','La struttura dei rulli non è valida.');
+    if(owns(session.details,'prescriptionVersion')&&typeof session.details.prescriptionVersion!=='string')invalid('INVALID_SESSIONS','La versione della prescrizione non è valida.');
     if(owns(session.details,'strengthBlocks')){
       const blocks=session.details.strengthBlocks;if(!Array.isArray(blocks)||blocks.length>50||blocks.some(block=>!isObject(block)||typeof block.name!=='string'||!block.name.trim()||(owns(block,'loadKg')&&block.loadKg!==''&&block.loadKg!==null&&block.loadKg!==undefined&&(!isFiniteValue(block.loadKg)||Number(block.loadKg)<0||Number(block.loadKg)>700))))invalid('INVALID_SESSIONS','La prescrizione dei carichi di forza non è valida.');
     }
@@ -156,6 +183,7 @@
         const values=session.outcome.strengthPerformance;
         if(!Array.isArray(values)||values.length>20||values.some(item=>!isObject(item)||typeof item.exercise!=='string'||!item.exercise.trim()||!isFiniteValue(item.loadKg)||Number(item.loadKg)<=0||Number(item.loadKg)>700||!Number.isInteger(Number(item.reps))||Number(item.reps)<1||Number(item.reps)>10||(owns(item,'rpe')&&(!isFiniteValue(item.rpe)||Number(item.rpe)<6||Number(item.rpe)>10||!Number.isInteger(Number(item.rpe)*2)))||(owns(item,'bodyweightKg')&&(!isFiniteValue(item.bodyweightKg)||Number(item.bodyweightKg)<20||Number(item.bodyweightKg)>300))))invalid('INVALID_OUTCOME','I set principali registrati per il calcolo e1RM non sono validi.');
       }
+      if(owns(session.outcome,'actualEnduranceBlocks')&&!validateEnduranceBlocks(session.outcome.actualEnduranceBlocks,{actual:true}))invalid('INVALID_OUTCOME','I blocchi realmente svolti non sono validi.');
       if(owns(session.outcome,'deviceEvidence')){
         const evidence=session.outcome.deviceEvidence;const allowedFields=new Set(['actualDurationMin','actualDistanceKm']);
         if(!isObject(evidence)||typeof evidence.reconciliationDecisionId!=='string'||!evidence.reconciliationDecisionId.trim()||!isTimestamp(evidence.reviewedAt)||!Array.isArray(evidence.usedFields)||new Set(evidence.usedFields).size!==evidence.usedFields.length||evidence.usedFields.some(field=>!allowedFields.has(field)))invalid('INVALID_OUTCOME','La provenienza dei dati dispositivo non è valida.');

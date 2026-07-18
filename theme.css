@@ -586,3 +586,8 @@ html[data-theme="light"] .status{color:#62748b}
   .theme-choice-group{grid-template-columns:1fr}
   .theme-choice-group button{min-height:50px}
 }
+html[data-theme="light"] .ride-workout-builder,html[data-theme="light"] .endurance-performance{border-color:#ccd9e6;background:#f5f9fd}
+html[data-theme="light"] .endurance-block,html[data-theme="light"] .endurance-actual-segment,html[data-theme="light"] .endurance-actual-repeat,html[data-theme="light"] .outcome-record-endurance-block{background:#fff;border-color:#cbd9e7}
+html[data-theme="light"] .endurance-block strong,html[data-theme="light"] .endurance-actual-segment input,html[data-theme="light"] .endurance-actual-repeat input{color:#1b2d44}
+html[data-theme="light"] .endurance-actual-segment input,html[data-theme="light"] .endurance-actual-repeat input{border-color:#c7d5e3;background:#fff}
+html[data-theme="light"] .endurance-performance-heading span,html[data-theme="light"] .endurance-actual-phase span,html[data-theme="light"] .endurance-actual-hint,html[data-theme="light"] .outcome-record-endurance-block span{color:#5e7289}

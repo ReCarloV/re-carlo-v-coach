@@ -425,6 +425,7 @@
           <label>FTP minima (%)<input name="ftpMin" type="number" min="30" max="150" value="60"></label>
           <label>FTP massima (%)<input name="ftpMax" type="number" min="30" max="150" value="70"></label>
           <label>Cadenza target (rpm)<input name="cadence" type="number" min="40" max="150" value="90"></label>
+          <div class="full ride-workout-builder"><div class="builder-heading"><div><strong>Struttura dei rulli</strong><span>Blocchi, watt e cadenza derivati automaticamente dalla FTP del profilo</span></div><span class="profile-derived-badge">DAL PROFILO</span></div><div id="ride-workout-rows" class="ride-workout-rows"></div><input name="rideBlocks" type="hidden"></div>
         </div>
       </section>
 
@@ -496,6 +497,10 @@
             <label>Dolore massimo durante (0–10)<input name="pain" type="number" inputmode="numeric" min="0" max="10" step="1" placeholder="0 se assente" required></label>
           </div>
           <div class="outcome-load-preview"><span>CARICO INTERNO (sRPE)</span><strong id="outcome-load-value">0 AU</strong><small>durata reale × RPE</small></div>
+          <section class="endurance-performance" id="endurance-performance-fields" hidden>
+            <div class="endurance-performance-heading"><div><strong>Blocchi realmente svolti</strong><span>Parti dalla seduta programmata e modifica solo quantità, ripetizioni o target che hai cambiato davvero.</span></div><small>DATI EFFETTIVI PER IL COACH</small></div>
+            <div class="endurance-performance-rows" id="endurance-performance-rows"></div>
+          </section>
           <section class="strength-performance" id="strength-performance-fields" hidden>
             <div class="strength-performance-heading"><div><strong>Set principali effettivi per e1RM</strong><span>Inserisci il miglior set realmente svolto con RPE del set. I complementari restano nelle note.</span></div><small>1–10 RIPETIZIONI</small></div>
             <div class="strength-performance-rows" id="strength-performance-rows"></div>
@@ -625,6 +630,7 @@
   <script src="whoop-api-model.js"></script>
   <script src="reconciliation-model.js"></script>
   <script src="training-zones-model.js"></script>
+  <script src="session-prescription-model.js"></script>
   <script src="symptom-recency-model.js"></script>
   <script src="skip-reason-model.js"></script>
   <script src="recovery-trend-model.js"></script>

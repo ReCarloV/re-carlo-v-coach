@@ -87,15 +87,15 @@
   function formatSegment(segment) {
     const amount=number(segment.amount); const unit={min:"'",km:' km',m:' m'}[segment.unit]||` ${segment.unit||''}`;
     const quantity=amount?`${amount}${unit}`.trim():'Durata libera';
-    return [quantity,segment.target||'libero'].filter(Boolean).join(' · ');
+    return [quantity,segment.target||'libero',segment.paceHint].filter(Boolean).join(' · ');
   }
   function prescriptionFor(session) {
     const details=session.details||{};
     if (session.category==='running'&&Array.isArray(details.runBlocks)&&details.runBlocks.length) {
       const phaseLabels={warmup:'Riscaldamento',work:'Lavoro',recovery:'Recupero',cooldown:'Defaticamento',free:'Corsa libera'};
       return details.runBlocks.map(item=>{
-        if(item.type==='repeat')return {label:`${number(item.repeats)||1}× sequenza`,value:(item.steps||[]).map(formatSegment).join(' / ')||'Fasi da definire'};
-        return {label:phaseLabels[item.phase]||'Blocco',value:formatSegment(item)};
+        if(item.type==='repeat')return {label:`${number(item.repeats)||1}× sequenza`,value:(item.steps||[]).map(formatSegment).join(' / ')||'Fasi da definire',intensity:item.intensity||item.steps?.[0]?.intensity||'tempo'};
+        return {label:phaseLabels[item.phase]||'Blocco',value:formatSegment(item),intensity:item.intensity||'easy'};
       });
     }
     if(session.category==='running') {
@@ -107,6 +107,16 @@
         ...(details.distanceKm?[{label:'Distanza',value:`${details.distanceKm} km`}]:[]),
         {label:'Obiettivo',value:target}
       ];
+    }
+    if(session.category==='cycling'&&Array.isArray(details.rideBlocks)&&details.rideBlocks.length){
+      const phaseLabels={warmup:'Riscaldamento',work:'Lavoro',recovery:'Recupero',cooldown:'Defaticamento'};
+      return details.rideBlocks.map(item=>item.type==='repeat'
+        ?{label:`${number(item.repeats)||1}× sequenza`,value:(item.steps||[]).map(formatSegment).join(' / ')||'Fasi da definire',intensity:item.intensity||item.steps?.[0]?.intensity||'tempo'}
+        :{label:phaseLabels[item.phase]||'Blocco',value:formatSegment(item),intensity:item.intensity||'easy'});
+    }
+    if(session.category==='cycling'){
+      const watts=number(details.ftpMin)&&number(details.ftpMax)?`${details.ftpMin}–${details.ftpMax}% FTP`:'Da definire';
+      return[{label:'Durata',value:`${session.durationMin} min`},{label:'Potenza',value:watts},{label:'Cadenza',value:details.cadence?`${details.cadence} rpm`:'Da definire'}];
     }
     if(session.category==='strength') {
       const blocks=Array.isArray(details.strengthBlocks)?details.strengthBlocks:[];

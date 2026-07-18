@@ -52,44 +52,33 @@
     const context=[variant?.label,goal.target?`target: ${goal.target}`:'',goal.notes].filter(Boolean).join(' · ');
     return{id:`goal-session:${goal.id}`,goalId:goal.id,goalGenerated:true,goalSyncedAt:goal.updatedAt||stamp,date:goal.date,category,title:goal.name,durationMin,priority,details,notes:`Evento creato automaticamente dall’obiettivo${context?` · ${context}`:''}.`,outcome:null,titleMode:'custom',createdAt:stamp,updatedAt:stamp};
   }
-  function goalSubstitutionSource(session){
-    const fields=['date','category','title','durationMin','priority','details','notes','titleMode'];
-    return Object.fromEntries(fields.map(field=>[field,session[field]===undefined?undefined:JSON.parse(JSON.stringify(session[field]))]).filter(([,value])=>value!==undefined));
-  }
   function restoreGoalSubstitution(sessions=[],goalId,options={}){
-    const stamp=options.now||new Date().toISOString(),restoredIds=[];
-    const next=(Array.isArray(sessions)?sessions:[]).map(session=>{
-      if(session?.goalSubstitution?.goalId!==goalId)return session;
-      const source=session.adaptiveAdjustment?.source;if(!source)return session;
-      const restored={...session,...JSON.parse(JSON.stringify(source)),updatedAt:stamp};
-      delete restored.adaptiveAdjustment;delete restored.coachApplication;delete restored.goalSubstitution;restoredIds.push(session.id);return restored;
+    const removedIds=[];
+    const next=(Array.isArray(sessions)?sessions:[]).flatMap(session=>{
+      if(session?.goalSubstitution?.goalId!==goalId)return[session];
+      if(!session.outcome){removedIds.push(session.id);return[];}
+      const{goalSubstitution:ignoredSubstitution,...recorded}=session;
+      return[recorded];
     });
-    return{sessions:next,changed:Boolean(restoredIds.length),restoredIds};
+    return{sessions:next,changed:Boolean(removedIds.length),restoredIds:[],removedIds};
   }
   function applyGoalSubstitution(sessions=[],goal,options={}){
-    if(!goal?.id)return{sessions:Array.isArray(sessions)?sessions:[],changed:false,pausedIds:[],restoredIds:[]};
-    const stamp=options.now||new Date().toISOString(),variant=eventModel?.variantFor?.(goal)||null;
+    if(!goal?.id)return{sessions:Array.isArray(sessions)?sessions:[],changed:false,deletedIds:[],pausedIds:[],restoredIds:[]};
+    const variant=eventModel?.variantFor?.(goal)||null;
     const eligible=goal.status==='planned'&&['B','C'].includes(goal.priority)&&variant?.family==='running'&&Number(variant.distanceKm)>=21;
-    const goalSessionId=options.goalSessionId||`goal-session:${goal.id}`,pausedIds=[];
-    const restoredIds=[];let changed=false;
-    const items=(Array.isArray(sessions)?sessions:[]).map(session=>{
-      if(session?.goalSubstitution?.goalId!==goal.id)return session;
-      const source=session.adaptiveAdjustment?.source,long=source?.category==='running'&&(source?.details?.runType==='Long run'||/long|lungo/i.test(source?.title||''));
-      if(eligible&&source?.date===goal.date&&long&&session.goalSubstitution.goalSessionId===goalSessionId)return session;
-      if(!source)return session;
-      const restored={...session,...JSON.parse(JSON.stringify(source)),updatedAt:stamp};
-      delete restored.adaptiveAdjustment;delete restored.coachApplication;delete restored.goalSubstitution;restoredIds.push(session.id);changed=true;return restored;
+    const goalSessionId=options.goalSessionId||`goal-session:${goal.id}`,deletedIds=[];
+    const withoutLegacy=(Array.isArray(sessions)?sessions:[]).flatMap(session=>{
+      if(session?.goalSubstitution?.goalId!==goal.id)return[session];
+      if(session.outcome)return[session];
+      deletedIds.push(session.id);return[];
     });
-    if(!eligible)return{sessions:items,changed,pausedIds,restoredIds};
-    const next=items.map(session=>{
+    if(!eligible)return{sessions:withoutLegacy,changed:Boolean(deletedIds.length),deletedIds,pausedIds:[],restoredIds:[]};
+    const next=withoutLegacy.flatMap(session=>{
       const long=session?.category==='running'&&(session.details?.runType==='Long run'||/long|lungo/i.test(session.title||''));
-      if(session.goalSubstitution?.goalId===goal.id||session.id===goalSessionId||session.goalGenerated||session.goalId||session.outcome||session.date!==goal.date||!long)return session;
-      const source=session.adaptiveAdjustment?.source||goalSubstitutionSource(session),previousInstructions=session.adaptiveAdjustment?.instructions||[];
-      const instruction=`Seduta assorbita da ${goal.name}: la gara svolge il ruolo di lungo specifico della giornata.`;
-      pausedIds.push(session.id);changed=true;
-      return{...session,adaptiveAdjustment:{version:1,status:'paused',level:session.adaptiveAdjustment?.level||'steady',confidence:'high',preparedAt:stamp,instructions:[...previousInstructions.filter(item=>!item.startsWith('Seduta assorbita da ')),instruction,'La prescrizione originale resta conservata e può essere ripristinata.'],source},goalSubstitution:{version:1,goalId:goal.id,goalSessionId,appliedAt:stamp,reason:'same-day-specific-race'},updatedAt:stamp};
+      if(session.id===goalSessionId||session.goalGenerated||session.goalId||session.outcome||session.date!==goal.date||!long)return[session];
+      deletedIds.push(session.id);return[];
     });
-    return{sessions:next,changed,pausedIds,restoredIds};
+    return{sessions:next,changed:Boolean(deletedIds.length),deletedIds,pausedIds:[],restoredIds:[]};
   }
   function sortPlanned(a,b){return(priorityRank[a.priority]??9)-(priorityRank[b.priority]??9)||a.date.localeCompare(b.date)||a.name.localeCompare(b.name,'it');}
   function classifyGoals(goals=[],today=localToday()){

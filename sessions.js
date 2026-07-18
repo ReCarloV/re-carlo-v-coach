@@ -20,6 +20,7 @@
   const adjustmentModel=window.rcWeeklyPlanAdjustmentModel;
   const planViewModel=window.rcPlanViewModel;
   const goalsModel=window.rcGoalsModel;
+  const prescriptionModel=window.rcSessionPrescriptionModel;
   let sessions = load();
   let planView = localStorage.getItem(VIEW_KEY) === 'calendar' ? 'calendar' : 'list';
   let calendarCursor = relevantCalendarMonth();
@@ -39,6 +40,7 @@
   let titleMode = 'auto';
   let currentEvidenceIndex=new Map();
   let activeOutcomeEvidence=null;
+  let activeActualEnduranceBlocks=[];
   const builderFields = {
     strength:[['name','Esercizio','Es. Bench press'],['sets','Serie','4'],['reps','Ripetizioni','5'],['loadKg','Carico previsto (kg)','80'],['target','Target','RIR 2 / 80% 1RM'],['rest','Recupero','2 min']],
     hyrox:[['name','Blocco / stazione','Es. Sled push'],['volume','Volume','4 × 25 m'],['target','Target','RPE 8'],['rest','Recupero','90 s']],
@@ -60,10 +62,22 @@
     const migrated={...session,details:d,outcome,titleMode:session.titleMode || 'custom'};return window.rcPlanImportModel?.migrateImportedRaceDate?window.rcPlanImportModel.migrateImportedRaceDate(migrated):migrated;
   }
   function load() {
-    try { const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)); return (Array.isArray(stored) ? stored : structuredClone(defaults)).map(migrateSession); }
+    try {
+      const stored=JSON.parse(localStorage.getItem(STORAGE_KEY)),migrated=(Array.isArray(stored)?stored:structuredClone(defaults)).map(migrateSession);
+      const enriched=prescriptionModel?.enrichSessions?.(migrated,{...prescriptionContext(),today:localDate(),generatedOnly:true});
+      if(enriched?.changed)localStorage.setItem(STORAGE_KEY,JSON.stringify(enriched.sessions));
+      return enriched?.sessions||migrated;
+    }
     catch (_) { return structuredClone(defaults).map(migrateSession); }
   }
   function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)); }
+  function athleteProfile(){try{return JSON.parse(localStorage.getItem('rc-athlete-profile-v1'))||{};}catch(_){return{};}}
+  function prescriptionContext(){
+    let goals=[],hrZones=null;
+    try{goals=JSON.parse(localStorage.getItem('rc-goals-v1'))||[];}catch(_){}
+    try{hrZones=JSON.parse(localStorage.getItem('rc-hr-zones'));}catch(_){}
+    return{profile:athleteProfile(),goals,hrZones};
+  }
   function readEvidenceIndex(){
     if(!executionModel||!window.rcDataStore)return new Map();
     try{return executionModel.buildEvidenceIndex(sessions,{decisions:window.rcDataStore.getDataset('reconciliationDecisions'),stravaActivities:window.rcDataStore.getDataset('importedActivities'),whoopWorkouts:window.rcDataStore.getDataset('whoopWorkouts')});}
@@ -101,7 +115,8 @@
     }
     if (session.category === 'cycling') {
       const ftp = athleteFtp(); const hasFtp=Number(d.ftpMin)>0&&Number(d.ftpMax)>0;const ftpRange=hasFtp?`${d.ftpMin}–${d.ftpMax}% FTP`:'';const watts = hasFtp&&ftp ? `${Math.round(ftp*d.ftpMin/100)}–${Math.round(ftp*d.ftpMax/100)} W` : '';
-      return [`${session.durationMin} min`,d.rideType,ftpRange,watts,d.cadence ? `${d.cadence} rpm` : '',d.powerSource].filter(Boolean).join(' · ');
+      const phases=Array.isArray(d.rideBlocks)?d.rideBlocks.reduce((sum,item)=>sum+(item.type==='repeat'?(Number(item.repeats)||1)*(item.steps?.length||0):1),0):0;
+      return [`${session.durationMin} min`,d.rideType,ftpRange,watts,d.cadence ? `${d.cadence} rpm` : '',phases?`${phases} fasi programmate`:'',d.powerSource].filter(Boolean).join(' · ');
     }
     if (session.category === 'strength') {
       const exercises = Array.isArray(d.strengthBlocks) ? d.strengthBlocks.slice(0,3).map(item => [item.name,item.sets && item.reps ? `${item.sets}×${item.reps}` : '',item.loadKg!==''&&item.loadKg!==null&&item.loadKg!==undefined?`@ ${item.loadKg} kg`:null].filter(Boolean).join(' ')).join(' · ') : String(d.exercises || '').split('\n').map(item => item.trim()).filter(Boolean).slice(0,3).join(' · ');
@@ -304,22 +319,45 @@
   function hydrateBuilders(session) {
     const d=session?.details || {};
     renderRunBuilder(Array.isArray(d.runBlocks)?d.runBlocks:[]);
+    renderRideBuilder(Array.isArray(d.rideBlocks)?d.rideBlocks:[]);
     renderBuilder('strength',Array.isArray(d.strengthBlocks)?d.strengthBlocks:legacyRows(d.exercises,'strength'));
     renderBuilder('hyrox',Array.isArray(d.hyroxStructuredBlocks)?d.hyroxStructuredBlocks:legacyRows(d.hyroxBlocks,'hyrox'));
     renderBuilder('metcon',Array.isArray(d.metconStructuredBlocks)?d.metconStructuredBlocks:legacyRows(d.metconBlocks,'metcon'));
+  }
+  function enduranceBlockVisual(item,compact=false){
+    const model=prescriptionModel;const holder=document.createElement('div');holder.className=`endurance-block intensity-${model?.inferIntensity?.(item)||'easy'}${compact?' compact':''}`;
+    const label=document.createElement('small');label.textContent=model?.blockLabel?.(item)||'Blocco';const value=document.createElement('strong');value.textContent=model?.blockSummary?.(item)||'Da definire';holder.append(label,value);
+    return holder;
+  }
+  function renderRideBuilder(blocks=[]){
+    const list=document.getElementById('ride-workout-rows');if(!list)return;list.replaceChildren();
+    blocks.forEach(item=>{
+      if(item.type!=='repeat'){list.append(enduranceBlockVisual(item));return;}
+      const repeat=enduranceBlockVisual(item);repeat.classList.add('repeat');const steps=document.createElement('div');steps.className='ride-repeat-steps';(item.steps||[]).forEach(step=>steps.append(enduranceBlockVisual(step,true)));repeat.append(steps);list.append(repeat);
+    });
+    if(!blocks.length){const empty=document.createElement('div');empty.className='run-empty';empty.textContent='La struttura verrà generata dal Coach usando durata, tipologia e FTP del profilo.';list.append(empty);}
+    form.elements.namedItem('rideBlocks').value=JSON.stringify(blocks);
+  }
+  function regenerateRideBuilder(){
+    if(categoryInput.value!=='cycling')return;
+    const draft={category:'cycling',title:titleInput.value,durationMin:Number(form.elements.durationMin.value)||45,details:{rideType:form.elements.rideType.value,powerSource:form.elements.powerSource.value,ftpMin:Number(form.elements.ftpMin.value),ftpMax:Number(form.elements.ftpMax.value),cadence:Number(form.elements.cadence.value),rideBlocks:[]}};
+    const blocks=prescriptionModel?.ridePrescription?.(draft,prescriptionContext())||[];renderRideBuilder(blocks);
+    const main=blocks.flatMap(item=>item.type==='repeat'?item.steps||[]:[item]).find(item=>item.phase==='work');
+    if(main){form.elements.ftpMin.value=main.ftpMin||form.elements.ftpMin.value;form.elements.ftpMax.value=main.ftpMax||form.elements.ftpMax.value;form.elements.cadence.value=main.cadence||form.elements.cadence.value;}
   }
   function runSelect(label,name,options,value,onChange) {
     const wrap=document.createElement('label'); wrap.textContent=label; const select=document.createElement('select'); select.dataset.runField=name;
     options.forEach(([key,text])=>{const option=document.createElement('option'); option.value=key; option.textContent=text; select.append(option);}); select.value=value; select.addEventListener('change',onChange); wrap.append(select); return wrap;
   }
   function runSegment(segment,onChange,onRemove) {
-    const values={phase:'work',unit:'min',amount:5,targetType:'free',target:'',...segment}; const row=document.createElement('div'); row.className='run-segment'; row.dataset.runSegment='';
+    const values={phase:'work',unit:'min',amount:5,targetType:'free',target:'',...segment}; const row=document.createElement('div'); row.className=`run-segment intensity-${prescriptionModel?.inferIntensity?.(values)||'easy'}`; row.dataset.runSegment='';row.dataset.intensity=prescriptionModel?.inferIntensity?.(values)||'easy';row.dataset.paceHint=values.paceHint||'';if(values.targetSource)row.dataset.targetSource=JSON.stringify(values.targetSource);
     row.append(runSelect('Fase','phase',[['warmup','Warm-up'],['work','Lavoro'],['recovery','Recupero'],['cooldown','Cool-down'],['free','Corsa libera']],values.phase,onChange));
     row.append(runSelect('Unità','unit',[['min','Minuti'],['km','Chilometri'],['m','Metri']],values.unit,onChange));
     const amountWrap=document.createElement('label'); amountWrap.textContent='Quantità'; const amount=document.createElement('input'); amount.type='number'; amount.min='0.1'; amount.step='0.1'; amount.dataset.runField='amount'; amount.value=values.amount; amount.addEventListener('input',onChange); amountWrap.append(amount); row.append(amountWrap);
     const targetWrap=document.createElement('div'); targetWrap.className='run-target-value';
     const targetSelect=runSelect('Obiettivo','targetType',[['free','Libero'],['pace','Passo'],['hr','Frequenza cardiaca'],['rpe','RPE']],values.targetType,()=>{renderTarget();onChange();}); row.append(targetSelect,targetWrap);
     const actions=document.createElement('div'); actions.className='row-actions'; const remove=document.createElement('button'); remove.type='button'; remove.className='row-action remove'; remove.textContent='×'; remove.title='Rimuovi fase'; remove.addEventListener('click',onRemove); actions.append(remove); row.append(actions);
+    if(values.paceHint){const hint=document.createElement('small');hint.className='run-derived-hint';hint.textContent=`Range operativo ${values.paceHint} · derivato dal profilo`;row.append(hint);}
     function paceSeconds(value){const match=String(value||'').match(/(\d+):(\d+)/);return match?Number(match[1])*60+Number(match[2]):300;}
     function paceText(seconds){const safe=Math.max(120,Math.min(900,seconds));return `${Math.floor(safe/60)}:${String(safe%60).padStart(2,'0')}/km`;}
     function renderTarget(){const type=row.querySelector('[data-run-field="targetType"]').value; const previous=row.querySelector('[data-run-field="target"]')?.value||values.target; targetWrap.replaceChildren(document.createTextNode('Target'));
@@ -329,16 +367,19 @@
       else {const input=document.createElement('input');input.type='text';input.disabled=true;input.placeholder='Nessun target';input.dataset.runField='target';input.value='';targetWrap.append(input);} targetWrap.classList.toggle('is-free',type==='free');}
     renderTarget(); return row;
   }
-  function readRunSegment(row) { return {type:'segment',phase:row.querySelector('[data-run-field="phase"]').value,unit:row.querySelector('[data-run-field="unit"]').value,amount:Number(row.querySelector('[data-run-field="amount"]').value)||0,targetType:row.querySelector('[data-run-field="targetType"]').value,target:row.querySelector('[data-run-field="target"]')?.value.trim()||''}; }
+  function readRunSegment(row) {
+    let targetSource;try{targetSource=JSON.parse(row.dataset.targetSource||'null');}catch(_){}
+    return{type:'segment',phase:row.querySelector('[data-run-field="phase"]').value,unit:row.querySelector('[data-run-field="unit"]').value,amount:Number(row.querySelector('[data-run-field="amount"]').value)||0,targetType:row.querySelector('[data-run-field="targetType"]').value,target:row.querySelector('[data-run-field="target"]')?.value.trim()||'',intensity:row.dataset.intensity||prescriptionModel?.inferIntensity?.({phase:row.querySelector('[data-run-field="phase"]').value,target:row.querySelector('[data-run-field="target"]')?.value}),...(row.dataset.paceHint?{paceHint:row.dataset.paceHint}:{}),...(targetSource?{targetSource}:{})};
+  }
   function syncRunBuilder() {
-    const items=[...document.querySelectorAll('#run-workout-rows > [data-run-item]')].map(item=>item.dataset.runItem==='segment'?readRunSegment(item.querySelector('.run-segment')):{type:'repeat',repeats:Number(item.querySelector('[data-repeat-count]').value)||1,steps:[...item.querySelectorAll('.repeat-steps > .run-segment')].map(readRunSegment)});
+    const items=[...document.querySelectorAll('#run-workout-rows > [data-run-item]')].map(item=>item.dataset.runItem==='segment'?readRunSegment(item.querySelector('.run-segment')):{type:'repeat',repeats:Number(item.querySelector('[data-repeat-count]').value)||1,intensity:item.dataset.intensity||'tempo',steps:[...item.querySelectorAll('.repeat-steps > .run-segment')].map(readRunSegment)});
     form.elements.namedItem('runBlocks').value=JSON.stringify(items); return items;
   }
   function renderRunBuilder(items=[]) {
     const list=document.getElementById('run-workout-rows'); list.replaceChildren();
     items.forEach((item,index)=>{
       if(item.type!=='repeat') { const holder=document.createElement('div'); holder.dataset.runItem='segment'; holder.append(runSegment(item,()=>syncRunBuilder(),()=>{const current=syncRunBuilder();current.splice(index,1);renderRunBuilder(current);})); list.append(holder); return; }
-      const repeat=document.createElement('div'); repeat.className='run-repeat'; repeat.dataset.runItem='repeat'; const head=document.createElement('div'); head.className='run-repeat-head'; const title=document.createElement('div'); title.className='run-repeat-title'; const strong=document.createElement('strong'); strong.textContent='Sequenza ripetuta'; const countWrap=document.createElement('label'); countWrap.className='repeat-count'; countWrap.textContent='Ripetizioni'; const count=document.createElement('input'); count.type='number'; count.min='2'; count.max='50'; count.value=item.repeats||2; count.dataset.repeatCount=''; count.addEventListener('input',()=>syncRunBuilder()); countWrap.append(count); title.append(strong,countWrap); const remove=document.createElement('button'); remove.type='button'; remove.className='row-action remove'; remove.textContent='×'; remove.title='Rimuovi sequenza'; remove.addEventListener('click',()=>{const current=syncRunBuilder();current.splice(index,1);renderRunBuilder(current);}); head.append(title,remove); repeat.append(head);
+      const repeat=document.createElement('div'); repeat.className=`run-repeat intensity-${item.intensity||prescriptionModel?.inferIntensity?.(item.steps?.[0])||'tempo'}`; repeat.dataset.runItem='repeat';repeat.dataset.intensity=item.intensity||prescriptionModel?.inferIntensity?.(item.steps?.[0])||'tempo'; const head=document.createElement('div'); head.className='run-repeat-head'; const title=document.createElement('div'); title.className='run-repeat-title'; const strong=document.createElement('strong'); strong.textContent='Sequenza ripetuta'; const countWrap=document.createElement('label'); countWrap.className='repeat-count'; countWrap.textContent='Ripetizioni'; const count=document.createElement('input'); count.type='number'; count.min='2'; count.max='50'; count.value=item.repeats||2; count.dataset.repeatCount=''; count.addEventListener('input',()=>syncRunBuilder()); countWrap.append(count); title.append(strong,countWrap); const remove=document.createElement('button'); remove.type='button'; remove.className='row-action remove'; remove.textContent='×'; remove.title='Rimuovi sequenza'; remove.addEventListener('click',()=>{const current=syncRunBuilder();current.splice(index,1);renderRunBuilder(current);}); head.append(title,remove); repeat.append(head);
       const steps=document.createElement('div'); steps.className='repeat-steps'; (item.steps||[]).forEach((step,stepIndex)=>steps.append(runSegment(step,()=>syncRunBuilder(),()=>{const current=syncRunBuilder();current[index].steps.splice(stepIndex,1);renderRunBuilder(current);}))); repeat.append(steps);
       const add=document.createElement('button'); add.type='button'; add.className='ghost repeat-add'; add.textContent='+ Aggiungi fase alla sequenza'; add.addEventListener('click',()=>{const current=syncRunBuilder();current[index].steps.push({type:'segment',phase:current[index].steps.length?'recovery':'work',unit:'min',amount:current[index].steps.length?2:3,targetType:'free',target:''});renderRunBuilder(current);}); repeat.append(add); list.append(repeat);
     });
@@ -382,6 +423,29 @@
   function strengthPerformanceFromForm(){
     return [...document.querySelectorAll('#strength-performance-rows .strength-performance-row')].map(row=>{const inputs=row.querySelectorAll('input'),key=row.dataset.liftKey,bodyweightKg=athleteWeightKg();return inputs[0].value&&inputs[1].value&&inputs[2].value?{exercise:row.dataset.exercise,loadKg:Number(inputs[0].value),reps:Number(inputs[1].value),rpe:Number(inputs[2].value),...(key==='pullup'&&bodyweightKg?{bodyweightKg}: {})}:null;}).filter(Boolean);
   }
+  function actualEnduranceSegmentRow(item,onUpdate){
+    const row=document.createElement('div');row.className=`endurance-actual-segment intensity-${prescriptionModel?.inferIntensity?.(item)||'easy'}`;row.classList.toggle('not-completed',item.completed===false);
+    const status=document.createElement('label');status.className='endurance-completed';const check=document.createElement('input');check.type='checkbox';check.checked=item.completed!==false;const statusText=document.createElement('span');statusText.textContent='Fatto';status.append(check,statusText);
+    const phase=document.createElement('div');phase.className='endurance-actual-phase';const small=document.createElement('small');small.textContent=prescriptionModel?.PHASE_LABELS?.[item.phase]||'Blocco';const planned=document.createElement('span');planned.textContent=`Previsto ${item.plannedAmount??item.amount} ${item.unit||''}`;phase.append(small,planned);
+    const quantity=document.createElement('label');quantity.textContent='Quantità reale';const amount=document.createElement('input');amount.type='number';amount.inputMode='decimal';amount.min='0';amount.max='1000';amount.step=item.unit==='min'?'1':'0.1';amount.value=item.amount??'';quantity.append(amount);
+    const target=document.createElement('label');target.textContent='Target / zona reale';const targetInput=document.createElement('input');targetInput.type='text';targetInput.value=item.target||'';targetInput.placeholder='Es. Z2 oppure 5:00/km';target.append(targetInput);
+    const hint=document.createElement('small');hint.className='endurance-actual-hint';hint.textContent=item.paceHint?`Riferimento programmato ${item.paceHint}`:'Modifica solo se il blocco è cambiato.';
+    const update=()=>{item.completed=check.checked;item.amount=Number(amount.value)||0;item.target=targetInput.value.trim();row.classList.toggle('not-completed',!item.completed);statusText.textContent=item.completed?'Fatto':'Non fatto';onUpdate?.();};
+    check.addEventListener('change',update);amount.addEventListener('input',update);targetInput.addEventListener('input',update);update();row.append(status,phase,quantity,target,hint);return row;
+  }
+  function renderEndurancePerformance(session,outcome){
+    const section=document.getElementById('endurance-performance-fields'),container=document.getElementById('endurance-performance-rows');container.replaceChildren();
+    activeActualEnduranceBlocks=prescriptionModel?.actualBlocks?.(session,outcome)||[];
+    activeActualEnduranceBlocks.forEach(item=>{
+      if(item.type!=='repeat'){container.append(actualEnduranceSegmentRow(item));return;}
+      const repeat=document.createElement('div');repeat.className=`endurance-actual-repeat intensity-${prescriptionModel?.inferIntensity?.(item)||'tempo'}`;
+      const head=document.createElement('div');head.className='endurance-actual-repeat-head';const copy=document.createElement('div');const title=document.createElement('strong');title.textContent='Sequenza ripetuta';const planned=document.createElement('span');planned.textContent=`Prevista ${item.plannedRepeats??item.repeats}×`;copy.append(title,planned);
+      const countLabel=document.createElement('label');countLabel.textContent='Ripetizioni reali';const count=document.createElement('input');count.type='number';count.inputMode='numeric';count.min='0';count.max='100';count.step='1';count.value=item.repeats??0;count.addEventListener('input',()=>{item.repeats=Number(count.value)||0;});countLabel.append(count);head.append(copy,countLabel);repeat.append(head);
+      const steps=document.createElement('div');steps.className='endurance-actual-repeat-steps';(item.steps||[]).forEach(step=>steps.append(actualEnduranceSegmentRow(step)));repeat.append(steps);container.append(repeat);
+    });
+    section.dataset.hasRows=String(Boolean(activeActualEnduranceBlocks.length));
+  }
+  function endurancePerformanceFromForm(){return structuredClone(activeActualEnduranceBlocks);}
   function toggleOutcomeFields() {
     const status=outcomeForm.elements.status.value,skipped=status==='skipped';
     const performance=document.getElementById('outcome-performance-fields'),skippedFields=document.getElementById('outcome-skipped-fields');
@@ -391,6 +455,7 @@
     const distanceField=document.getElementById('outcome-distance-field'),distanceInput=outcomeForm.elements.actualDistanceKm;
     const isRunning=outcomeForm.dataset.category==='running';distanceField.hidden=!isRunning;distanceInput.disabled=skipped||!isRunning;
     const strengthFields=document.getElementById('strength-performance-fields');strengthFields.hidden=skipped||outcomeForm.dataset.category!=='strength'||strengthFields.dataset.hasRows!=='true';
+    const enduranceFields=document.getElementById('endurance-performance-fields');enduranceFields.hidden=skipped||!['running','cycling'].includes(outcomeForm.dataset.category)||enduranceFields.dataset.hasRows!=='true';
     document.getElementById('skip-reason-impact').textContent=skipReasonModel.impact(outcomeForm.elements.skipReason.value);
     updateOutcomeLoad();
   }
@@ -439,9 +504,21 @@
       else lifts.append(outcomeRecordElement('div','outcome-record-lift','Nessun set principale registrato.'));
       section.append(lifts);holder.append(section);
     }
+    if(['running','cycling'].includes(session.category)&&outcome.status!=='skipped'&&Array.isArray(outcome.actualEnduranceBlocks)&&outcome.actualEnduranceBlocks.length){
+      const section=outcomeRecordElement('section','outcome-record-endurance');section.append(outcomeRecordElement('small','','BLOCCHI REALMENTE SVOLTI'));
+      const list=outcomeRecordElement('div','outcome-record-endurance-list');
+      outcome.actualEnduranceBlocks.forEach(item=>{
+        const row=outcomeRecordElement('div',`outcome-record-endurance-block intensity-${prescriptionModel?.inferIntensity?.(item)||'easy'}${item.completed===false?' not-completed':''}`);
+        const copy=outcomeRecordElement('div');copy.append(outcomeRecordElement('strong','',prescriptionModel?.blockLabel?.(item)||'Blocco'),outcomeRecordElement('span','',prescriptionModel?.blockSummary?.(item)||'—'));
+        const state=outcomeRecordElement('em','',item.type==='repeat'&&item.plannedRepeats!==undefined&&Number(item.repeats)!==Number(item.plannedRepeats)?`${item.repeats}× reali · ${item.plannedRepeats}× previste`:item.completed===false?'Non completato':item.plannedAmount!==undefined&&Number(item.amount)!==Number(item.plannedAmount)?`${item.amount} ${item.unit||''} reali · ${item.plannedAmount} previste`:'Come programmato');
+        row.append(copy,state);list.append(row);
+      });
+      section.append(list);holder.append(section);
+    }
     if(outcome.notes){const notes=outcomeRecordElement('div','outcome-record-notes');notes.append(outcomeRecordElement('small','',session.category==='strength'?'NOTE E COMPLEMENTARI':'NOTE POST-ALLENAMENTO'),outcomeRecordElement('p','',outcome.notes));holder.append(notes);}
     const reference=outcomeRecordElement('details','outcome-plan-reference'),referenceSummary=outcomeRecordElement('summary','','Vedi programmazione originale'),referenceBody=outcomeRecordElement('div','outcome-plan-reference-body');referenceBody.append(outcomeRecordElement('strong','',session.title),outcomeRecordElement('span','',targetText(session)));
     if(session.category==='strength'&&Array.isArray(session.details?.strengthBlocks)&&session.details.strengthBlocks.length){const list=outcomeRecordElement('ul');session.details.strengthBlocks.forEach(block=>{const prescription=[block.sets&&block.reps?`${block.sets}×${block.reps}`:block.reps?`${block.reps} rip.`:null,block.loadKg!==''&&block.loadKg!==null&&block.loadKg!==undefined?`@ ${block.loadKg} kg`:null,block.target||null].filter(Boolean).join(' · ');list.append(outcomeRecordElement('li','',`${block.name}${prescription?` — ${prescription}`:''}`));});referenceBody.append(list);}
+    if(['running','cycling'].includes(session.category)){const planned=prescriptionModel?.plannedBlocks?.(session)||[];if(planned.length){const list=outcomeRecordElement('ul');planned.forEach(block=>list.append(outcomeRecordElement('li','',`${prescriptionModel.blockLabel(block)} — ${prescriptionModel.blockSummary(block)}`)));referenceBody.append(list);}}
     reference.append(referenceSummary,referenceBody);holder.append(reference);
     const actions=outcomeRecordElement('div','outcome-record-actions'),editPlan=outcomeRecordElement('button','ghost','Modifica programmazione'),editRecord=outcomeRecordElement('button','primary','Modifica registrazione'),closeRecord=outcomeRecordElement('button','ghost','Chiudi');[editPlan,editRecord,closeRecord].forEach(button=>button.type='button');editPlan.addEventListener('click',()=>{closeOutcome();open(session);});editRecord.addEventListener('click',()=>setOutcomeMode(session,true));closeRecord.addEventListener('click',closeOutcome);actions.append(closeRecord,editPlan,editRecord);holder.append(actions);
   }
@@ -460,22 +537,25 @@
     outcomeForm.elements.rpe.value=outcome?.rpe??'';
     outcomeForm.elements.execution.value=outcome?.execution||'';outcomeForm.elements.pain.value=outcome?.pain??'';
     outcomeForm.elements.skipReason.value=outcome?.skipReason||'time';outcomeForm.elements.outcomeNotes.value=outcome?.notes||'';
+    renderEndurancePerformance(session,outcome);
     renderStrengthPerformance(session,outcome);
     const context=document.getElementById('outcome-session-context');const strong=document.createElement('strong');strong.textContent=session.title;const span=document.createElement('span');const date=new Date(`${session.date}T12:00:00`);span.textContent=`${date.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})} · ${categoryMeta[session.category].label} · ${session.durationMin} min previsti`;context.replaceChildren(strong,span);
     renderObservedEvidence(evidence,Boolean(outcome));document.getElementById('outcome-delete').hidden=!outcome;toggleOutcomeFields();setOutcomeMode(session,Boolean(options.edit));outcomeModal.classList.add('open');outcomeModal.setAttribute('aria-hidden','false');
   }
   function detailsFromForm(data, category) {
     if (category === 'running') return {runType:data.get('runType'),distanceKm:Number(data.get('distanceKm')) || null,runTarget:data.get('runTarget'),hrZone:data.get('hrZone'),paceMin:Number(data.get('paceMin')),paceSec:Number(data.get('paceSec')),runRpe:Number(data.get('runRpe')),runBlocks:JSON.parse(data.get('runBlocks')||'[]')};
-    if (category === 'cycling') return {rideType:data.get('rideType'),powerSource:data.get('powerSource'),ftpMin:Number(data.get('ftpMin')),ftpMax:Number(data.get('ftpMax')),cadence:Number(data.get('cadence'))};
+    if (category === 'cycling') return {rideType:data.get('rideType'),powerSource:data.get('powerSource'),ftpMin:Number(data.get('ftpMin')),ftpMax:Number(data.get('ftpMax')),cadence:Number(data.get('cadence')),rideBlocks:JSON.parse(data.get('rideBlocks')||'[]')};
     if (category === 'strength') return {strengthFocus:data.get('strengthFocus'),targetRir:Number(data.get('targetRir')),strengthBlocks:builderRows('strength'),strengthAccessories:data.get('strengthAccessories').trim()};
     if (category === 'hyrox') return {hyroxFormat:data.get('hyroxFormat'),hyroxRpe:Number(data.get('hyroxRpe')),hyroxStructuredBlocks:builderRows('hyrox')};
     if (category === 'metcon') return {metconType:data.get('metconType'),metconRpe:Number(data.get('metconRpe')),metconStructuredBlocks:builderRows('metcon')};
     if (category === 'test') return {testType:data.get('testType'),testRpe:Number(data.get('testRpe')),testProtocol:data.get('testProtocol').trim()};
     return {recoveryType:data.get('recoveryType')};
   }
-  categoryInput.addEventListener('change', () => { toggleFields(); updateSuggestedTitle(); });
+  categoryInput.addEventListener('change', () => { toggleFields(); updateSuggestedTitle();if(categoryInput.value==='cycling')regenerateRideBuilder(); });
   runTargetInput.addEventListener('change', toggleFields);
   document.querySelectorAll('[data-title-source]').forEach(field => field.addEventListener('change', () => updateSuggestedTitle()));
+  form.elements.rideType.addEventListener('change',regenerateRideBuilder);
+  form.elements.durationMin.addEventListener('change',()=>{if(categoryInput.value==='cycling')regenerateRideBuilder();});
   document.querySelectorAll('.add-workout-row').forEach(button => button.addEventListener('click', () => { const type=button.closest('[data-builder]').dataset.builder; const rows=syncBuilder(type); rows.push(type==='strength'?{name:strengthExerciseLibrary[0],sets:'',reps:'',loadKg:'',target:'',rest:''}:{name:'',volume:'',target:'',rest:''}); renderBuilder(type,rows); const inputs=document.querySelectorAll(`[data-builder="${type}"] .workout-row input`); inputs[inputs.length-(builderFields[type].length-1)]?.focus(); }));
   document.getElementById('add-run-segment').addEventListener('click',()=>{const items=syncRunBuilder();items.push({type:'segment',phase:items.length?'work':'warmup',unit:'min',amount:items.length?5:10,targetType:'free',target:''});renderRunBuilder(items);});
   document.getElementById('add-run-repeat').addEventListener('click',()=>{const items=syncRunBuilder();items.push({type:'repeat',repeats:6,steps:[{type:'segment',phase:'work',unit:'min',amount:3,targetType:'pace',target:''},{type:'segment',phase:'recovery',unit:'min',amount:2,targetType:'free',target:''}]});renderRunBuilder(items);});
@@ -509,7 +589,7 @@
     const actualDistanceKm=!skipped&&existing.category==='running'&&data.get('actualDistanceKm')?Number(data.get('actualDistanceKm')):null;let deviceEvidence=null;
     if(!skipped&&activeOutcomeEvidence?.sessionId===id&&executionModel)deviceEvidence=executionModel.createDeviceEvidenceSnapshot(activeOutcomeEvidence,{actualDurationMin:duration,actualDistanceKm},new Date());
     else if(!skipped&&existing.outcome?.deviceEvidence)deviceEvidence=existing.outcome.deviceEvidence;
-    const outcome={status,actualDurationMin:duration,actualDistanceKm,rpe,sessionLoad:skipped?0:Math.round(duration*rpe),execution:skipped?null:data.get('execution'),pain:skipped?null:Number(data.get('pain')),skipReason:skipped?data.get('skipReason'):null,notes:data.get('outcomeNotes').trim(),...(existing.category==='strength'?{strengthPerformance:skipped?[]:strengthPerformanceFromForm()}:{}),...(deviceEvidence?{deviceEvidence}:{}),recordedAt:existing.outcome?.recordedAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+    const outcome={status,actualDurationMin:duration,actualDistanceKm,rpe,sessionLoad:skipped?0:Math.round(duration*rpe),execution:skipped?null:data.get('execution'),pain:skipped?null:Number(data.get('pain')),skipReason:skipped?data.get('skipReason'):null,notes:data.get('outcomeNotes').trim(),...(existing.category==='strength'?{strengthPerformance:skipped?[]:strengthPerformanceFromForm()}:{}),...(['running','cycling'].includes(existing.category)&&!skipped&&activeActualEnduranceBlocks.length?{actualEnduranceBlocks:endurancePerformanceFromForm()}:{}),...(deviceEvidence?{deviceEvidence}:{}),recordedAt:existing.outcome?.recordedAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
     sessions=sessions.map(item=>item.id===id?{...item,outcome,updatedAt:new Date().toISOString()}:item);const savedSession=sessions.find(item=>item.id===id),hasRemaining=sessions.some(item=>item.date>localDate()&&!item.outcome&&!isPaused(item));save();render();closeOutcome();toast(window.rcAdaptiveApplicationModel?.isKeyOutcome?.(savedSession)&&hasRemaining?'Registrato · microciclo da rivedere':undefined);document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'outcome-saved',sessionId:id}}));
   });
   document.getElementById('outcome-delete').addEventListener('click',()=>{const id=outcomeForm.elements.sessionId.value;if(!id||!window.confirm('Eliminare la registrazione e riportare la seduta a “programmata”?'))return;sessions=sessions.map(item=>item.id===id?{...item,outcome:null,updatedAt:new Date().toISOString()}:item);save();render();closeOutcome();toast();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'outcome-deleted',sessionId:id}}));});
@@ -519,11 +599,12 @@
       window.alert('Una seduta già registrata non può essere spostata nel futuro. Elimina prima la registrazione.');
       return;
     }
-    const category = data.get('category'); const session = {
+    const category = data.get('category'); let session = {
       id:id || (crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`), date:data.get('date'), category,
       title:data.get('title').trim(),durationMin:Number(data.get('durationMin')),priority:data.get('priority'),details:detailsFromForm(data,category),
       notes:data.get('notes').trim(),outcome:existing?.outcome||null,titleMode,createdAt:existing?.createdAt || new Date().toISOString(),updatedAt:new Date().toISOString(),...(existing?.planImport?{planImport:existing.planImport}:{}),...(existing?.goalId?{goalId:existing.goalId}:{}),...(existing?.goalGenerated?{goalGenerated:true}:{}),...(existing?.goalSyncedAt?{goalSyncedAt:existing.goalSyncedAt}:{})
     };
+    session=prescriptionModel?.enrichSession?.(session,prescriptionContext())||session;
     if (existing) sessions = sessions.map(item => item.id === id ? session : item); else sessions.push(session);
     {const date=new Date(`${session.date}T12:00:00`);calendarCursor=new Date(date.getFullYear(),date.getMonth(),1);listWeekStart=planViewModel.mondayFor(session.date);}
     save(); render(); close(); toast();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'session-saved',sessionId:session.id}}));
@@ -533,7 +614,7 @@
     if (!window.confirm('Eliminare definitivamente questa seduta?')) return;
     sessions = sessions.filter(item => item.id !== id); save(); render(); close(); toast();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'session-deleted',sessionId:id}}));
   });
-  function replaceWeek(weekStart,newSessions){const start=new Date(`${weekStart}T12:00:00`);const end=new Date(start);end.setDate(end.getDate()+6);const startKey=weekStart;const endKey=`${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;const existingWeek=sessions.filter(item=>item.date>=startKey&&item.date<=endKey),locked=existingWeek.filter(item=>item.outcome||item.date<=localDate()||item.goalSubstitution||(!item.planImport&&item.generated!==true&&!String(item.id||'').startsWith('sample-'))),lockedDates=new Set(locked.map(item=>item.date)),incoming=structuredClone(newSessions).filter(item=>!lockedDates.has(item.date));sessions=sessions.filter(item=>item.date<startKey||item.date>endKey).concat(locked,incoming);selectedIds=selectionModel.prune(selectedIds,sessions);calendarCursor=new Date(start.getFullYear(),start.getMonth(),1);listWeekStart=weekStart;save();render();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'plan-replaced',weekStart}}));}
+  function replaceWeek(weekStart,newSessions){const start=new Date(`${weekStart}T12:00:00`);const end=new Date(start);end.setDate(end.getDate()+6);const startKey=weekStart;const endKey=`${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;const existingWeek=sessions.filter(item=>item.date>=startKey&&item.date<=endKey),locked=existingWeek.filter(item=>item.outcome||item.date<=localDate()||item.goalSubstitution||(!item.planImport&&item.generated!==true&&!String(item.id||'').startsWith('sample-'))),lockedDates=new Set(locked.map(item=>item.date)),drafts=structuredClone(newSessions).filter(item=>!lockedDates.has(item.date)),incoming=prescriptionModel?.enrichSessions?.(drafts,prescriptionContext())?.sessions||drafts;sessions=sessions.filter(item=>item.date<startKey||item.date>endKey).concat(locked,incoming);selectedIds=selectionModel.prune(selectedIds,sessions);calendarCursor=new Date(start.getFullYear(),start.getMonth(),1);listWeekStart=weekStart;save();render();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'plan-replaced',weekStart}}));}
   function restoreWeekAdjustments(weekStart){if(!adjustmentModel)return 0;const end=new Date(`${weekStart}T12:00:00`);end.setDate(end.getDate()+6);const endKey=dateKey(end),today=localDate();const affected=sessions.filter(item=>item.adaptiveAdjustment&&!item.goalSubstitution&&!item.outcome&&item.date>today&&((item.date>=weekStart&&item.date<=endKey)||(item.adaptiveAdjustment.source?.date>=weekStart&&item.adaptiveAdjustment.source?.date<=endKey)));if(!affected.length)return 0;const ids=new Set(affected.map(item=>item.id));sessions=sessions.map(item=>ids.has(item.id)?adjustmentModel.restoreSession(item):item);save();render();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'adaptive-plan-restored',weekStart,sessionIds:[...ids]}}));return ids.size;}
   function reload(){sessions=load();selectionMode=false;selectedIds.clear();calendarCursor=relevantCalendarMonth();listWeekStart=planViewModel.mondayFor(localDate());render();}
   function showMonth(value){const date=new Date(`${value}-01T12:00:00`);if(Number.isNaN(date.getTime()))return;calendarCursor=new Date(date.getFullYear(),date.getMonth(),1);render();}
@@ -543,14 +624,14 @@
     let inferred=goal.inferredFromSessionId&&sessions.find(item=>item.id===goal.inferredFromSessionId);
     if(inferred&&!generated(inferred)){
       let aligned=false;if(options.authoritativeDate&&inferred.date!==goal.date&&!inferred.outcome){inferred={...inferred,date:goal.date,updatedAt:stamp};sessions=sessions.map(item=>item.id===inferred.id?inferred:item);aligned=true;}const cleanup=goalsModel.reconcileGoalGeneratedSessions?.(sessions,goal,inferred.id);if(cleanup?.changed)sessions=cleanup.sessions;const substitution=applySubstitution(inferred.id);
-      if(aligned||cleanup?.changed||substitution?.changed){selectedIds=selectionModel.prune(selectedIds,sessions);save();render();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:substitution?.pausedIds?.length?'goal-session-substituted':aligned?'goal-race-date-updated':'goal-session-reconciled',sessionId:inferred.id,goalId:goal.id,removedIds:cleanup?.removedIds||[],detachedIds:cleanup?.detachedIds||[],pausedIds:substitution?.pausedIds||[],restoredIds:substitution?.restoredIds||[]}}));}return inferred.id;
+      if(aligned||cleanup?.changed||substitution?.changed){selectedIds=selectionModel.prune(selectedIds,sessions);save();render();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:substitution?.deletedIds?.length?'goal-long-replaced':aligned?'goal-race-date-updated':'goal-session-reconciled',sessionId:inferred.id,goalId:goal.id,removedIds:[...(cleanup?.removedIds||[]),...(substitution?.deletedIds||[])],detachedIds:cleanup?.detachedIds||[]}}));}return inferred.id;
     }
     const draft=goalsModel.sessionFromGoal(goal);if(!draft)return null;const existing=sessions.find(item=>item.goalId===goal.id||item.id===draft.id||item.id===goal.inferredFromSessionId);let next=existing;
     if(!(generated(existing)&&existing.goalSyncedAt===goal.updatedAt)){
       if(existing){next={...draft,id:existing.id,createdAt:existing.createdAt||draft.createdAt,outcome:existing.outcome||null,updatedAt:existing.updatedAt};const comparableCurrent=JSON.stringify(existing),comparableNext=JSON.stringify(next);if(comparableCurrent!==comparableNext){next.updatedAt=stamp;sessions=sessions.map(item=>item.id===existing.id?next:item);}}else{sessions.push(draft);next=draft;}
     }
     const substitution=applySubstitution(next.id),sessionChanged=!existing||JSON.stringify(existing)!==JSON.stringify(next);
-    if(sessionChanged||substitution?.changed){save();render();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:substitution?.pausedIds?.length?'goal-session-substituted':'goal-session-synced',sessionId:next.id,goalId:goal.id,pausedIds:substitution?.pausedIds||[],restoredIds:substitution?.restoredIds||[]}}));}return next.id;
+    if(sessionChanged||substitution?.changed){save();render();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:substitution?.deletedIds?.length?'goal-long-replaced':'goal-session-synced',sessionId:next.id,goalId:goal.id,removedIds:substitution?.deletedIds||[]}}));}return next.id;
   }
   function removeGoalSession(goalId){const generated=session=>goalsModel?.isGoalGeneratedSession?.(session)??Boolean(session?.goalGenerated);const targets=sessions.filter(item=>generated(item)&&(item.goalId===goalId||item.id===`goal-session:${goalId}`)),targetIds=new Set(targets.map(item=>item.id));sessions=sessions.flatMap(item=>{if(!targetIds.has(item.id))return[item];if(!item.outcome)return[];const{goalId:ignoredGoal,goalGenerated:ignoredGenerated,goalSyncedAt:ignoredSync,...detached}=item;return[detached];});const restored=goalsModel?.restoreGoalSubstitution?.(sessions,goalId);if(restored?.changed)sessions=restored.sessions;if(!targets.length&&!restored?.changed)return false;selectedIds=selectionModel.prune(selectedIds,sessions);save();render();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'goal-session-removed',goalId,restoredIds:restored?.restoredIds||[]}}));return true;}
   window.rcSessions={
