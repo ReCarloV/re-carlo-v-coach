@@ -1,4 +1,4 @@
-const CACHE='re-carlo-v-shell-v25';
+const CACHE='re-carlo-v-shell-v26';
 const APP_SHELL=[
   './','./index.html','./manifest.webmanifest','./icons/brand-logo.png','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png',
   './styles.css','./mobile.css','./ui-polish.css','./theme.css','./crop.css','./profile.css','./selectors.css','./pbs.css','./sessions.css','./sessions-extra.css','./post-session.css','./plan-polish.css','./plan-calendar.css','./bodymap.css','./checkins.css','./generator.css','./today.css','./recap.css','./demo-data.css','./session-selection.css','./strength-performance.css','./data-import.css','./adaptive-coaching.css','./goals.css','./refinements.css','./cloud-sync.css',

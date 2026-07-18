@@ -155,6 +155,85 @@ html[data-theme="light"] :where(.session-dialog,.profile-dialog,.selector-dialog
   box-shadow:0 30px 90px rgba(25,48,77,.24);
 }
 html[data-theme="light"] :where(.session-modal,.profile-modal,.selector-modal,.pb-modal,.goal-modal,.crop-modal,.generator-modal,.checkin-modal,.whoop-setup-modal,.cloud-sync-modal){background:rgba(25,40,60,.54)}
+html[data-theme="light"] .session-fields{border-color:#cbd8e5;background:#f4f8fc;color:var(--text)}
+html[data-theme="light"] .session-fields h3{color:#2465a7}
+html[data-theme="light"] .session-notes textarea{border-color:#c7d5e3;background:#fff;color:#1b2d44}
+html[data-theme="light"] .workout-builder,html[data-theme="light"] .run-workout-builder{border-color:#c6d6e5;background:#f3f7fb}
+html[data-theme="light"] .builder-heading strong{color:#20344c}
+html[data-theme="light"] .builder-heading span,html[data-theme="light"] .field-hint{color:#657a91}
+html[data-theme="light"] .workout-row,html[data-theme="light"] .run-segment,html[data-theme="light"] .run-repeat{border-color:#ccd9e6;background:#fff}
+html[data-theme="light"] .run-repeat{border-color:#9fbfe0;background:#edf5fd}
+html[data-theme="light"] .workout-row label,html[data-theme="light"] .run-segment label,html[data-theme="light"] .repeat-count,html[data-theme="light"] .run-target-value{color:#5d7188}
+html[data-theme="light"] .workout-row input,html[data-theme="light"] .workout-row select,html[data-theme="light"] .run-segment input,html[data-theme="light"] .run-segment select,html[data-theme="light"] .repeat-count input{border-color:#c7d5e3;background:#fff;color:#1b2d44}
+html[data-theme="light"] .row-action{border-color:#bdccdc;background:#edf3f9;color:#42617f}
+html[data-theme="light"] .row-action:not(:disabled):hover{border-color:#7ca5cf;background:#e3eef9;color:#174f92}
+html[data-theme="light"] .row-action.remove:hover{border-color:#d49aa5;background:#ffecef;color:#9e3c4e}
+html[data-theme="light"] .builder-empty,html[data-theme="light"] .run-empty{border-color:#bdccdc;background:#f9fbfd;color:#667a91}
+html[data-theme="light"] .run-repeat-title strong{color:#2465a7}
+html[data-theme="light"] .repeat-steps{border-color:#78a5d3}
+html[data-theme="light"] .pace-stepper button{border-color:#a9c1d9;background:#e7f1fb;color:#245f99}
+html[data-theme="light"] .pace-stepper button:hover{background:#dceafb;color:#174f92}
+html[data-theme="light"] .session-dialog input[type="number"],html[data-theme="light"] .checkin-dialog input[type="number"]{color-scheme:light}
+html[data-theme="light"] .danger{border-color:#d8a0aa;background:#ffecef;color:#9e3c4e}
+html[data-theme="light"] .danger:hover{border-color:#c77e8b;background:#ffdee4;color:#8f3043}
+
+html[data-theme="light"] .weekly-checkin-summary{border-color:#b4cce4;background:linear-gradient(90deg,#edf5fd,#f8fafc)}
+html[data-theme="light"] .weekly-checkin-summary .checkin-icon{background:#e0edfb;color:#2465a7}
+html[data-theme="light"] .weekly-checkin-summary p{color:#60758c}
+html[data-theme="light"] .weekly-checkin-summary button{color:#2465a7}
+html[data-theme="light"] .checkin-result.proceed{border-color:#91c9b5;background:#e8f7f1;color:#176e54}
+html[data-theme="light"] .checkin-result.reduce{border-color:#d9bb7d;background:#fff4dd;color:#805713}
+html[data-theme="light"] .checkin-result.replace{border-color:#d8a1ab;background:#ffecef;color:#9e3c4e}
+
+html[data-theme="light"] .generator-adaptation{border-color:#a9c7e4;background:linear-gradient(100deg,#edf6ff,#f8fafc)}
+html[data-theme="light"] .generator-adaptation>div:first-child>small{color:#2468a8}
+html[data-theme="light"] .generator-adaptation>div:first-child>p{color:#60758c}
+html[data-theme="light"] .generator-adaptation.protect{border-color:#d7a4ae;background:linear-gradient(100deg,#fff0f3,#f8fafc)}
+html[data-theme="light"] .generator-adaptation.reduce{border-color:#dac087;background:linear-gradient(100deg,#fff6e2,#f8fafc)}
+html[data-theme="light"] .generator-adaptation.progress{border-color:#91c7b4;background:linear-gradient(100deg,#eaf8f2,#f8fafc)}
+html[data-theme="light"] .generator-metrics>span{border-color:#c4d2e0;background:#fff;color:#263c55}
+html[data-theme="light"] .generator-metrics small{color:#647991}
+html[data-theme="light"] .generator-metrics .warn{border-color:#d9bb7d;background:#fff5e1;color:#805713}
+html[data-theme="light"] .generator-metrics .danger{border-color:#d8a1ab;background:#ffecef;color:#9e3c4e}
+html[data-theme="light"] .generator-phase{border-color:#cfaa62;background:linear-gradient(115deg,#fff7e4,#f8fafc 60%)}
+html[data-theme="light"] .generator-phase-head small{color:#8a621a}
+html[data-theme="light"] .generator-phase-head p{color:#6e644f}
+html[data-theme="light"] .generator-phase-head>span{border-color:#cda85e;background:#fff0c9;color:#74500f}
+html[data-theme="light"] .generator-phase-guards article{border-color:#cbd7e3;background:#fff}
+html[data-theme="light"] .generator-phase-guards article.good{border-color:#97c7b6;background:#eef9f5}
+html[data-theme="light"] .generator-phase-guards article.warn{border-color:#d8bd82;background:#fff7e8}
+html[data-theme="light"] .generator-phase-guards article.danger{border-color:#d8a1ab;background:#fff0f3}
+html[data-theme="light"] .generator-phase-guards small,html[data-theme="light"] .generator-phase-guards p{color:#647990}
+html[data-theme="light"] .generator-phase-guards b{color:#263b53}
+html[data-theme="light"] .generator-tolerance{border-color:#a9c8df;background:linear-gradient(115deg,#edf7fd,#f8fafc 64%)}
+html[data-theme="light"] .generator-tolerance-head small{color:#246d9d}
+html[data-theme="light"] .generator-tolerance-head p{color:#60758c}
+html[data-theme="light"] .generator-tolerance-targets article{border-color:#c7d4e1;background:#fff}
+html[data-theme="light"] .generator-tolerance-targets article.allowed{border-color:#91c7b3;background:#eaf8f2}
+html[data-theme="light"] .generator-tolerance-targets small,html[data-theme="light"] .generator-tolerance-targets p{color:#60758c}
+html[data-theme="light"] .generator-tolerance-targets b{color:#263b53}
+html[data-theme="light"] .generator-tolerance-targets .allowed b{color:#176e54}
+html[data-theme="light"] .generator-tolerance-checks span{border-color:#bdcbd9;background:#f5f8fb;color:#60738a}
+html[data-theme="light"] .generator-tolerance-checks .passed{border-color:#91c7b3;background:#eaf8f2;color:#176e54}
+html[data-theme="light"] .generator-tolerance-checks .failed{border-color:#d8bd82;background:#fff6e2;color:#805713}
+html[data-theme="light"] .generator-alert{border-color:#d9bb7d;background:#fff3d9;color:#805713}
+html[data-theme="light"] .generator-session{border-color:#cbd8e5;background:#fff;color:var(--text)}
+html[data-theme="light"] .generator-session p{color:#60758c}
+html[data-theme="light"] .generator-session.adjusted{border-color:#8eb7df;background:#edf5fd}
+html[data-theme="light"] .generator-session.preserved{background:#f5f8fb}
+html[data-theme="light"] .tag.preserved{border-color:#bdcbd9;background:#edf2f6;color:#566a80}
+html[data-theme="light"] .generator-rationale{border-color:#6fa1d3;background:#edf5fd}
+html[data-theme="light"] .generator-rationale p,html[data-theme="light"] .generator-rationale ul{color:#526d87}
+html[data-theme="light"] .generator-changes span{border-color:#a9c5e0;background:#e7f2fd;color:#245f99}
+
+html[data-theme="light"] .session-selection-bar{border-color:#9dbddd;background:linear-gradient(90deg,#eaf4fe,#f7f9fc);color:var(--text)}
+html[data-theme="light"] .session-selection-bar span{color:#60758c}
+html[data-theme="light"] .session-select-toggle{border-color:#9eb2c7;background:#fff;color:transparent}
+html[data-theme="light"] .session-select-toggle:hover{border-color:#6197d9;background:#edf5fd}
+html[data-theme="light"] .session-select-toggle[aria-pressed="true"]{border-color:#2878ff;background:#2878ff;color:#fff}
+html[data-theme="light"] .calendar-event.selection-mode::before{border-color:#8fa4ba;background:#fff}
+html[data-theme="light"] .calendar-event.selection-mode.selected::before{border-color:#2878ff;background:#2878ff;color:#fff}
+html[data-theme="light"] #select-sessions.active{border-color:#72a2d4;background:#e2effd;color:#174f92}
 
 html[data-theme="light"] :where(
   .metrics strong,.summary-row strong,.pbs strong,.week-bars .current span,
