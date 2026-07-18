@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
 
-  const VERSION='1.0.0';
+  const VERSION='2.0.0';
   const dimensions=[
     {key:'aerobic',label:'Resistenza aerobica'},
     {key:'threshold',label:'Soglia / ritmo sostenuto'},
@@ -21,66 +21,351 @@
   ];
   const levelLabels=['Non rilevante','Molto bassa','Bassa','Media','Alta','Molto alta'];
   const sources={
-    marathonPractice:{label:'Distance runners · periodizzazione e pratica osservata',url:'https://pubmed.ncbi.nlm.nih.gov/35418513/'},
+    distanceRunning:{label:'Distance runners · periodizzazione e pratica osservata',url:'https://pubmed.ncbi.nlm.nih.gov/35418513/'},
     enduranceTaper:{label:'Endurance taper · revisione sistematica e meta-analisi',url:'https://pubmed.ncbi.nlm.nih.gov/37163550/'},
     concurrent:{label:'Concurrent training · revisione sistematica e meta-analisi',url:'https://pubmed.ncbi.nlm.nih.gov/34757594/'},
-    hyroxFormat:{label:'HYROX · Rulebook Singles 2025/26',url:'https://hyrox.com/wp-content/uploads/2025/06/25_26-Singles-Rulebook_en_R1.pdf'}
+    hyroxSingles:{label:'HYROX · Singles Rulebook 2025/26',url:'https://hyrox.com/wp-content/uploads/2025/06/25_26-Singles-Rulebook_en_R1.pdf'},
+    hyroxDoubles:{label:'HYROX · Doubles Rulebook 2026/27',url:'https://hyrox.com/wp-content/uploads/2025/07/25_26_HYROX_RulebookDoubles_EN.pdf'},
+    hyroxRelay:{label:'HYROX · Relay Rulebook 2026/27',url:'https://hyrox.com/wp-content/uploads/2025/07/25_26_HYROX_RulebookRelay_EN.pdf'},
+    hyroxAdaptive:{label:'HYROX · Rulebook Adaptive corrente',url:'https://hyrox.com/rulebook/'},
+    spartanFormat:{label:'Spartan · formati ufficiali delle gare',url:'https://www.spartan.com/en/race/spartan-races'},
+    worldTriathlon:{label:'World Triathlon · Competition Rules 2026',url:'https://triathlon.org/agegroup'},
+    ironmanFormat:{label:'IRONMAN · distanze 70.3 e full',url:'https://www.ironman.com/proseries/about-ironman'},
+    athxFormat:{label:'ATHX Games · struttura ufficiale',url:'https://athxgames.com/'}
   };
-  const pack=(key,label,confidence,duration,disciplines,demands,keyRoles,sourceKeys,transitionCost)=>({
-    key,label,version:VERSION,confidence,duration,disciplines,demands,keyRoles,
-    sources:sourceKeys.map(sourceKey=>sources[sourceKey]),transitionCost
-  });
-  const packs={
-    marathon:pack(
-      'marathon','Pack Maratona','supported',
-      {classKey:'long',label:'Durata lunga e continua'},
+
+  function clone(value){return JSON.parse(JSON.stringify(value));}
+  function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
+  function unique(items){return[...new Set(items.filter(Boolean))];}
+  function sourceList(keys=[]){return unique(keys).map(key=>sources[key]).filter(Boolean);}
+  function normalizedDemands(raw={}){
+    return Object.fromEntries(dimensions.map(item=>[item.key,clamp(Math.round(Number(raw[item.key])||0),0,5)]));
+  }
+  function family(key,label,confidence,duration,disciplines,demands,keyRoles,sourceKeys,transitionCost,extra={}){
+    return{
+      key,label,version:VERSION,confidence,duration,disciplines,demands,keyRoles,
+      sourceKeys,transitionCost,programmingStatus:'pending',...extra
+    };
+  }
+  const families={
+    running:family(
+      'running','Running su strada','generic',
+      {classKey:'unknown',label:'Distanza da specificare'},
       ['Corsa'],
-      {aerobic:5,threshold:3,strength:2,power:1,strengthEndurance:2,skill:2,impact:5,transitions:0,terrain:2,pacing:5,fueling:5},
-      ['Corsa facile','Lungo','Qualità running','Forza di supporto','Pacing e fueling'],
-      ['marathonPractice','enduranceTaper','concurrent'],
-      'high'
+      {aerobic:4,threshold:4,strength:1,power:2,strengthEndurance:2,skill:2,impact:4,transitions:0,terrain:2,pacing:4,fueling:2},
+      ['Corsa facile','Qualità specifica','Pacing'],
+      ['distanceRunning','enduranceTaper','concurrent'],
+      'medium'
     ),
-    hyrox:pack(
-      'hyrox','Pack HYROX','contextual',
+    hyrox:family(
+      'hyrox','HYROX · formato da specificare','contextual',
       {classKey:'medium-long',label:'Durata medio-lunga intermittente'},
       ['Corsa','Stazioni functional','Transizioni'],
       {aerobic:4,threshold:4,strength:4,power:3,strengthEndurance:5,skill:4,impact:4,transitions:5,terrain:1,pacing:4,fueling:2},
       ['Corsa specifica','Forza','Forza resistente','Stazioni','Corsa compromessa e transizioni'],
-      ['hyroxFormat','concurrent'],
+      ['hyroxSingles','hyroxDoubles','hyroxRelay','hyroxAdaptive','concurrent'],
+      'high',
+      {
+        formatSummary:'8 × 1 km di corsa alternati alle 8 stazioni ufficiali.',
+        formatDetails:['8 km di corsa totali','8 stazioni nello stesso ordine ufficiale','Carichi e modalità di condivisione dipendono dalla divisione']
+      }
+    ),
+    obstacle:family(
+      'obstacle','Spartan / obstacle race','format-verified',
+      {classKey:'unknown',label:'Distanza e ostacoli dipendono dal formato'},
+      ['Corsa off-road','Ostacoli','Terreno variabile'],
+      {aerobic:4,threshold:3,strength:4,power:3,strengthEndurance:5,skill:5,impact:5,transitions:4,terrain:5,pacing:3,fueling:3},
+      ['Corsa trail','Forza di presa','Carry e ostacoli','Tecnica terreno'],
+      ['spartanFormat','concurrent'],
       'high'
+    ),
+    triathlon:family(
+      'triathlon','Triathlon · formato da specificare','format-verified',
+      {classKey:'unknown',label:'Distanza da specificare'},
+      ['Nuoto','Ciclismo','Corsa','Transizioni'],
+      {aerobic:5,threshold:4,strength:2,power:2,strengthEndurance:3,skill:5,impact:3,transitions:5,terrain:2,pacing:5,fueling:4},
+      ['Nuoto specifico','Ciclismo specifico','Corsa','Brick e transizioni','Pacing e fueling'],
+      ['worldTriathlon','ironmanFormat','concurrent'],
+      'high'
+    ),
+    athx:family(
+      'athx','ATHX · formato da specificare','format-verified',
+      {classKey:'medium-long',label:'Competizione continua di circa 2,5 ore'},
+      ['Forza','Endurance','MetCon','Recupero tra zone'],
+      {aerobic:4,threshold:4,strength:4,power:4,strengthEndurance:5,skill:4,impact:4,transitions:5,terrain:1,pacing:4,fueling:3},
+      ['Forza','Endurance','MetCon X','Pacing tra zone','Refuel e recovery'],
+      ['athxFormat','concurrent'],
+      'high',
+      {
+        formatSummary:'Sei zone consecutive in una finestra continua di circa 2,5 ore.',
+        formatDetails:['Warm-Up','Strength','Refuel','Endurance','Recovery','MetCon X']
+      }
     )
   };
+
+  const runningVariants=[
+    {
+      key:'road-5k',family:'running',label:'5 km su strada',confidence:'supported',programmingStatus:'demand-reviewed',
+      distanceKm:5,sessionDurationMin:25,duration:{classKey:'short',label:'Durata breve ad alta intensità aerobica'},
+      demands:{aerobic:4,threshold:5,strength:1,power:4,strengthEndurance:2,skill:3,impact:4,transitions:0,terrain:1,pacing:4,fueling:1},
+      keyRoles:['Corsa facile','VO₂ / ritmo 5 km','Soglia','Economia e velocità'],
+      formatSummary:'5,000 km continui; il profilo del percorso resta specifico dell’evento.'
+    },
+    {
+      key:'road-10k',family:'running',label:'10 km su strada',confidence:'supported',programmingStatus:'demand-reviewed',
+      distanceKm:10,sessionDurationMin:45,duration:{classKey:'medium',label:'Durata media ad alta intensità aerobica'},
+      demands:{aerobic:5,threshold:5,strength:1,power:3,strengthEndurance:2,skill:3,impact:4,transitions:0,terrain:1,pacing:5,fueling:1},
+      keyRoles:['Corsa facile','Soglia','Ritmo 10 km','Economia e velocità'],
+      formatSummary:'10,000 km continui; il profilo del percorso resta specifico dell’evento.'
+    },
+    {
+      key:'road-half',family:'running',label:'Mezza maratona',confidence:'supported',programmingStatus:'demand-reviewed',
+      distanceKm:21.0975,sessionDurationMin:110,duration:{classKey:'medium-long',label:'Durata medio-lunga continua'},
+      demands:{aerobic:5,threshold:4,strength:1,power:1,strengthEndurance:2,skill:2,impact:4,transitions:0,terrain:2,pacing:5,fueling:3},
+      keyRoles:['Corsa facile','Lungo','Soglia / ritmo mezza','Pacing e fueling'],
+      formatSummary:'21,0975 km continui.'
+    },
+    {
+      key:'road-30k',family:'running',label:'30 km su strada',confidence:'supported',programmingStatus:'demand-reviewed',
+      distanceKm:30,sessionDurationMin:165,duration:{classKey:'long',label:'Durata lunga e continua'},
+      demands:{aerobic:5,threshold:3,strength:2,power:1,strengthEndurance:2,skill:2,impact:5,transitions:0,terrain:2,pacing:5,fueling:5},
+      keyRoles:['Corsa facile','Lungo','Ritmo maratona','Pacing e fueling'],
+      formatSummary:'30 km continui; può diventare un lungo specifico soltanto se ruolo e intensità sono espliciti.'
+    },
+    {
+      key:'road-marathon',family:'running',label:'Maratona',confidence:'supported',programmingStatus:'active',
+      distanceKm:42.195,sessionDurationMin:240,duration:{classKey:'long',label:'Durata lunga e continua'},
+      demands:{aerobic:5,threshold:3,strength:2,power:1,strengthEndurance:2,skill:2,impact:5,transitions:0,terrain:2,pacing:5,fueling:5},
+      keyRoles:['Corsa facile','Lungo','Qualità running','Forza di supporto','Pacing e fueling'],
+      formatSummary:'42,195 km continui.'
+    }
+  ];
+
+  const hyroxLoads={
+    womenOpen:{sledPushKg:102,sledPullKg:78,farmerKg:16,lungeKg:10,wallBallKg:4},
+    sharedOpen:{sledPushKg:152,sledPullKg:103,farmerKg:24,lungeKg:20,wallBallKg:6},
+    menPro:{sledPushKg:202,sledPullKg:153,farmerKg:32,lungeKg:30,wallBallKg:9}
+  };
+  function hyroxStations(loadKey){
+    const load=hyroxLoads[loadKey];
+    if(!load)return[];
+    return[
+      {name:'SkiErg',work:'1.000 m'},
+      {name:'Sled Push',work:'4 × 12,5 m',load:`${load.sledPushKg} kg incluso sled`},
+      {name:'Sled Pull',work:'4 × 12,5 m',load:`${load.sledPullKg} kg incluso sled`},
+      {name:'Burpee Broad Jumps',work:'80 m'},
+      {name:'Row',work:'1.000 m'},
+      {name:'Farmers Carry',work:'200 m',load:`2 × ${load.farmerKg} kg`},
+      {name:'Sandbag Lunges',work:'100 m',load:`${load.lungeKg} kg`},
+      {name:'Wall Balls',work:'100 ripetizioni',load:`${load.wallBallKg} kg`}
+    ];
+  }
+  function hyroxVariant(key,label,mode,loadKey){
+    const doubles=mode==='doubles';
+    return{
+      key,family:'hyrox',label,confidence:'contextual',programmingStatus:'contextual',
+      sessionDurationMin:90,loadKey,stations:hyroxStations(loadKey),
+      duration:{classKey:'medium-long',label:'8 km di corsa e 8 stazioni alternate'},
+      demands:families.hyrox.demands,
+      formatSummary:doubles
+        ?'Entrambi gli atleti corrono tutti gli 8 × 1 km; le stazioni si dividono in modalità “You Go, I Go”.'
+        :'L’atleta completa tutti gli 8 × 1 km e tutte le 8 stazioni.',
+      formatDetails:doubles
+        ?['8 × 1 km corsi insieme','Tutto il lavoro di stazione completato dalla coppia','Cambio libero tra compagni in modalità You Go, I Go']
+        :['8 × 1 km individuali','Tutte le stazioni completate individualmente'],
+      sourceKeys:[doubles?'hyroxDoubles':'hyroxSingles','concurrent']
+    };
+  }
+  const hyroxVariants=[
+    hyroxVariant('hyrox-single-women-open','Individual Women Open','single','womenOpen'),
+    hyroxVariant('hyrox-single-women-pro','Individual Women Pro','single','sharedOpen'),
+    hyroxVariant('hyrox-single-men-open','Individual Men Open','single','sharedOpen'),
+    hyroxVariant('hyrox-single-men-pro','Individual Men Pro','single','menPro'),
+    hyroxVariant('hyrox-doubles-women-open','Doubles Women Open','doubles','womenOpen'),
+    hyroxVariant('hyrox-doubles-women-pro','Doubles Women Pro','doubles','sharedOpen'),
+    hyroxVariant('hyrox-doubles-men-open','Doubles Men Open','doubles','sharedOpen'),
+    hyroxVariant('hyrox-doubles-men-pro','Doubles Men Pro','doubles','menPro'),
+    hyroxVariant('hyrox-doubles-mixed','Doubles Mixed','doubles','sharedOpen'),
+    {
+      key:'hyrox-relay-women',family:'hyrox',label:'Relay Women',confidence:'contextual',programmingStatus:'contextual',sessionDurationMin:90,
+      stations:hyroxStations('womenOpen'),demands:families.hyrox.demands,sourceKeys:['hyroxRelay','concurrent'],
+      duration:{classKey:'medium-long',label:'8 km e 8 stazioni divisi tra 4 atlete'},
+      formatSummary:'Team di 4 atlete; ciascuna completa 2 × 1 km e le 2 stazioni corrispondenti.',
+      formatDetails:['4 atlete','2 × 1 km e 2 stazioni per atleta','Ordine delle due coppie run/station scelto dal team']
+    },
+    {
+      key:'hyrox-relay-men',family:'hyrox',label:'Relay Men',confidence:'contextual',programmingStatus:'contextual',sessionDurationMin:90,
+      stations:hyroxStations('sharedOpen'),demands:families.hyrox.demands,sourceKeys:['hyroxRelay','concurrent'],
+      duration:{classKey:'medium-long',label:'8 km e 8 stazioni divisi tra 4 atleti'},
+      formatSummary:'Team di 4 atleti; ciascuno completa 2 × 1 km e le 2 stazioni corrispondenti.',
+      formatDetails:['4 atleti','2 × 1 km e 2 stazioni per atleta','Ordine delle due coppie run/station scelto dal team']
+    },
+    {
+      key:'hyrox-relay-mixed',family:'hyrox',label:'Relay Mixed',confidence:'contextual',programmingStatus:'contextual',sessionDurationMin:90,
+      stations:hyroxStations('sharedOpen'),demands:families.hyrox.demands,sourceKeys:['hyroxRelay','concurrent'],
+      duration:{classKey:'medium-long',label:'8 km e 8 stazioni divisi tra 4 atleti'},
+      formatSummary:'Team di 2 donne e 2 uomini; ciascun componente completa 2 × 1 km e le 2 stazioni corrispondenti.',
+      formatDetails:['2 donne e 2 uomini','2 × 1 km e 2 stazioni per atleta','Ordine delle due coppie run/station scelto dal team']
+    },
+    {
+      key:'hyrox-adaptive-women',family:'hyrox',label:'Adaptive Women',confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:100,
+      demands:families.hyrox.demands,sourceKeys:['hyroxAdaptive','concurrent'],
+      duration:{classKey:'medium-long',label:'8 × 1 km e 8 stazioni adattive'},
+      formatSummary:'Divisione individuale Adaptive Women; classificazione, modifiche e carichi devono seguire il rulebook corrente dell’evento.',
+      formatDetails:['8 × 1 km','8 stazioni adattive','Standard e classificazione da verificare sul rulebook corrente']
+    },
+    {
+      key:'hyrox-adaptive-men',family:'hyrox',label:'Adaptive Men',confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:100,
+      demands:families.hyrox.demands,sourceKeys:['hyroxAdaptive','concurrent'],
+      duration:{classKey:'medium-long',label:'8 × 1 km e 8 stazioni adattive'},
+      formatSummary:'Divisione individuale Adaptive Men; classificazione, modifiche e carichi devono seguire il rulebook corrente dell’evento.',
+      formatDetails:['8 × 1 km','8 stazioni adattive','Standard e classificazione da verificare sul rulebook corrente']
+    }
+  ];
+  const spartanVariants=[
+    {key:'spartan-stadion',family:'obstacle',label:'Spartan Stadion',confidence:'format-verified',programmingStatus:'pending',distanceKm:5,sessionDurationMin:60,formatSummary:'5 km e 20 ostacoli in ambiente stadium.',demands:{...families.obstacle.demands,terrain:2,fueling:1}},
+    {key:'spartan-sprint',family:'obstacle',label:'Spartan Sprint',confidence:'format-verified',programmingStatus:'pending',distanceKm:5,sessionDurationMin:75,formatSummary:'5 km e 20 ostacoli.',demands:{...families.obstacle.demands,fueling:2}},
+    {key:'spartan-super',family:'obstacle',label:'Spartan Super',confidence:'format-verified',programmingStatus:'pending',distanceKm:10,sessionDurationMin:120,formatSummary:'10 km e 25 ostacoli.',demands:{...families.obstacle.demands,aerobic:4,fueling:3}},
+    {key:'spartan-beast',family:'obstacle',label:'Spartan Beast',confidence:'format-verified',programmingStatus:'pending',distanceKm:21,sessionDurationMin:240,formatSummary:'21 km e 30 ostacoli.',demands:{...families.obstacle.demands,aerobic:5,fueling:4}},
+    {key:'spartan-ultra',family:'obstacle',label:'Spartan Ultra',confidence:'format-verified',programmingStatus:'pending',distanceKm:50,sessionDurationMin:480,formatSummary:'50 km e 60 ostacoli.',demands:{...families.obstacle.demands,aerobic:5,pacing:5,fueling:5}}
+  ];
+  const triathlonVariants=[
+    {
+      key:'triathlon-sprint',family:'triathlon',label:'Triathlon Sprint',confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:90,
+      formatSummary:'750 m nuoto + circa 20 km bici + 5 km corsa.',formatDetails:['Nuoto 0,75 km','Bici circa 20 km','Corsa 5 km','T1 e T2'],
+      demands:{...families.triathlon.demands,threshold:5,fueling:2}
+    },
+    {
+      key:'triathlon-standard',family:'triathlon',label:'Triathlon Standard / Olimpico',confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:150,
+      formatSummary:'1,5 km nuoto + 40 km bici + 10 km corsa.',formatDetails:['Nuoto 1,5 km','Bici 40 km','Corsa 10 km','T1 e T2'],
+      demands:{...families.triathlon.demands,fueling:3}
+    },
+    {
+      key:'ironman-70-3',family:'triathlon',label:'IRONMAN 70.3',confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:360,
+      formatSummary:'1,9 km nuoto + 90 km bici + 21,1 km corsa.',formatDetails:['Nuoto 1,9 km','Bici 90 km','Corsa 21,1 km','Totale 113 km / 70.3 mi'],
+      demands:{...families.triathlon.demands,aerobic:5,threshold:3,impact:4,pacing:5,fueling:5}
+    },
+    {
+      key:'ironman-full',family:'triathlon',label:'IRONMAN Full',confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:720,
+      formatSummary:'3,8 km nuoto + 180 km bici + 42,2 km corsa.',formatDetails:['Nuoto 3,8 km','Bici 180 km','Corsa 42,2 km','Totale 226 km / 140.6 mi'],
+      demands:{...families.triathlon.demands,aerobic:5,threshold:2,impact:5,pacing:5,fueling:5}
+    }
+  ];
+  function athxVariant(key,label,division,teamMode='Individual'){
+    return{
+      key,family:'athx',label:`${label} · ${teamMode}`,confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:150,
+      formatSummary:`${teamMode}; sei zone consecutive nella divisione ${division}. I workout esatti sono quelli pubblicati per il singolo evento.`,
+      formatDetails:families.athx.formatDetails,demands:families.athx.demands
+    };
+  }
+  const athxVariants=[
+    athxVariant('athx-lite-individual','ATHX Lite','Lite'),
+    athxVariant('athx-individual','ATHX','Standard'),
+    athxVariant('athx-pro-individual','ATHX Pro','Pro'),
+    athxVariant('athx-lite-pairs','ATHX Lite','Lite','Pairs'),
+    athxVariant('athx-pairs','ATHX','Standard','Pairs'),
+    athxVariant('athx-pro-pairs','ATHX Pro','Pro','Pairs')
+  ];
+  const variants=[...runningVariants,...hyroxVariants,...spartanVariants,...triathlonVariants,...athxVariants];
+  const variantIndex=new Map(variants.map(item=>[item.key,item]));
+  const typeFamilies={
+    marathon:'running','half-marathon':'running',running:'running',hyrox:'hyrox',
+    obstacle:'obstacle',triathlon:'triathlon',athx:'athx'
+  };
   const genericTemplates={
-    'half-marathon':{duration:{classKey:'medium-long',label:'Durata medio-lunga continua'},disciplines:['Corsa'],demands:{aerobic:5,threshold:4,strength:1,power:1,strengthEndurance:2,skill:2,impact:4,transitions:0,terrain:2,pacing:5,fueling:3},roles:['Corsa facile','Lungo','Qualità running','Pacing'],transitionCost:'medium'},
-    running:{duration:{classKey:'unknown',label:'Durata da confermare'},disciplines:['Corsa'],demands:{aerobic:4,threshold:4,strength:1,power:2,strengthEndurance:2,skill:2,impact:4,transitions:0,terrain:2,pacing:4,fueling:2},roles:['Corsa facile','Qualità specifica','Pacing'],transitionCost:'medium'},
-    obstacle:{duration:{classKey:'unknown',label:'Durata e formato da confermare'},disciplines:['Corsa','Ostacoli','Terreno variabile'],demands:{aerobic:4,threshold:3,strength:4,power:3,strengthEndurance:5,skill:5,impact:5,transitions:4,terrain:5,pacing:3,fueling:3},roles:['Corsa trail','Forza di presa','Ostacoli','Tecnica terreno'],transitionCost:'high'},
     cycling:{duration:{classKey:'unknown',label:'Durata da confermare'},disciplines:['Ciclismo'],demands:{aerobic:5,threshold:4,strength:2,power:3,strengthEndurance:3,skill:3,impact:1,transitions:0,terrain:3,pacing:5,fueling:4},roles:['Volume aerobico','Soglia / potenza','Tecnica e pacing'],transitionCost:'medium'},
     'strength-test':{duration:{classKey:'short',label:'Durata breve, alta intensità'},disciplines:['Forza'],demands:{aerobic:1,threshold:1,strength:5,power:4,strengthEndurance:2,skill:4,impact:3,transitions:0,terrain:0,pacing:2,fueling:1},roles:['Forza massima','Tecnica dei fondamentali','Primer'],transitionCost:'medium'},
     test:{duration:{classKey:'unknown',label:'Protocollo da confermare'},disciplines:['Test'],demands:{aerobic:2,threshold:2,strength:2,power:2,strengthEndurance:2,skill:2,impact:2,transitions:1,terrain:1,pacing:2,fueling:1},roles:['Protocollo specifico'],transitionCost:'medium'},
     other:{duration:{classKey:'unknown',label:'Richieste da confermare'},disciplines:['Evento non classificato'],demands:{aerobic:2,threshold:2,strength:2,power:2,strengthEndurance:2,skill:2,impact:2,transitions:2,terrain:2,pacing:2,fueling:2},roles:['Analisi richiesta'],transitionCost:'medium'}
   };
 
-  function clone(value){return JSON.parse(JSON.stringify(value));}
-  function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
-  function dateAtNoon(value){return new Date(`${value}T12:00:00`);}
-  function daysBetween(from,to){return Math.round((dateAtNoon(to)-dateAtNoon(from))/86400000);}
-  function normalizedDemands(raw={}){
-    return Object.fromEntries(dimensions.map(item=>[item.key,clamp(Math.round(Number(raw[item.key])||0),0,5)]));
+  function familyForType(type){return typeFamilies[type]||null;}
+  function defaultVariantForType(type){
+    return type==='marathon'?'road-marathon':type==='half-marathon'?'road-half':'';
+  }
+  function inferVariantKey(goal={}){
+    const name=String(goal.name||'').toLowerCase();
+    if(goal.type==='marathon')return'road-marathon';
+    if(goal.type==='half-marathon')return'road-half';
+    if(goal.type==='running'){
+      if(/\b(42[,.]?195|maratona|marathon)\b/.test(name))return'road-marathon';
+      if(/\b(30)\s*(km|k)\b/.test(name))return'road-30k';
+      if(/\b(mezza|half|21[,.]?1)\b/.test(name))return'road-half';
+      if(/\b10\s*(km|k)\b/.test(name))return'road-10k';
+      if(/\b5\s*(km|k)\b/.test(name))return'road-5k';
+    }
+    if(goal.type==='hyrox'){
+      if(/\b(doppio|doubles?)\b/.test(name)&&/\b(pro)\b/.test(name)&&/\b(uomo|men|male)\b/.test(name))return'hyrox-doubles-men-pro';
+      if(/\b(doppio|doubles?)\b/.test(name)&&/\b(misto|mixed)\b/.test(name))return'hyrox-doubles-mixed';
+      if(/\b(doppio|doubles?)\b/.test(name)&&/\b(uomo|men|male)\b/.test(name))return'hyrox-doubles-men-open';
+      if(/\b(pro)\b/.test(name)&&/\b(uomo|men|male)\b/.test(name))return'hyrox-single-men-pro';
+    }
+    if(goal.type==='obstacle'){
+      if(/\bultra\b/.test(name))return'spartan-ultra';
+      if(/\bbeast\b/.test(name))return'spartan-beast';
+      if(/\bsuper\b/.test(name))return'spartan-super';
+      if(/\bsprint\b/.test(name))return'spartan-sprint';
+      if(/\bstadion\b/.test(name))return'spartan-stadion';
+    }
+    if(goal.type==='triathlon'){
+      if(/\b(140[,.]6|full)\b|ironman(?!\s*70)/.test(name))return'ironman-full';
+      if(/\b70[,.]3\b|half\s*ironman/.test(name))return'ironman-70-3';
+      if(/\b(olimpico|olympic|standard)\b/.test(name))return'triathlon-standard';
+      if(/\bsprint\b/.test(name))return'triathlon-sprint';
+    }
+    return'';
+  }
+  function variantFor(goal={}){
+    const familyKey=familyForType(goal.type);
+    const requested=String(goal.variant||defaultVariantForType(goal.type)||inferVariantKey(goal));
+    const variant=variantIndex.get(requested);
+    return variant&&variant.family===familyKey?clone(variant):null;
+  }
+  function variantsFor(type){
+    const familyKey=familyForType(type);
+    const list=variants.filter(item=>item.family===familyKey);
+    if(type==='marathon')return list.filter(item=>item.key==='road-marathon').map(clone);
+    if(type==='half-marathon')return list.filter(item=>item.key==='road-half').map(clone);
+    return list.map(clone);
   }
   function profileFor(goal={}){
-    const specialized=packs[goal.type];
-    if(specialized)return{...clone(specialized),goal:{id:goal.id||null,name:goal.name||specialized.label,type:goal.type||'other'},demands:normalizedDemands(specialized.demands)};
+    const familyKey=familyForType(goal.type),base=familyKey?families[familyKey]:null,variant=variantFor(goal);
+    if(base){
+      const sourceKeys=unique([...(base.sourceKeys||[]),...(variant?.sourceKeys||[])]);
+      return{
+        ...clone(base),...(variant?clone(variant):{}),
+        key:variant?.key||base.key,
+        label:variant?`${base.label.split(' · ')[0]} · ${variant.label}`:base.label,
+        version:VERSION,
+        confidence:variant?.confidence||base.confidence,
+        programmingStatus:variant?.programmingStatus||base.programmingStatus,
+        duration:clone(variant?.duration||base.duration),
+        disciplines:clone(base.disciplines),
+        demands:normalizedDemands(variant?.demands||base.demands),
+        keyRoles:clone(variant?.keyRoles||base.keyRoles),
+        sources:sourceList(sourceKeys),
+        sourceKeys,
+        formatSummary:variant?.formatSummary||base.formatSummary||'',
+        formatDetails:clone(variant?.formatDetails||base.formatDetails||[]),
+        stations:clone(variant?.stations||[]),
+        variant:variant?clone(variant):null,
+        goal:{id:goal.id||null,name:goal.name||variant?.label||base.label,type:goal.type||'other',variant:variant?.key||null}
+      };
+    }
     const template=genericTemplates[goal.type]||genericTemplates.other;
     return{
-      key:`generic-${goal.type||'other'}`,label:'Profilo generico da confermare',version:VERSION,confidence:'generic',
+      key:`generic-${goal.type||'other'}`,label:'Profilo generico da confermare',version:VERSION,confidence:'generic',programmingStatus:'pending',
       duration:clone(template.duration),disciplines:clone(template.disciplines),demands:normalizedDemands(template.demands),
-      keyRoles:clone(template.roles),sources:[],transitionCost:template.transitionCost,
-      goal:{id:goal.id||null,name:goal.name||'Obiettivo',type:goal.type||'other'}
+      keyRoles:clone(template.roles),sources:[],sourceKeys:[],transitionCost:template.transitionCost,
+      formatSummary:'',formatDetails:[],stations:[],variant:null,
+      goal:{id:goal.id||null,name:goal.name||'Obiettivo',type:goal.type||'other',variant:null}
     };
   }
   function demandList(profile){
     return dimensions.map(item=>({...item,level:profile?.demands?.[item.key]||0,levelLabel:levelLabels[profile?.demands?.[item.key]||0]}));
   }
+  function dateAtNoon(value){return new Date(`${value}T12:00:00`);}
+  function daysBetween(from,to){return Math.round((dateAtNoon(to)-dateAtNoon(from))/86400000);}
   function overlapBetween(first,second){
     const a=profileFor(first),b=profileFor(second),values=dimensions.map(item=>[a.demands[item.key],b.demands[item.key]]);
     const dot=values.reduce((sum,[left,right])=>sum+left*right,0),leftNorm=Math.sqrt(values.reduce((sum,[left])=>sum+left*left,0)),rightNorm=Math.sqrt(values.reduce((sum,[,right])=>sum+right*right,0));
@@ -90,9 +375,14 @@
     return{score:+score.toFixed(2),percent:Math.round(score*100),label:score>=.85?'Molto alta':score>=.7?'Alta':score>=.5?'Media':'Bassa',shared:shared.slice(0,4),divergent:divergent.slice(0,3)};
   }
   function relationFor(primary,secondary,today){
-    const gapDays=daysBetween(primary.date,secondary.date),distance=Math.abs(gapDays),overlap=overlapBetween(primary,secondary),secondaryProfile=profileFor(secondary);
+    const gapDays=daysBetween(primary.date,secondary.date),distance=Math.abs(gapDays),overlap=overlapBetween(primary,secondary),primaryProfile=profileFor(primary),secondaryProfile=profileFor(secondary);
     let tone='neutral',role='separate',title='Obiettivo separato',summary='Il calendario lascia spazio a un blocco dedicato; il Coach non assume che le due preparazioni siano equivalenti.',actions=[];
-    if(gapDays<0){
+    const marathonWith30k=primaryProfile.key==='road-marathon'&&secondaryProfile.key==='road-30k'&&gapDays<0&&distance<=28;
+    if(marathonWith30k){
+      role='preparatory';tone='warn';title='Lungo specifico in gara';
+      summary='La 30 km ha un’altissima sovrapposizione con la maratona, ma deve restare un lungo specifico controllato e non diventare un secondo picco.';
+      actions=['Definire prima un tetto di ritmo: ritmo maratona previsto solo se tolleranza e fase lo consentono','Provare strategia di fueling e materiali senza aggiungere volume compensatorio','Proteggere il recupero e la seduta chiave successiva'];
+    }else if(gapDays<0){
       role='preparatory';
       if(distance<=7){
         tone='danger';title='Evento troppo vicino alla priorità A';summary='Il costo della gara B/C può interferire con freschezza e sedute chiave della priorità A.';
@@ -104,7 +394,7 @@
         tone=overlap.score>=.7?'good':'neutral';title=overlap.score>=.7?'Stimolo preparatorio compatibile':'Obiettivo secondario distinto';summary=overlap.score>=.7?'Una parte importante della preparazione è condivisa; la specificità residua resta subordinata alla priorità A.':'Il tempo disponibile riduce il conflitto, ma il Coach deve separare gli stimoli specifici.';
         actions=['Usare soltanto le qualità che trasferiscono alla priorità A'];
       }
-    }else if(gapDays>=0){
+    }else{
       role='post-primary';
       if(gapDays<=13){
         tone='danger';title='Transizione post-gara molto stretta';summary='Non è prudente programmare subito un nuovo picco: esito, sintomi e recupero reale devono precedere la specificità.';
@@ -117,20 +407,26 @@
         actions=['Conservare le qualità condivise','Reintrodurre in seguito le richieste specifiche del secondo evento'];
       }
     }
-    if(secondaryProfile.confidence==='generic')actions.push('Confermare manualmente le richieste dell’evento prima di una prescrizione specifica');
-    return{goal:clone(secondary),profile:secondaryProfile,gapDays,distanceDays:distance,role,tone,title,summary,overlap,actions:[...new Set(actions)]};
+    if(secondaryProfile.confidence==='generic')actions.push('Specificare il formato dell’evento prima di una prescrizione specifica');
+    if(secondaryProfile.programmingStatus==='pending')actions.push('Il formato è verificato, ma il pack di programmazione specifico deve ancora essere revisionato');
+    return{goal:clone(secondary),profile:secondaryProfile,gapDays,distanceDays:distance,role,tone,title,summary,overlap,actions:unique(actions)};
   }
   function coordinate(input={}){
     const today=input.today||null,primary=input.primary||null,goals=(Array.isArray(input.goals)?input.goals:[]).filter(item=>item&&item.status==='planned'&&(!today||item.date>=today));
     if(!primary)return null;
+    const primaryProfile=profileFor(primary);
     const secondary=goals.filter(item=>item.id!==primary.id).sort((a,b)=>a.date.localeCompare(b.date)).map(item=>relationFor(primary,item,today));
     const urgent=secondary.filter(item=>['danger','warn'].includes(item.tone)).length;
     return{
-      version:VERSION,primary:{goal:clone(primary),profile:profileFor(primary),demands:demandList(profileFor(primary))},secondary,
+      version:VERSION,primary:{goal:clone(primary),profile:primaryProfile,demands:demandList(primaryProfile)},secondary,
       summary:secondary.length?urgent?`${urgent} coordinament${urgent===1?'o richiede':'i richiedono'} una scelta esplicita prima di modificare il piano.`:'Gli obiettivi presenti possono essere separati senza un conflitto immediato evidente.':'Nessuna gara B/C futura da coordinare con la priorità A.',
-      guardrail:'Questa analisi descrive richieste, sovrapposizioni e transizioni. Non genera né modifica sedute.'
+      guardrail:'Il formato e le richieste sono descrittivi. Nessuna relazione genera o modifica sedute senza una regola Coach revisionata e una conferma esplicita.'
     };
   }
 
-  return{VERSION,dimensions,levelLabels,sources,profileFor,demandList,overlapBetween,relationFor,coordinate,daysBetween};
+  return{
+    VERSION,dimensions,levelLabels,sources,families,
+    familyForType,defaultVariantForType,variantsFor,variantFor,profileFor,hyroxStations,
+    demandList,overlapBetween,relationFor,coordinate,daysBetween
+  };
 });

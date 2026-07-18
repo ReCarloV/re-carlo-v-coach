@@ -1,13 +1,14 @@
 (function(root,factory){
-  const api=factory();
+  const eventModel=typeof module!=='undefined'&&module.exports?require('./event-demand-model.js'):root?.rcEventDemandModel;
+  const api=factory(eventModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcGoalsModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(eventModel){
   'use strict';
 
   const DAY_MS=86400000;
   const priorityRank={A:0,B:1,C:2};
-  const typeLabels={marathon:'Maratona','half-marathon':'Mezza maratona',running:'Gara running',hyrox:'HYROX',obstacle:'Obstacle race',cycling:'Gara ciclismo','strength-test':'Test di forza',test:'Test',other:'Altro'};
+  const typeLabels={marathon:'Maratona','half-marathon':'Mezza maratona',running:'Gara running',hyrox:'HYROX',obstacle:'Spartan / obstacle race',triathlon:'Triathlon',athx:'ATHX',cycling:'Gara ciclismo','strength-test':'Test di forza',test:'Test',other:'Altro'};
 
   function iso(date){return`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
   function dateAtNoon(value){return new Date(`${value}T12:00:00`);}
@@ -23,7 +24,7 @@
   }
   function isGoalGeneratedSession(session){return Boolean(session?.goalGenerated)||String(session?.id||'').startsWith('goal-session:');}
   function isRaceSession(session){return isGoalGeneratedSession(session)||session?.details?.runType==='Race'||/(^|\s)gara(?:\s|[-–:]|$)|race day|competition/i.test(`${session?.title||''} ${session?.planImport?.originalTitle||''}`);}
-  function typeForSession(session){const text=`${session?.title||''} ${session?.planImport?.sourceName||''}`.toLowerCase();if(/hyrox/.test(text))return'hyrox';if(/mezza|half/.test(text))return'half-marathon';if(/marathon|maratona/.test(text))return'marathon';return session?.category==='running'?'running':'other';}
+  function typeForSession(session){const text=`${session?.title||''} ${session?.planImport?.sourceName||''}`.toLowerCase();if(/hyrox/.test(text))return'hyrox';if(/triathlon|ironman/.test(text))return'triathlon';if(/athx/.test(text))return'athx';if(/spartan|obstacle/.test(text))return'obstacle';if(/mezza|half/.test(text))return'half-marathon';if(/marathon|maratona/.test(text))return'marathon';return session?.category==='running'?'running':'other';}
   function inferGoalFromPlan(sessions=[],options={}){
     const today=options.today||localToday();const candidates=(Array.isArray(sessions)?sessions:[]).filter(item=>item?.planImport&&isRaceSession(item)&&item.date>=today).sort((a,b)=>a.date.localeCompare(b.date));const race=candidates[0];if(!race)return null;
     const name=cleanPlanName(race.planImport.sourceName);
@@ -39,13 +40,16 @@
   }
   function targetMinutes(goal){const text=String(goal?.target||'');const clock=text.match(/(?:^|\D)(\d{1,2})\s*:\s*(\d{2})(?:\D|$)/);if(clock){const major=Number(clock[1]),minor=Number(clock[2]);return major<=12?major*60+minor:Math.round(major+minor/60);}const hours=text.match(/(\d+(?:[.,]\d+)?)\s*h/i);return hours?Math.round(Number(hours[1].replace(',','.'))*60):null;}
   function sessionFromGoal(goal,options={}){
-    if(!goal?.id||goal.status!=='planned'||!goal.date)return null;const duration=targetMinutes(goal),priority={A:'essential',B:'important',C:'optional'}[goal.priority]||'important',stamp=options.now||new Date().toISOString();let category='test',durationMin=duration||60,details={testType:'Competition',testRpe:10,testProtocol:goal.target||''};
-    if(['marathon','half-marathon','running'].includes(goal.type)){category='running';durationMin=duration||({marathon:240,'half-marathon':120,running:60}[goal.type]);details={runType:'Race',distanceKm:{marathon:42.195,'half-marathon':21.0975}[goal.type]||null,runTarget:'rpe',hrZone:'',paceMin:0,paceSec:0,runRpe:9,runBlocks:[]};}
-    else if(goal.type==='hyrox'){category='hyrox';durationMin=duration||90;details={hyroxFormat:'Competition',hyroxRpe:10,hyroxStructuredBlocks:[]};}
+    if(!goal?.id||goal.status!=='planned'||!goal.date)return null;const variant=eventModel?.variantFor?.(goal)||null,duration=targetMinutes(goal),priority={A:'essential',B:'important',C:'optional'}[goal.priority]||'important',stamp=options.now||new Date().toISOString();let category='test',durationMin=duration||variant?.sessionDurationMin||60,details={testType:'Competition',testRpe:10,testProtocol:[variant?.label,goal.target].filter(Boolean).join(' · ')};
+    if(['marathon','half-marathon','running'].includes(goal.type)){category='running';durationMin=duration||variant?.sessionDurationMin||({marathon:240,'half-marathon':120,running:60}[goal.type]);details={runType:'Race',distanceKm:Number(variant?.distanceKm)||({marathon:42.195,'half-marathon':21.0975}[goal.type]||null),runTarget:'rpe',hrZone:'',paceMin:0,paceSec:0,runRpe:9,runBlocks:[]};}
+    else if(goal.type==='hyrox'){category='hyrox';durationMin=duration||variant?.sessionDurationMin||90;details={hyroxFormat:variant?.label||'Competition',hyroxRpe:10,hyroxStructuredBlocks:[]};}
     else if(goal.type==='cycling'){category='cycling';durationMin=duration||120;details={rideType:'Race',powerSource:'FTP',ftpMin:0,ftpMax:0,cadence:0};}
-    else if(goal.type==='obstacle'){durationMin=duration||120;details={testType:'Obstacle race',testRpe:10,testProtocol:goal.target||''};}
+    else if(goal.type==='obstacle'){durationMin=duration||variant?.sessionDurationMin||120;details={testType:variant?.label||'Obstacle race',testRpe:10,testProtocol:[variant?.formatSummary,goal.target].filter(Boolean).join(' · ')};}
+    else if(goal.type==='triathlon'){durationMin=duration||variant?.sessionDurationMin||180;details={testType:variant?.label||'Triathlon',testRpe:10,testProtocol:[variant?.formatSummary,goal.target].filter(Boolean).join(' · ')};}
+    else if(goal.type==='athx'){durationMin=duration||variant?.sessionDurationMin||150;details={testType:variant?.label||'ATHX',testRpe:10,testProtocol:[variant?.formatSummary,goal.target].filter(Boolean).join(' · ')};}
     else if(goal.type==='strength-test'){details={testType:'Strength test',testRpe:10,testProtocol:goal.target||''};}
-    return{id:`goal-session:${goal.id}`,goalId:goal.id,goalGenerated:true,goalSyncedAt:goal.updatedAt||stamp,date:goal.date,category,title:goal.name,durationMin,priority,details,notes:`Evento creato automaticamente dall’obiettivo${goal.target?` · target: ${goal.target}`:''}.`,outcome:null,titleMode:'custom',createdAt:stamp,updatedAt:stamp};
+    const context=[variant?.label,goal.target?`target: ${goal.target}`:'',goal.notes].filter(Boolean).join(' · ');
+    return{id:`goal-session:${goal.id}`,goalId:goal.id,goalGenerated:true,goalSyncedAt:goal.updatedAt||stamp,date:goal.date,category,title:goal.name,durationMin,priority,details,notes:`Evento creato automaticamente dall’obiettivo${context?` · ${context}`:''}.`,outcome:null,titleMode:'custom',createdAt:stamp,updatedAt:stamp};
   }
   function sortPlanned(a,b){return(priorityRank[a.priority]??9)-(priorityRank[b.priority]??9)||a.date.localeCompare(b.date)||a.name.localeCompare(b.name,'it');}
   function classifyGoals(goals=[],today=localToday()){

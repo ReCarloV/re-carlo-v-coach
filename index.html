@@ -516,8 +516,9 @@
       <input name="id" type="hidden">
       <div class="goal-form-grid">
         <label class="goal-form-wide">Nome gara o test<input name="name" required maxlength="80" placeholder="Es. maratona autunnale"></label>
-        <label>Tipologia<select name="type"><option value="marathon">Maratona</option><option value="half-marathon">Mezza maratona</option><option value="running">Gara running</option><option value="hyrox">HYROX</option><option value="obstacle">Obstacle race</option><option value="cycling">Gara ciclismo</option><option value="strength-test">Test di forza</option><option value="test">Altro test</option><option value="other">Altro</option></select></label>
+        <label>Tipologia<select name="type"><option value="marathon">Maratona</option><option value="half-marathon">Mezza maratona</option><option value="running">Gara running</option><option value="hyrox">HYROX</option><option value="obstacle">Spartan / obstacle race</option><option value="triathlon">Triathlon</option><option value="athx">ATHX</option><option value="cycling">Gara ciclismo</option><option value="strength-test">Test di forza</option><option value="test">Altro test</option><option value="other">Altro</option></select></label>
         <label>Data<input name="date" type="date" required></label>
+        <label class="goal-form-wide" id="goal-variant-field">Formato / distanza<select name="variant"></select><small class="goal-variant-hint" id="goal-variant-hint"></small></label>
         <label>Priorità<select name="priority"><option value="A">A · obiettivo principale</option><option value="B">B · gara importante</option><option value="C">C · gara preparatoria</option></select></label>
         <label>Stato<select name="status"><option value="planned">Programmata</option><option value="completed">Completata</option><option value="cancelled">Annullata</option></select></label>
         <label class="goal-form-wide">Target<input name="target" maxlength="100" placeholder="Es. completare senza dolore, migliorare il PB"></label>
@@ -627,9 +628,9 @@
   <script src="skip-reason-model.js"></script>
   <script src="recovery-trend-model.js"></script>
   <script src="device-freshness-model.js"></script>
+  <script src="event-demand-model.js"></script>
   <script src="goals-model.js"></script>
   <script src="coach-methodology-model.js"></script>
-  <script src="event-demand-model.js"></script>
   <script src="race-coach-model.js"></script>
   <script src="phase-constraints-model.js"></script>
   <script src="weekly-plan-adjustment-model.js"></script>

@@ -26,7 +26,7 @@
   const strengthFormulas = new Set(['epley','brzycki','lombardi','average']);
   const hrZoneMethods = new Set(['hrr','hrmax','average','custom']);
   const ftpZoneMethods = new Set(['coggan7','coggan5']);
-  const goalTypes = new Set(['marathon','half-marathon','running','hyrox','obstacle','cycling','strength-test','test','other']);
+  const goalTypes = new Set(['marathon','half-marathon','running','hyrox','obstacle','triathlon','athx','cycling','strength-test','test','other']);
   const goalPriorities = new Set(['A','B','C']);
   const goalStatuses = new Set(['planned','completed','cancelled']);
   const strengthDefaults = { pullup:null, bench:null, military:null, squat:null, deadlift:null };
@@ -232,6 +232,8 @@
       if(!isObject(goal)||typeof goal.id!=='string'||!goal.id.trim()||typeof goal.name!=='string'||!goal.name.trim()||!goalTypes.has(goal.type)||!isDateKey(goal.date)||!goalPriorities.has(goal.priority)||!goalStatuses.has(goal.status))invalid('INVALID_GOALS','Un obiettivo contiene identificativo, nome, tipo, data, priorità o stato non validi.');
       if(ids.has(goal.id))invalid('INVALID_GOALS','L’elenco contiene obiettivi duplicati.');ids.add(goal.id);
       ['target','result','notes'].forEach(field=>{if(owns(goal,field)&&typeof goal[field]!=='string')invalid('INVALID_GOALS',`Il campo ${field} di un obiettivo non è valido.`);});
+      if(owns(goal,'variant')&&(typeof goal.variant!=='string'||!goal.variant.trim()||goal.variant.length>80))invalid('INVALID_GOALS','Il formato specifico di un obiettivo non è valido.');
+      if(owns(goal,'distanceKm')&&(!Number.isFinite(Number(goal.distanceKm))||Number(goal.distanceKm)<=0||Number(goal.distanceKm)>1000))invalid('INVALID_GOALS','La distanza di un obiettivo non è valida.');
       if(owns(goal,'dateAuthority')&&!['manual','plan'].includes(goal.dateAuthority))invalid('INVALID_GOALS','La provenienza della data di un obiettivo non è valida.');
       ['createdAt','updatedAt'].forEach(field=>{if(!isTimestamp(goal[field]))invalid('INVALID_GOALS',`La data ${field} di un obiettivo non è valida.`);});
       if(owns(goal,'inferredFromSessionId')&&(typeof goal.inferredFromSessionId!=='string'||!goal.inferredFromSessionId.trim()))invalid('INVALID_GOALS','La provenienza di un obiettivo non è valida.');
