@@ -59,7 +59,7 @@ body,.sidebar,main>header,.panel,.metrics article,.day,.nav,.primary,.ghost,inpu
   box-shadow:0 10px 28px rgba(22,92,178,.14);
 }
 .cloud-sync-symbol span{overflow:hidden;background:#fff}
-.cloud-sync-symbol img{border-radius:inherit}
+.cloud-sync-symbol img{object-fit:contain;border-radius:10px}
 #avatar-placeholder{display:grid;place-items:center;width:100%;height:100%;background:#fff}
 #avatar-placeholder img{border-radius:50%}
 
@@ -127,7 +127,7 @@ html[data-theme="light"] :where(
   .today-adaptive-reason,.today-adaptive-effect,.today-week-summary,
   .recap-highlight,.recap-stat,.recap-history button,.recap-plan-lock,
   .body-selection,.body-empty,.body-issue-card,.body-history,
-  .cloud-sync-copy,.cloud-sync-status-card,.cloud-sync-device,.cloud-sync-state,
+  .cloud-sync-status-card,.cloud-sync-device,.cloud-sync-state,
   .plan-month-summary,.plan-list-summary,.plan-view-switch,.calendar-navigation
 ){
   border-color:#d4dfeb;
@@ -237,11 +237,18 @@ html[data-theme="light"] .today-empty-state,html[data-theme="light"] .today-seco
 html[data-theme="light"] .data-local-badge{border-color:#9dbce0;background:#e9f3ff;color:#1e5f9f}
 html[data-theme="light"] .source-status.waiting{background:#e8edf3;color:#55677d}
 html[data-theme="light"] .source-status.ready{background:#def4eb;color:#176c53}
+html[data-theme="light"] .source-status.connected,html[data-theme="light"] .source-status.fresh{border:1px solid #8bcdb7;background:#e2f6ee;color:#176d53}
+html[data-theme="light"] .source-status.snapshot{border:1px solid #dec488;background:#fff6df;color:#845c16}
+html[data-theme="light"] .source-status.optional{border:1px solid #bfd0e2;background:#edf3f9;color:#4b647d}
+html[data-theme="light"] .source-status.service-offline{border:1px solid #dda8b1;background:#fff0f2;color:#a23c50}
+html[data-theme="light"] .import-safety span{border-color:#bfd3e6;background:#edf5fd;color:#245f96}
 html[data-theme="light"] .import-source-card code{border-color:#d2dfeb;background:#edf3f8;color:#294f7a}
+html[data-theme="light"] .plan-source .plan-button{border-color:#a9c1d9!important;background:#edf4fb!important;color:#245f96!important}
 html[data-theme="light"] .baseline-week-track{background:#d8e2ed}
 html[data-theme="light"] .day-picker span{border-color:#d0dce8;background:#f4f7fb;color:#5d6f84}
 html[data-theme="light"] .day-picker input:checked+span{border-color:#4384d2;background:#e7f1ff;color:#174f92}
 html[data-theme="light"] .whoop-live-panel{border-color:#ccd9e6;background:#f6f8fb;color:var(--text)}
+html[data-theme="light"] .whoop-live-panel.connected{border-color:#a8d3c4;background:#f0faf6}
 html[data-theme="light"] .data-snapshot-note{border-color:#c9d9e9;background:#eef5fc}
 html[data-theme="light"] .data-snapshot-note strong{color:#245f9d}
 html[data-theme="light"] .data-snapshot-note span{color:#60748c}
@@ -252,6 +259,15 @@ html[data-theme="light"] .whoop-summary-stats span,html[data-theme="light"] .who
 }
 html[data-theme="light"] .whoop-day-row>span{color:#586d85}
 html[data-theme="light"] .whoop-day-row>span:first-child{color:#1d2e44}
+html[data-theme="light"] .whoop-recovery.high{background:#dcf4eb;color:#176d53}
+html[data-theme="light"] .whoop-recovery.medium{background:#fff1c9;color:#835b10}
+html[data-theme="light"] .whoop-recovery.low{background:#ffe5e9;color:#a23b50}
+html[data-theme="light"] .whoop-recovery.missing{background:#e8eef4;color:#576a81}
+html[data-theme="light"] .cloud-sync-panel{border-color:#b8cfe5;background:radial-gradient(circle at 8% 15%,rgba(11,126,237,.1),transparent 38%),linear-gradient(120deg,#fff,#eef6fd);box-shadow:0 10px 28px rgba(42,82,124,.1)}
+html[data-theme="light"] .cloud-sync-copy{border:0;background:transparent;color:var(--text);box-shadow:none}
+html[data-theme="light"] .cloud-sync-symbol{border-color:#72a8d8;background:linear-gradient(145deg,#087bed,#10bea9);box-shadow:0 9px 22px rgba(26,107,184,.18)}
+html[data-theme="light"] .cloud-sync-symbol i{border-color:#f1f7fc}
+html[data-theme="light"] .cloud-sync-meta{color:#356b9d}
 html[data-theme="light"] .reconciliation-panel{border-color:#b7cee5;background:linear-gradient(145deg,#fff,#f4f8fc)}
 html[data-theme="light"] .reconciliation-safety{background:#eef5fc;color:#5e738b}
 html[data-theme="light"] .reconciliation-stats>span,html[data-theme="light"] .reconciliation-card,html[data-theme="light"] .reconciliation-source,html[data-theme="light"] .reconciliation-history-item{
