@@ -36,7 +36,8 @@
   }
   function renderUpcoming(current,items){
     const holder=document.getElementById('goal-upcoming-list');if(!items.length){holder.innerHTML='<div class="goal-empty-list">Nessun altro appuntamento inserito.</div>';return;}
-    holder.innerHTML=items.map(item=>`<div class="goal-list-item">${dateBox(item.date)}<div class="goal-list-item-copy"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(model.typeLabels[item.type]||'Obiettivo')}${item.target?` · ${escapeHtml(item.target)}`:''}</span></div><button class="goal-list-action" type="button" data-edit-goal="${escapeHtml(item.id)}">Modifica</button></div>`).join('');
+    const priorityLabel={B:'Gara importante',C:'Gara preparatoria'};
+    holder.innerHTML=items.map(item=>`<div class="goal-list-item">${dateBox(item.date)}<div class="goal-list-item-copy"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(priorityLabel[item.priority]||model.typeLabels[item.type]||'Obiettivo')} · ${escapeHtml(model.typeLabels[item.type]||'Obiettivo')}${item.target?` · ${escapeHtml(item.target)}`:''}</span></div><div class="goal-list-actions"><span class="goal-priority ${escapeHtml(item.priority)}">PRIORITÀ ${escapeHtml(item.priority)}</span><button class="goal-list-action" type="button" data-edit-goal="${escapeHtml(item.id)}">Modifica</button></div></div>`).join('');
   }
   function renderAttention(items){
     const panel=document.getElementById('goal-attention-panel'),holder=document.getElementById('goal-attention-list');panel.hidden=!items.length;if(!items.length){holder.replaceChildren();return;}holder.innerHTML=items.map(item=>`<div class="goal-list-item">${dateBox(item.date)}<div class="goal-list-item-copy"><strong>${escapeHtml(item.name)}</strong><span>La gara non viene archiviata finché non registri esplicitamente il risultato.</span></div><button class="primary small" type="button" data-result-goal="${escapeHtml(item.id)}">Registra risultato</button></div>`).join('');

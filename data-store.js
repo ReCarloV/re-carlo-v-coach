@@ -17,7 +17,7 @@
   'use strict';
 
   const APP_NAME = 'Re Carlo V Personal Coach';
-  const BACKUP_VERSION = 8;
+  const BACKUP_VERSION = 9;
   const MAX_PROFILE_PHOTO_BYTES = 2 * 1024 * 1024;
   const sessionCategories = new Set(['running','cycling','strength','hyrox','metcon','test','recovery']);
   const sessionPriorities = new Set(['essential','important','optional']);
@@ -49,6 +49,7 @@
     reconciliationDecisions: { key:'rc-reconciliation-decisions-v1', version:1, kind:'json', fallback:[] },
     goals: { key:'rc-goals-v1', version:1, kind:'json', fallback:[] },
     planView: { key:'rc-plan-view-v1', version:1, kind:'raw', fallback:'list' },
+    uiTheme: { key:'rc-ui-theme-v1', version:1, kind:'raw', fallback:'auto' },
     cloudSyncCursor: { key:'rc-cloud-sync-cursor-v1', version:1, kind:'json', fallback:null },
     legacyFtp: { key:'rc-ftp', version:1, kind:'raw', fallback:null, compatibilityOnly:true }
   });
@@ -471,6 +472,9 @@
       case 'planView':
         if (!['list','calendar'].includes(value)) throw new DataStoreError('INVALID_PREFERENCE', 'La preferenza del piano non è valida.');
         break;
+      case 'uiTheme':
+        if (!['auto','dark','light'].includes(value)) throw new DataStoreError('INVALID_PREFERENCE', 'Il tema dell’interfaccia non è valido.');
+        break;
       case 'cloudSyncCursor':
         if(value!==null&&(!isObject(value)||typeof value.userId!=='string'||!value.userId.trim()||!Number.isInteger(Number(value.revision))||Number(value.revision)<1||!/^athlete-[0-9a-f]{8}$/.test(String(value.fingerprint||''))||!isTimestamp(value.updatedAt)))throw new DataStoreError('INVALID_CLOUD_SYNC_CURSOR','Lo stato locale della sincronizzazione cloud non è valido.');
         break;
@@ -499,7 +503,7 @@
   function prepareFullBackup(backup) {
     const sourceVersion=Number(backup.backupVersion);
     if (sourceVersion > BACKUP_VERSION) throw new DataStoreError('FUTURE_BACKUP', 'Questo backup è stato creato da una versione più recente dell’app.');
-    if (![3,4,5,6,7,BACKUP_VERSION].includes(sourceVersion) || !isObject(backup.data)) throw new DataStoreError('UNSUPPORTED_BACKUP', 'Versione del backup non supportata.');
+    if (![3,4,5,6,7,8,BACKUP_VERSION].includes(sourceVersion) || !isObject(backup.data)) throw new DataStoreError('UNSUPPORTED_BACKUP', 'Versione del backup non supportata.');
     const rawProfile = entryValue(backup.data,'profile');
     const profile = normalizeProfile(rawProfile);
     const weeklyCheckin=entryValue(backup.data,'weeklyCheckin');
@@ -527,6 +531,7 @@
     const preferences = entryValue(backup.data,'preferences',datasets.planView);
     if (!isObject(preferences)) throw new DataStoreError('INVALID_PREFERENCES', 'Le preferenze del backup non sono valide.');
     values.planView = preferences.planView || 'list';
+    values.uiTheme = sourceVersion>=9 ? preferences.uiTheme : 'auto';
     values.cloudSyncCursor = Object.prototype.hasOwnProperty.call(preferences,'cloudSyncCursor') ? preferences.cloudSyncCursor : null;
     Object.entries(values).forEach(([name,value]) => validate(name,value));
     validateImportConsistency(values.importedActivities,values.importBatches);
@@ -635,7 +640,7 @@
         result.warnings.push('sessions');
         result.migrated=result.migrated.filter(item=>item!=='sessions');
       }
-      ['hrZones','profilePhoto','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','goals','planView','cloudSyncCursor'].forEach(name=>{
+      ['hrZones','profilePhoto','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','goals','planView','uiTheme','cloudSyncCursor'].forEach(name=>{
         try {
           const definition=datasets[name];const raw=storage.getItem(definition.key);
           if(raw===null)return;
@@ -689,7 +694,7 @@
         whoopImportBatches:{version:datasets.whoopImportBatches.version,value:read('whoopImportBatches')},
         reconciliationDecisions:{version:datasets.reconciliationDecisions.version,value:read('reconciliationDecisions')},
         goals:{version:datasets.goals.version,value:read('goals')},
-        preferences:{version:datasets.planView.version,value:{planView:read('planView'),cloudSyncCursor:read('cloudSyncCursor')}}
+        preferences:{version:datasets.planView.version,value:{planView:read('planView'),uiTheme:read('uiTheme'),cloudSyncCursor:read('cloudSyncCursor')}}
       };
       prepareFullBackup({ backupVersion:BACKUP_VERSION, data });
       return { app:APP_NAME, backupVersion:BACKUP_VERSION, exportedAt:now().toISOString(), data };

@@ -8,7 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Re Carlo V">
   <title>Re Carlo V — Personal Coach</title>
+  <script src="theme.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="crop.css">
@@ -35,11 +37,19 @@
   <link rel="stylesheet" href="cloud-sync.css">
   <link rel="stylesheet" href="mobile.css">
   <link rel="stylesheet" href="ui-polish.css">
+  <link rel="stylesheet" href="theme.css">
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><span class="crown">♛</span><div><strong>RE CARLO V</strong><small>Personal Coach</small></div></div>
+      <div class="brand"><span class="brand-mark"><img src="icons/brand-logo.png" alt=""></span><div><strong>RE CARLO V</strong><small>Personal Coach</small></div></div>
+      <label class="theme-control theme-control-sidebar">ASPETTO
+        <select data-theme-select aria-label="Tema dell’app">
+          <option value="auto">Automatico</option>
+          <option value="dark">Scuro</option>
+          <option value="light">Chiaro</option>
+        </select>
+      </label>
       <nav>
         <button class="nav active" data-view="today" aria-label="Oggi"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"></path></svg></span><span class="nav-label">Oggi</span></button>
         <button class="nav" data-view="goals" aria-label="Obiettivi"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="13" r="8"></circle><circle cx="11" cy="13" r="3"></circle><path d="M13.2 10.8 20 4M16 4h4v4"></path></svg></span><span class="nav-label">Obiettivi</span></button>
@@ -75,7 +85,7 @@
 
       <section class="view" id="goals">
         <div class="section-head goals-head"><div><small>PERIODIZZAZIONE</small><h1>Obiettivi e gare</h1><p class="muted">La gara prioritaria guida la preparazione; quelle concluse restano nello storico.</p></div><button class="primary small" id="add-goal" type="button">+ Nuovo obiettivo</button></div>
-        <article class="goal-empty panel" id="goal-empty" hidden><span class="goal-empty-icon">♛</span><h2>Nessun obiettivo programmato</h2><p class="muted">Aggiungi una gara o un test per collegare countdown, calendario e periodizzazione.</p><button class="primary" id="goal-empty-add" type="button">Aggiungi il primo obiettivo</button></article>
+        <article class="goal-empty panel" id="goal-empty" hidden><span class="goal-empty-icon"><img src="icons/brand-logo.png" alt=""></span><h2>Nessun obiettivo programmato</h2><p class="muted">Aggiungi una gara o un test per collegare countdown, calendario e periodizzazione.</p><button class="primary" id="goal-empty-add" type="button">Aggiungi il primo obiettivo</button></article>
         <div id="goal-content" hidden>
           <article class="goal-hero" id="goal-hero" aria-live="polite">
             <div class="goal-hero-main"><div class="goal-badges"><span id="goal-current-priority">PRIORITÀ A</span><span id="goal-current-type">MARATONA</span></div><h2 id="goal-current-name">—</h2><p id="goal-current-target">—</p><button class="goal-edit-link" id="edit-current-goal" type="button">Modifica obiettivo</button></div>
@@ -170,7 +180,7 @@
         <div class="section-head data-page-head"><div><small>STORICO E PROVENIENZA</small><h1>Dati di allenamento</h1><p class="muted">Importa copie locali dei tuoi dati. Ogni importazione viene controllata prima di modificare lo storico.</p></div><span class="data-local-badge" id="data-location-badge">Solo su questo dispositivo</span></div>
         <article class="panel cloud-sync-panel" id="cloud-sync-panel" aria-live="polite">
           <div class="cloud-sync-copy">
-            <div class="cloud-sync-symbol"><span>♛</span><i id="cloud-sync-dot"></i></div>
+            <div class="cloud-sync-symbol"><span><img src="icons/brand-logo.png" alt=""></span><i id="cloud-sync-dot"></i></div>
             <div><small>MAC + IPHONE</small><h2 id="cloud-sync-title">Sincronizzazione dispositivi</h2><p class="muted" id="cloud-sync-detail">La copia locale resta intatta. Il collegamento cloud verrà attivato soltanto dopo il controllo iniziale.</p><span class="cloud-sync-meta" id="cloud-sync-meta">Non configurato</span></div>
           </div>
           <div class="cloud-sync-actions">
@@ -311,12 +321,20 @@
 
       <section class="view" id="profile">
         <div class="profile-hero panel">
-          <label class="avatar" title="Carica una foto"><input id="photo-input" type="file" accept="image/*"><img id="avatar-image" alt=""><span id="avatar-placeholder">♛</span></label>
+          <label class="avatar" title="Carica una foto"><input id="photo-input" type="file" accept="image/*"><img id="avatar-image" alt=""><span id="avatar-placeholder"><img src="icons/brand-logo.png" alt=""></span></label>
           <div><small><span id="profile-nickname">RE CARLO V</span> · ATLETA IBRIDO</small><h1 id="profile-name">Configura il profilo</h1><p class="muted" id="profile-summary">Dati atleta non ancora inseriti</p><label class="upload" for="photo-input">Carica foto profilo</label></div>
           <div class="profile-actions"><button class="primary small" id="edit-profile">Modifica profilo</button><div class="level"><small>LIVELLO</small><strong id="profile-level">DA CONFIGURARE</strong></div></div>
         </div>
 
         <div class="profile-grid">
+          <article class="panel wide appearance-panel">
+            <div><small>INTERFACCIA</small><h2>Aspetto dell’app</h2><p class="muted">Automatico segue l’impostazione chiara o scura del dispositivo.</p></div>
+            <div class="theme-choice-group" role="group" aria-label="Aspetto dell’app">
+              <button type="button" data-theme-choice="auto" aria-pressed="false"><span class="theme-choice-icon">◐</span><strong>Automatico</strong><small>Sistema</small></button>
+              <button type="button" data-theme-choice="dark" aria-pressed="false"><span class="theme-choice-icon">☾</span><strong>Scuro</strong><small>Performance</small></button>
+              <button type="button" data-theme-choice="light" aria-pressed="false"><span class="theme-choice-icon">☀</span><strong>Chiaro</strong><small>Luminoso</small></button>
+            </div>
+          </article>
           <article class="panel methodology-panel"><div class="methodology-head"><div><h2>Zone cardiache</h2><p class="muted" id="hr-summary">Frequenze cardiache non ancora disponibili.</p><div class="hr-source-strip" id="hr-source-strip"></div></div><label>METODO<select id="hr-zone-method" aria-label="Metodo zone cardiache"><option value="hrr">Karvonen · %HRR</option><option value="hrmax">% FC massima</option><option value="average">Media dei 2 metodi</option><option value="custom">Manuale</option></select></label></div><div id="hr-zones" class="zones"></div><p class="methodology-note" id="hr-method-note"></p><button class="ghost" id="save-hr-zones" type="button">Salva metodo e zone</button></article>
           <article class="panel methodology-panel"><div class="methodology-head"><div><h2>Ciclismo indoor</h2><p class="muted">Zone espresse rispetto all’FTP attuale.</p></div><label>SCHEMA<select id="ftp-zone-method" aria-label="Schema zone FTP"><option value="coggan7">Coggan · 7 zone</option><option value="coggan5">Coggan · 5 zone</option></select></label></div><label class="field">FTP attuale <div><input id="ftp" type="number" min="1" max="800" step="1" placeholder="es. 260"><span>watt</span></div></label><div id="ftp-zones" class="zones compact"></div><p class="methodology-note">Gli schemi restano separati: una media tra sistemi con un numero diverso di zone non avrebbe un significato allenante chiaro.</p><button class="ghost" id="save-ftp-settings" type="button">Salva FTP e schema</button></article>
           <article class="panel wide"><div class="panel-head methodology-strength-head"><div><h2>Forza massima stimata</h2><p class="muted" id="strength-method-summary">Stima sui migliori set da 1–10 ripetizioni registrati. Un riferimento manuale ha priorità.</p></div><label>FORMULA e1RM<select id="strength-formula" aria-label="Formula per il massimale stimato"><option value="epley">Epley</option><option value="brzycki">Brzycki</option><option value="lombardi">Lombardi</option><option value="average">Media delle 3</option></select></label></div><div class="strength-max-cards" id="strength-maxes"></div><p class="strength-estimate-note">Per le trazioni il calcolo applica la formula al peso corporeo più la zavorra, ma mostra soltanto la zavorra esterna stimata.</p></article>
