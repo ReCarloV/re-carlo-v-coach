@@ -1,9 +1,10 @@
 (function(root,factory){
   const methodology=typeof module!=='undefined'&&module.exports?require('./coach-methodology-model.js'):root?.rcCoachMethodologyModel;
-  const api=factory(methodology);
+  const programming=typeof module!=='undefined'&&module.exports?require('./event-programming-model.js'):root?.rcEventProgrammingModel;
+  const api=factory(methodology,programming);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcRaceCoachModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(methodology){
+})(typeof globalThis!=='undefined'?globalThis:this,function(methodology,programming){
   'use strict';
 
   const DAY_MS=86400000;
@@ -44,9 +45,9 @@
   function isRun(session){return session?.category==='running';}
   function isLong(session){return isRun(session)&&(session.details?.runType==='Long run'||/\b(long|lungo)\b/i.test(session.title||''));}
   function isQuality(session){if(!isRun(session)||isLong(session)||session.details?.runType==='Race')return false;const text=`${session.details?.runType||''} ${session.title||''}`;return /interval|tempo|threshold|progress|quality|marathon pace|ripetut|soglia/i.test(text)||session.priority==='essential';}
-  function targetMinutes(goal){const text=String(goal?.target||'');const clock=text.match(/(?:^|\D)(\d{1,2})\s*:\s*(\d{2})(?:\D|$)/);if(clock){const major=Number(clock[1]),minor=Number(clock[2]);return major<=12?major*60+minor:Math.round(major+minor/60);}const hours=text.match(/(\d+(?:[.,]\d+)?)\s*h/i);return hours?Math.round(Number(hours[1].replace(',','.'))*60):null;}
-  function targetPace(goal){const distance={marathon:42.195,'half-marathon':21.0975}[goal?.type],minutes=targetMinutes(goal);if(!distance||!minutes)return null;const seconds=Math.round(minutes*60/distance);return{secondsPerKm:seconds,label:`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}/km`};}
-  function phaseFor(goal,today){if(!goal?.date)return null;const days=Math.max(0,daysBetween(today,goal.date)),profile=phaseProfiles[goal.type]||phaseProfiles.generic;const phase=profile.find(item=>days>=item.min)||profile.at(-1);return{...phase,days};}
+  function targetMinutes(goal,distance=null){const text=String(goal?.target||'');const clock=text.match(/(?:^|\D)(\d{1,2})\s*:\s*(\d{2})(?:\s*:\s*(\d{2}))?(?:\D|$)/);if(clock){const major=Number(clock[1]),minor=Number(clock[2]),seconds=Number(clock[3]||0);return distance&&distance<=10&&major>12?major+(minor/60):(major*60)+minor+(seconds/60);}const short=text.match(/(\d{1,2})\s*['′]\s*(\d{1,2})/);if(short)return Number(short[1])+Number(short[2])/60;const hours=text.match(/(\d+(?:[.,]\d+)?)\s*h/i);return hours?Number(hours[1].replace(',','.'))*60:null;}
+  function targetPace(goal){const distance=programming?.distanceFor?.(goal)||{marathon:42.195,'half-marathon':21.0975}[goal?.type],minutes=targetMinutes(goal,distance);if(!distance||!minutes)return null;const seconds=Math.round(minutes*60/distance);return{secondsPerKm:seconds,label:`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}/km`,distanceKm:distance};}
+  function phaseFor(goal,today){if(!goal?.date)return null;const reviewed=programming?.phaseFor?.(goal,today);if(reviewed)return reviewed;const days=Math.max(0,daysBetween(today,goal.date)),profile=phaseProfiles[goal.type]||phaseProfiles.generic;const phase=profile.find(item=>days>=item.min)||profile.at(-1);return{...phase,days,pack:{key:'generic',version:null,status:'pending',confidence:'low'}};}
   function range(value,start,end){return value>=start&&value<=end;}
   function dailyTotals(){return new Map();}
   function addDaily(map,date,value){map.set(date,(map.get(date)||0)+value);}
@@ -91,7 +92,7 @@
     return{key,...meta,loadRatio,longRatio};
   }
   function audit(input={}){
-    const today=input.today||iso(new Date()),goal=input.goal||null;if(!goal)return null;const sessions=Array.isArray(input.sessions)?input.sessions:[],windowInput={today,sessions,activities:input.activities},observed=observedRunning(windowInput),windows={acute:observedRunningWindow(windowInput,7),mesocycle:observed,chronic:observedRunningWindow(windowInput,84)},history=historyQuality({today,sessions}),plan=futurePlan({today,goal,sessions}),phase=phaseFor(goal,today),readiness=input.readiness||null,confidence=confidenceFor({observed,history,plan,readiness}),assessment=assessmentFor({observed,history,plan,readiness}),pace=targetPace(goal),focus=[phase.focus];
+    const today=input.today||iso(new Date()),goal=input.goal||null;if(!goal)return null;const sessions=Array.isArray(input.sessions)?input.sessions:[],windowInput={today,sessions,activities:input.activities},observed=observedRunning(windowInput),windows={acute:observedRunningWindow(windowInput,7),mesocycle:observed,chronic:observedRunningWindow(windowInput,84)},history=historyQuality({today,sessions}),plan=futurePlan({today,goal,sessions}),phase=phaseFor(goal,today),readiness=input.readiness||null,confidence=confidenceFor({observed,history,plan,readiness}),assessment=assessmentFor({observed,history,plan,readiness}),pace=targetPace(goal),programmingPack=programming?.packFor?.(goal)||null,focus=[phase.focus];
     if(assessment.loadRatio!==null&&assessment.loadRatio>1.15)focus.push(`Progressione prevista: ${Math.round((assessment.loadRatio-1)*100)}% sopra la media osservata; confermarla con tolleranza reale, non con una percentuale automatica.`);
     if(assessment.longRatio!==null&&assessment.longRatio>1.25)focus.push(`Il lungo massimo programmato supera del ${Math.round((assessment.longRatio-1)*100)}% quello osservato negli ultimi 28 giorni.`);
     if(goal.type==='marathon'&&observed.runs>=3&&observed.runFrequency<2.5)focus.push('Prima del volume specifico va consolidata una frequenza di corsa sostenibile.');
@@ -102,7 +103,8 @@
     reasons.push(history.due?`Registrazioni recenti: ${history.recorded}/${history.due}; aderenza osservabile ${history.adherence===null?'non disponibile':`${Math.round(history.adherence*100)}%`}.`:'Nessuna seduta recente dovuta da valutare.');
     if(readiness?.recovery?.usable)reasons.push(`WHOOP: ${readiness.recovery.label}; viene usato come segnale di recupero e non decide da solo la periodizzazione.`);
     if(plan.continuity<.75)reasons.push(`Il calendario copre ${plan.coveredWeeks}/${plan.remainingWeeks} settimane rimanenti verso la gara.`);
-    const result={today,goal,phase,pace,observed,windows,history,plan,readiness,confidence,assessment,focus:[...new Set(focus)].slice(0,3),reasons};
+    if(programmingPack?.status==='pending')focus.push('Il formato è registrato, ma il pack prescrittivo non è ancora revisionato: il Coach non applica regole specialistiche non verificate.');
+    const result={today,goal,phase,pace,programming:programmingPack,observed,windows,history,plan,readiness,confidence,assessment,focus:[...new Set(focus)].slice(0,3),reasons};
     result.methodology=methodology?.contextForAudit({...result,sessions})||null;return result;
   }
 

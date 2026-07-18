@@ -1,9 +1,10 @@
 (function(root,factory){
   const eventModel=typeof module!=='undefined'&&module.exports?require('./event-demand-model.js'):root?.rcEventDemandModel;
-  const api=factory(eventModel);
+  const programmingModel=typeof module!=='undefined'&&module.exports?require('./event-programming-model.js'):root?.rcEventProgrammingModel;
+  const api=factory(eventModel,programmingModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcGoalsModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(eventModel){
+})(typeof globalThis!=='undefined'?globalThis:this,function(eventModel,programmingModel){
   'use strict';
 
   const DAY_MS=86400000;
@@ -96,7 +97,7 @@
     return{current,upcoming:future.filter(item=>item!==current).sort((a,b)=>a.date.localeCompare(b.date)||sortPlanned(a,b)),awaitingResult:list.filter(item=>item.status==='planned'&&item.date<today).sort((a,b)=>b.date.localeCompare(a.date)),history:list.filter(item=>item.status!=='planned').sort((a,b)=>b.date.localeCompare(a.date)||b.updatedAt.localeCompare(a.updatedAt))};
   }
   function currentPhase(goal,sessions=[],today=localToday()){
-    if(!goal)return null;const relevant=(Array.isArray(sessions)?sessions:[]).filter(item=>item.planImport?.phase&&item.date<=goal.date).sort((a,b)=>a.date.localeCompare(b.date));if(!relevant.length)return null;
+    if(!goal)return null;const relevant=(Array.isArray(sessions)?sessions:[]).filter(item=>item.planImport?.phase&&item.date<=goal.date).sort((a,b)=>a.date.localeCompare(b.date));if(!relevant.length){const coachPhase=programmingModel?.phaseFor?.(goal,today);return coachPhase?{label:coachPhase.label,week:null,weekLabel:`${coachPhase.days} giorni alla gara`,date:today,source:'coach',pack:coachPhase.pack}:null;}
     const next=relevant.find(item=>item.date>=today),selected=next||relevant.at(-1);return{label:selected.planImport.phase,week:selected.planImport.week,weekLabel:selected.planImport.weekLabel,date:selected.date};
   }
   function weeklyProgress(goal,sessions=[],today=localToday()){

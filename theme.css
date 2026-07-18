@@ -469,6 +469,20 @@ html[data-theme="light"] .programming-status.active{border-color:#91c9b5;color:#
 html[data-theme="light"] .programming-status.contextual{border-color:#d6b779;color:#805813}
 html[data-theme="light"] .goal-event-official{border-color:#cbd9e6}
 html[data-theme="light"] .goal-event-stations i{background:#dfeefd;color:#245f99}
+html[data-theme="light"] .goal-programming-pack{border-color:#9bcbbd;border-left-color:#2f9e7f;background:linear-gradient(145deg,#edf9f5,#f7fbfd)}
+html[data-theme="light"] .goal-programming-pack.contextual{border-color:#d7bc83;border-left-color:#c88c25;background:linear-gradient(145deg,#fff8e9,#f7fbfd)}
+html[data-theme="light"] .goal-programming-pack.pending{border-color:#d6a2ac;border-left-color:#c65c6e}
+html[data-theme="light"] .goal-programming-head small{color:#337b69}
+html[data-theme="light"] .goal-programming-head p,html[data-theme="light"] .goal-programming-sessions span,html[data-theme="light"] .goal-programming-overlay span,html[data-theme="light"] .goal-programming-details-body ul,html[data-theme="light"] .goal-programming-details-body p,html[data-theme="light"] .goal-programming-guardrail{color:#5d756f}
+html[data-theme="light"] .programming-pack-status{border-color:#8dc8b5;color:#176e54}
+html[data-theme="light"] .programming-pack-status.contextual{border-color:#d7b878;color:#805713}
+html[data-theme="light"] .programming-pack-status.pending{border-color:#d5a0aa;color:#9e3c4e}
+html[data-theme="light"] .goal-programming-overlay{border-color:#d9bd82;background:#fff6e5}
+html[data-theme="light"] .goal-programming-overlay small{color:#8a621a}
+html[data-theme="light"] .goal-programming-sessions article{border-color:#c4d8d2;background:#fff}
+html[data-theme="light"] .goal-programming-sessions small{color:#337b69}
+html[data-theme="light"] .goal-programming-details{border-color:#c4d8d2}
+html[data-theme="light"] .goal-programming-details summary,html[data-theme="light"] .goal-programming-details-body a{color:#247d68}
 
 html[data-theme="light"] .body-silhouette{color:#afbdca}
 html[data-theme="light"] .methodology-head>label,html[data-theme="light"] .methodology-strength-head>label{color:#5e7289}

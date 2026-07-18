@@ -1,13 +1,14 @@
 (function(root,factory){
   const raceCoach=typeof module!=='undefined'&&module.exports?require('./race-coach-model.js'):root?.rcRaceCoachModel;
   const methodology=typeof module!=='undefined'&&module.exports?require('./coach-methodology-model.js'):root?.rcCoachMethodologyModel;
-  const api=factory(raceCoach,methodology);
+  const programming=typeof module!=='undefined'&&module.exports?require('./event-programming-model.js'):root?.rcEventProgrammingModel;
+  const api=factory(raceCoach,methodology,programming);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcPhaseConstraintsModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(raceCoach,methodology){
+})(typeof globalThis!=='undefined'?globalThis:this,function(raceCoach,methodology,programming){
   'use strict';
 
-  const VERSION='1.1.0';
+  const VERSION='2.0.0';
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const guard=(key,label,state,detail,tone='neutral')=>({key,label,state,detail,tone});
 
@@ -33,8 +34,13 @@
     base:marathon.base,build:marathon.build,'specific-build':marathon['specific-build'],specific:marathon.specific,peak:marathon.peak,taper:marathon.taper,'race-week':marathon['race-week']
   };
 
-  function profileFor(goalType,phaseKey){const group=goalType==='marathon'?marathon:goalType==='hyrox'?hyrox:generic;return group[phaseKey]||group.build||generic.build;}
-  function prioritiesFor(goalType,phaseKey){
+  function profileFor(goalOrType,phaseKey){
+    const reviewed=typeof goalOrType==='object'?programming?.constraintFor?.(goalOrType,phaseKey):null;if(reviewed)return reviewed;
+    const goalType=typeof goalOrType==='string'?goalOrType:goalOrType?.type,group=goalType==='marathon'?marathon:goalType==='hyrox'?hyrox:generic;return group[phaseKey]||group.build||generic.build;
+  }
+  function prioritiesFor(goalOrType,phaseKey){
+    const reviewed=typeof goalOrType==='object'?programming?.constraintFor?.(goalOrType,phaseKey):null;if(reviewed?.priorities)return clone(reviewed.priorities);
+    const goalType=typeof goalOrType==='string'?goalOrType:goalOrType?.type;
     if(goalType==='hyrox')return{race:130,hyrox:110,metcon:100,quality:90,'strength-lower':82,'strength-upper':78,easy:72,long:65,cycling:35,recovery:10,other:30};
     const specific=['specific','peak','taper','race-week'].includes(phaseKey);return{race:130,long:110,quality:100,easy:80,'strength-upper':specific?65:70,'strength-lower':specific?58:68,hyrox:specific?25:48,metcon:specific?20:42,cycling:35,recovery:10,other:30};
   }
@@ -50,9 +56,17 @@
   }
   function forWeek(input={}){
     const goal=input.goal||null,weekStart=input.weekStart||input.today;if(!goal?.date||!weekStart||!raceCoach?.phaseFor)return null;
-    const phase=raceCoach.phaseFor(goal,weekStart);if(!phase)return null;const profile=profileFor(goal.type,phase.key),limits=clone(profile.limits);
-    limits.aerobicProgressionCap=['peak','taper','race-week'].includes(phase.key)?1:1.05;
-    return{version:VERSION,standard:methodology?{version:methodology.VERSION,label:methodology.LABEL}:null,goal:{id:goal.id||null,name:goal.name||'Obiettivo',type:goal.type||'other',priority:goal.priority||null,date:goal.date,target:goal.target||''},targetPace:raceCoach.targetPace?.(goal)||null,weekStart,phase,summary:profile.summary,limits,generated:clone(profile.generated),guards:clone(profile.guards),priorities:prioritiesFor(goal.type,phase.key),confidence:goal.type==='hyrox'?'contextual':'supported'};
+    const phase=raceCoach.phaseFor(goal,weekStart);if(!phase)return null;const profile=profileFor(goal,phase.key),limits=clone(profile.limits);
+    if(limits.aerobicProgressionCap===undefined)limits.aerobicProgressionCap=['peak','taper','race-week'].includes(phase.key)?1:1.05;
+    const pack=programming?.packFor?.(goal)||null;
+    return{
+      version:VERSION,standard:methodology?{version:methodology.VERSION,label:methodology.LABEL}:null,
+      goal:{id:goal.id||null,name:goal.name||'Obiettivo',type:goal.type||'other',variant:goal.variant||null,priority:goal.priority||null,date:goal.date,target:goal.target||''},
+      targetPace:raceCoach.targetPace?.(goal)||null,weekStart,phase,summary:profile.summary,limits,
+      generated:clone(profile.generated),guards:clone(profile.guards),priorities:prioritiesFor(goal,phase.key),
+      confidence:profile.pack?.confidence||pack?.confidence||(goal.type==='hyrox'?'contextual':'supported'),
+      programming:pack?{version:pack.version,key:pack.key,label:pack.label,status:pack.status,evidenceVersion:pack.evidenceVersion,overlay:clone(pack.overlay||null)}:null
+    };
   }
   function constrainAnalysis(analysis,context){
     const next=clone(analysis||{level:'steady',confidence:'low',settings:{},reasons:[]});next.settings=next.settings||{};next.reasons=Array.isArray(next.reasons)?next.reasons:[];next.phaseDecisionChanges=[];if(!context)return next;
@@ -75,6 +89,10 @@
     if((counts.quality||0)>Number(limits.maxQuality||1))warnings.push(`${context.phase.label}: risultano ${counts.quality} stimoli running di qualità; il limite operativo è ${limits.maxQuality}. Il Coach li segnala ma non riscrive il piano senza conferma.`);
     const hybrid=(counts.hyrox||0)+(counts.metcon||0);if(hybrid&&limits.hyroxMode==='off')warnings.push(`${context.phase.label}: HYROX/Metcon non è compatibile con il vincolo di freschezza della settimana; la prescrizione resta visibile per una decisione esplicita.`);
     if(hybrid&&['technical','primer'].includes(limits.hyroxMode)){const hard=active.filter(item=>['hyrox','metcon'].includes(item.category)&&(Number(item.details?.hyroxRpe||item.details?.metconRpe||0)>=7||item.priority==='essential')).length;if(hard)warnings.push(`${context.phase.label}: ${hard} sedut${hard===1?'a HYROX/Metcon sembra':'e HYROX/Metcon sembrano'} più costosa del richiamo tecnico previsto.`);}
+    if(context.programming?.overlay?.mode==='relay'){
+      const fullSimulations=active.filter(item=>['hyrox','metcon'].includes(item.category)&&/simulazione completa|full simulation|8\s*[x×]\s*1/i.test(`${item.title||''} ${item.notes||''} ${item.details?.hyroxFormat||''}`)).length;
+      if(fullSimulations)warnings.push(`${context.phase.label}: il pack Relay prepara le frazioni assegnate e i cambi; ${fullSimulations} simulazion${fullSimulations===1?'e completa non viene':'i complete non vengono'} trattata come volume individuale obbligatorio.`);
+    }
     return{counts,warnings};
   }
 

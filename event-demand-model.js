@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
 
-  const VERSION='2.0.0';
+  const VERSION='2.1.0';
   const dimensions=[
     {key:'aerobic',label:'Resistenza aerobica'},
     {key:'threshold',label:'Soglia / ritmo sostenuto'},
@@ -105,28 +105,28 @@
 
   const runningVariants=[
     {
-      key:'road-5k',family:'running',label:'5 km su strada',confidence:'supported',programmingStatus:'demand-reviewed',
+      key:'road-5k',family:'running',label:'5 km su strada',confidence:'supported',programmingStatus:'active',
       distanceKm:5,sessionDurationMin:25,duration:{classKey:'short',label:'Durata breve ad alta intensità aerobica'},
       demands:{aerobic:4,threshold:5,strength:1,power:4,strengthEndurance:2,skill:3,impact:4,transitions:0,terrain:1,pacing:4,fueling:1},
       keyRoles:['Corsa facile','VO₂ / ritmo 5 km','Soglia','Economia e velocità'],
       formatSummary:'5,000 km continui; il profilo del percorso resta specifico dell’evento.'
     },
     {
-      key:'road-10k',family:'running',label:'10 km su strada',confidence:'supported',programmingStatus:'demand-reviewed',
+      key:'road-10k',family:'running',label:'10 km su strada',confidence:'supported',programmingStatus:'active',
       distanceKm:10,sessionDurationMin:45,duration:{classKey:'medium',label:'Durata media ad alta intensità aerobica'},
       demands:{aerobic:5,threshold:5,strength:1,power:3,strengthEndurance:2,skill:3,impact:4,transitions:0,terrain:1,pacing:5,fueling:1},
       keyRoles:['Corsa facile','Soglia','Ritmo 10 km','Economia e velocità'],
       formatSummary:'10,000 km continui; il profilo del percorso resta specifico dell’evento.'
     },
     {
-      key:'road-half',family:'running',label:'Mezza maratona',confidence:'supported',programmingStatus:'demand-reviewed',
+      key:'road-half',family:'running',label:'Mezza maratona',confidence:'supported',programmingStatus:'active',
       distanceKm:21.0975,sessionDurationMin:110,duration:{classKey:'medium-long',label:'Durata medio-lunga continua'},
       demands:{aerobic:5,threshold:4,strength:1,power:1,strengthEndurance:2,skill:2,impact:4,transitions:0,terrain:2,pacing:5,fueling:3},
       keyRoles:['Corsa facile','Lungo','Soglia / ritmo mezza','Pacing e fueling'],
       formatSummary:'21,0975 km continui.'
     },
     {
-      key:'road-30k',family:'running',label:'30 km su strada',confidence:'supported',programmingStatus:'demand-reviewed',
+      key:'road-30k',family:'running',label:'30 km su strada',confidence:'supported',programmingStatus:'active',
       distanceKm:30,sessionDurationMin:165,duration:{classKey:'long',label:'Durata lunga e continua'},
       demands:{aerobic:5,threshold:3,strength:2,power:1,strengthEndurance:2,skill:2,impact:5,transitions:0,terrain:2,pacing:5,fueling:5},
       keyRoles:['Corsa facile','Lungo','Ritmo maratona','Pacing e fueling'],
