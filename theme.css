@@ -170,7 +170,23 @@ html[data-theme="light"] :where(
 ){color:#64778f}
 
 html[data-theme="light"] .goal-coach-audit{border-color:#b9cce1;background:linear-gradient(145deg,#fff,#f3f8fd)}
-html[data-theme="light"] .goal-coach-methodology{background:#f4f8fc}
+html[data-theme="light"] .goal-coach-methodology{border-color:#c7d7e6;background:#f4f8fc}
+html[data-theme="light"] .goal-coach-confidence{border-color:#b9cadb;background:#f0f5fa;color:#4e657d}
+html[data-theme="light"] .goal-coach-confidence.good,html[data-theme="light"] .method-confidence.high{border-color:#91cbb7;background:#e8f7f1;color:#176e54}
+html[data-theme="light"] .goal-coach-confidence.warn,html[data-theme="light"] .method-confidence.low{border-color:#ddc38b;background:#fff6df;color:#855d16}
+html[data-theme="light"] .goal-coach-confidence.danger{border-color:#dda7b1;background:#fff0f3;color:#a23c50}
+html[data-theme="light"] .goal-coach-details,html[data-theme="light"] .goal-coach-method-details{border-color:#d2dde8}
+html[data-theme="light"] .goal-coach-method-head small,html[data-theme="light"] .goal-coach-evidence-legend,html[data-theme="light"] .goal-coach-window-note,html[data-theme="light"] .goal-coach-safety{color:#60758d}
+html[data-theme="light"] .method-confidence{border-color:#bfd0e0;background:#edf3f9;color:#4f687f}
+html[data-theme="light"] .goal-coach-domain-chips span{border-color:#bfd0e1;background:#edf3f9;color:#476078}
+html[data-theme="light"] .goal-coach-domain-chips .evidence-A{border-color:#91cbb7;background:#e6f6ef;color:#176e54}
+html[data-theme="light"] .goal-coach-domain-chips .evidence-B{border-color:#9dbfe3;background:#eaf3fd;color:#245f99}
+html[data-theme="light"] .goal-coach-domain-chips .evidence-C{border-color:#dec48b;background:#fff6df;color:#845d17}
+html[data-theme="light"] .goal-coach-window{border-color:#cbd8e5;background:#fff;color:var(--text)}
+html[data-theme="light"] .goal-coach-window.used{border-color:#75a3d1;background:#edf5fd}
+html[data-theme="light"] .goal-coach-window.sparse{background:#f8fafc}
+html[data-theme="light"] .goal-coach-window small,html[data-theme="light"] .goal-coach-window span{color:#60758d}
+html[data-theme="light"] .goal-coach-method-details summary,html[data-theme="light"] .goal-coach-method-body a{color:#2465a7}
 html[data-theme="light"] .today-adaptive-panel{background:linear-gradient(145deg,#fff,#f4f8fd)}
 html[data-theme="light"] .today-adaptive-panel.applied{border-color:#8fcab6;background:linear-gradient(145deg,#f7fffb,#edf9f5)}
 html[data-theme="light"] .today-adaptive-status,html[data-theme="light"] .today-adaptive-signal{border-color:#d1deeb;background:#f5f8fc;color:#344a62}
@@ -191,19 +207,46 @@ html[data-theme="light"] .sidebar-goal strong{color:#4e3814}
 html[data-theme="light"] .sidebar-goal span{color:#7c6845}
 html[data-theme="light"] .sidebar-goal:hover{background:radial-gradient(circle at 92% 8%,rgba(224,170,74,.28),transparent 44%),linear-gradient(145deg,#fff6df,#f2e3c8 78%)}
 
-html[data-theme="light"] .goal-hero{box-shadow:0 14px 35px rgba(101,72,24,.14)}
-html[data-theme="light"] .goal-hero h2{color:#fff3d7}
-html[data-theme="light"] .goal-hero-main>p{color:#d8c8aa}
-html[data-theme="light"] .goal-countdown strong{color:#fff}
+html[data-theme="light"] .goal-hero{
+  border-color:#cfa655;
+  background:radial-gradient(circle at 85% 20%,rgba(224,170,74,.27),transparent 38%),linear-gradient(145deg,#fff8e8,#f2e2c2 76%);
+  color:#4a3514;
+  box-shadow:0 14px 35px rgba(101,72,24,.14);
+}
+html[data-theme="light"] .goal-hero h2{color:#3f2d11}
+html[data-theme="light"] .goal-hero-main>p{color:#725b31}
+html[data-theme="light"] .goal-edit-link{color:#875c12}
+html[data-theme="light"] .goal-badges span{border-color:#c89b4b;background:#fff1ce;color:#76500f}
+html[data-theme="light"] .goal-badges span+span{border-color:#9eb9d7;background:#eaf2fb;color:#315f8f}
+html[data-theme="light"] .goal-countdown{border-color:#cda655;background:rgba(255,255,255,.64);box-shadow:0 9px 25px rgba(109,78,25,.1)}
+html[data-theme="light"] .goal-countdown strong{color:#463214}
+html[data-theme="light"] .goal-countdown span{color:#875c12}
+html[data-theme="light"] .goal-countdown small{color:#6f5b37}
 html[data-theme="light"] .calendar-day{border-color:#d5e0ec;background:#fff}
-html[data-theme="light"] .calendar-day.outside{background:#f2f5f8}
+html[data-theme="light"] .calendar-day.outside,html[data-theme="light"] .calendar-day.other-month{background:#f4f7fa}
 html[data-theme="light"] .calendar-day.today{background:#edf5ff}
 html[data-theme="light"] .calendar-event{border-color:#bdcddd;background:#edf3f9;color:#243951}
 html[data-theme="light"] .calendar-event.priority-essential{background:#fff1f3}
 html[data-theme="light"] .calendar-event.priority-important{background:#fff7e8}
 html[data-theme="light"] .calendar-event.priority-optional{background:#f2f5f8}
+html[data-theme="light"] .calendar-event.outcome-completed{background:linear-gradient(90deg,#e5f6ef,#edf3f9 58%)}
+html[data-theme="light"] .calendar-event.outcome-partial{background:linear-gradient(90deg,#fff2d3,#edf3f9 58%)}
+html[data-theme="light"] .calendar-event.outcome-observed{background:linear-gradient(90deg,#e4f0fd,#edf3f9 58%)}
 html[data-theme="light"] .calendar-race-marker{background:linear-gradient(135deg,#fff2d4,#f4dfb6);color:#5c4218}
-html[data-theme="light"] .calendar-weekdays{color:#5e7188}
+html[data-theme="light"] .plan-calendar{border-color:#cbd8e5;background:#fff}
+html[data-theme="light"] .calendar-weekdays{border-color:#cbd8e5;background:#eaf1f8;color:#5e7188}
+html[data-theme="light"] .calendar-weekdays span{color:#526981}
+html[data-theme="light"] .calendar-day-number{color:#314861}
+html[data-theme="light"] .other-month .calendar-day-number{color:#9aaabe}
+html[data-theme="light"] .calendar-status-legend{color:#5f7288}
+html[data-theme="light"] .calendar-status-legend .calendar-drag-help{color:#2f6fae}
+html[data-theme="light"] .calendar-status-legend .planned{border-color:#8da1b8;background:#f5f7fa;color:#52677e}
+html[data-theme="light"] .calendar-status-legend .observed,html[data-theme="light"] .calendar-event.outcome-observed::after{border-color:#78a7d7;background:#e5f1fd;color:#245f99}
+html[data-theme="light"] .calendar-status-legend .completed,html[data-theme="light"] .calendar-event.outcome-completed::after{border-color:#78b59f;background:#e4f5ee;color:#176e54}
+html[data-theme="light"] .calendar-status-legend .partial,html[data-theme="light"] .calendar-event.outcome-partial::after{border-color:#d2ac62;background:#fff1cf;color:#805713}
+html[data-theme="light"] .calendar-status-legend .skipped,html[data-theme="light"] .calendar-event.outcome-skipped::after{border-color:#d59ba6;background:#ffe8ec;color:#9e3b4d}
+html[data-theme="light"] .calendar-event.outcome-planned::after{border-color:#8da1b8;background:#f5f7fa;color:#52677e}
+html[data-theme="light"] .calendar-event-linked{color:#2469aa}
 html[data-theme="light"] .week-bars{border-color:#cfdbe8}
 html[data-theme="light"] .week-bars i{background:#b7c9dd}
 
@@ -233,6 +276,16 @@ html[data-theme="light"] .today-whoop-dial:before{border-color:#d4e0eb;backgroun
 html[data-theme="light"] .today-whoop-refresh{border-color:#b3c9df;background:#edf5fc;color:#245f96}
 html[data-theme="light"] .today-whoop-freshness{border-color:#b7cce0;color:#356b9d}
 html[data-theme="light"] .today-empty-state,html[data-theme="light"] .today-secondary-row,html[data-theme="light"] .pre-session-context{border-color:#cfdeeb;background:#f5f8fc}
+html[data-theme="light"] .tag{border:1px solid transparent}
+html[data-theme="light"] .tag.run{border-color:#a6c5e7;background:#e7f1fd;color:#245f99}
+html[data-theme="light"] .tag.strength{border-color:#c9b4df;background:#f2eafb;color:#754e9d}
+html[data-theme="light"] .tag.bike{border-color:#98d1c5;background:#e7f7f3;color:#176f61}
+html[data-theme="light"] .tag.rest{border-color:#c5d0dc;background:#edf2f6;color:#52667d}
+html[data-theme="light"] .tag.hyrox{border-color:#dfbd82;background:#fff3df;color:#885b12}
+html[data-theme="light"] .tag.metcon{border-color:#dcaccb;background:#fcebf6;color:#984074}
+html[data-theme="light"] .tag.test{border-color:#d8c56f;background:#fff8d9;color:#796516}
+html[data-theme="light"] .tag.adjustment{border-color:#d6b66d;background:#fff3d8;color:#825a13}
+html[data-theme="light"] .tag.adjustment.replace{border-color:#dba2ad;background:#ffebef;color:#9d3d50}
 
 html[data-theme="light"] .data-local-badge{border-color:#9dbce0;background:#e9f3ff;color:#1e5f9f}
 html[data-theme="light"] .source-status.waiting{background:#e8edf3;color:#55677d}
@@ -289,6 +342,22 @@ html[data-theme="light"] .plan-month-summary .bonus strong{color:#506781}
 html[data-theme="light"] .plan-view-button.active{background:#dfeeff;color:#174f92;box-shadow:inset 0 0 0 1px #7ea9d8}
 html[data-theme="light"] .edit-session{background:#e9f0f7;color:#40566f}
 html[data-theme="light"] .edit-session:hover{background:#dfeaf5;color:#174f92}
+html[data-theme="light"] .priority.essential{border-color:#dda7b0;background:#fff0f3;color:#a43d50}
+html[data-theme="light"] .priority.important{border-color:#dfc08a;background:#fff5e2;color:#895b12}
+html[data-theme="light"] .priority.optional{border-color:#c2d0df;background:#eef3f8;color:#50677f}
+html[data-theme="light"] .outcome-status.planned{border-color:#b9c9da;background:#eef3f8;color:#50657b}
+html[data-theme="light"] .outcome-status.observed{border-color:#8eb5de;background:#e7f2fd;color:#245f99}
+html[data-theme="light"] .outcome-status.completed{border-color:#8cc5b0;background:#e7f6f0;color:#176e54}
+html[data-theme="light"] .outcome-status.partial{border-color:#d8b873;background:#fff3d7;color:#805813}
+html[data-theme="light"] .outcome-status.skipped{border-color:#d7a0aa;background:#ffecef;color:#9e3c4e}
+html[data-theme="light"] .outcome-status.paused{border-color:#c5d0dc;background:#eef2f6;color:#5d6d7e}
+html[data-theme="light"] .record-outcome{border-color:#9dbbdd;background:#e9f3fd;color:#245f99}
+html[data-theme="light"] .record-outcome:hover{border-color:#77a3d1;background:#dfeefd;color:#174f92}
+html[data-theme="light"] .record-outcome:disabled,html[data-theme="light"] .record-outcome:disabled:hover{border-color:#d0d9e3;background:#f1f4f7;color:#8695a6}
+html[data-theme="light"] .demo-badge{border-color:#9abce0;background:#e8f3fe;color:#245f99!important}
+html[data-theme="light"] .adaptive-badge{border-color:#8eb6df;background:#e5f1fd;color:#245f99}
+html[data-theme="light"] .adaptive-badge.paused{border-color:#c2ceda;background:#eef2f6;color:#5c6e80}
+html[data-theme="light"] .adaptive-session-note{border-color:#77a6d5;background:#edf5fd;color:#42698f!important}
 html[data-theme="light"] .goal-priority.B{border-color:#b48a42;color:#80591a}
 html[data-theme="light"] .goal-priority.C{border-color:#9daebe;color:#52667e}
 
