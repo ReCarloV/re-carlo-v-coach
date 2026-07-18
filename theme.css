@@ -205,6 +205,21 @@ html[data-theme="light"] .generator-phase-guards article.warn{border-color:#d8bd
 html[data-theme="light"] .generator-phase-guards article.danger{border-color:#d8a1ab;background:#fff0f3}
 html[data-theme="light"] .generator-phase-guards small,html[data-theme="light"] .generator-phase-guards p{color:#647990}
 html[data-theme="light"] .generator-phase-guards b{color:#263b53}
+html[data-theme="light"] .generator-microcycle{border-color:#91c7ce;background:linear-gradient(115deg,#eaf9f8,#f8fafc 64%)}
+html[data-theme="light"] .generator-microcycle.contextual{border-color:#cfaa62;background:linear-gradient(115deg,#fff7e4,#f8fafc 64%)}
+html[data-theme="light"] .generator-microcycle.pending{border-color:#d0a4ae;background:linear-gradient(115deg,#fff0f3,#f8fafc 64%)}
+html[data-theme="light"] .generator-microcycle-head small{color:#14766f}
+html[data-theme="light"] .generator-microcycle-head p{color:#60758c}
+html[data-theme="light"] .generator-microcycle-head>span{border-color:#8bc7c4;background:#e1f7f5;color:#11665f}
+html[data-theme="light"] .generator-microcycle-roles article{border-color:#c5d6df;background:#fff}
+html[data-theme="light"] .generator-microcycle-roles article.covered{border-color:#91c7b3;background:#eaf8f2}
+html[data-theme="light"] .generator-microcycle-roles small,html[data-theme="light"] .generator-microcycle-roles p{color:#60758c}
+html[data-theme="light"] .generator-microcycle-roles .covered small{color:#176e54}
+html[data-theme="light"] .generator-microcycle-roles b{color:#263b53}
+html[data-theme="light"] .generator-microcycle-event{border-color:#d2b16b;background:#fff6df}
+html[data-theme="light"] .generator-microcycle-event small{color:#835b12}
+html[data-theme="light"] .generator-microcycle-event b{color:#563b0d}
+html[data-theme="light"] .generator-microcycle-event p,html[data-theme="light"] .generator-microcycle-event ul{color:#6f6041}
 html[data-theme="light"] .generator-tolerance{border-color:#a9c8df;background:linear-gradient(115deg,#edf7fd,#f8fafc 64%)}
 html[data-theme="light"] .generator-tolerance-head small{color:#246d9d}
 html[data-theme="light"] .generator-tolerance-head p{color:#60758c}

@@ -52,7 +52,7 @@
   function withInstruction(session,instruction,analysis,input={}){
     if(!instruction)return session;const now=input.now instanceof Date?input.now.toISOString():new Date(input.now||Date.now()).toISOString();const base=sourceSession(session),existing=session.adaptiveAdjustment;return{...session,adaptiveAdjustment:{version:1,status:existing?.status||'active',level:existing?.level||analysis?.level||'steady',confidence:existing?.confidence||analysis?.confidence||'low',preparedAt:existing?.preparedAt||now,instructions:[...(existing?.instructions||[]),instruction],source:existing?.source||snapshotPrescription(base)}};
   }
-  function restoreSession(session){if(!session?.adaptiveAdjustment?.source)return clone(session);const restored={...clone(session),...clone(session.adaptiveAdjustment.source)};delete restored.adaptiveAdjustment;delete restored.coachApplication;restored.updatedAt=new Date().toISOString();return restored;}
+  function restoreSession(session){if(session?.goalSubstitution)return clone(session);if(!session?.adaptiveAdjustment?.source)return clone(session);const restored={...clone(session),...clone(session.adaptiveAdjustment.source)};delete restored.adaptiveAdjustment;delete restored.coachApplication;restored.updatedAt=new Date().toISOString();return restored;}
 
   return{buildAdjustment,withScheduledDate,withInstruction,restoreSession,snapshotPrescription,sourceSession,isRace,isLong,isQuality,isLowerStrength,pauseRank,samePrescription};
 });
