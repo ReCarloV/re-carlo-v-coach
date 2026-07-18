@@ -266,6 +266,27 @@ html[data-theme="light"] .goal-coach-window.used{border-color:#75a3d1;background
 html[data-theme="light"] .goal-coach-window.sparse{background:#f8fafc}
 html[data-theme="light"] .goal-coach-window small,html[data-theme="light"] .goal-coach-window span{color:#60758d}
 html[data-theme="light"] .goal-coach-method-details summary,html[data-theme="light"] .goal-coach-method-body a{color:#2465a7}
+html[data-theme="light"] .goal-event-demands{border-color:#b9cee1;background:linear-gradient(145deg,#f6fbff,#edf5fb)}
+html[data-theme="light"] .goal-event-head small,html[data-theme="light"] .goal-coordination-head small{color:#4f7598}
+html[data-theme="light"] .goal-event-head p,html[data-theme="light"] .goal-coordination-head>span{color:#60758d}
+html[data-theme="light"] .event-confidence{border-color:#a9bfd3;background:#edf4fa;color:#45627e}
+html[data-theme="light"] .event-confidence.supported{border-color:#91cbb7;background:#e7f7f0;color:#176e54}
+html[data-theme="light"] .event-confidence.contextual{border-color:#ddc38b;background:#fff6df;color:#855d16}
+html[data-theme="light"] .event-confidence.generic{border-color:#dda7b1;background:#fff0f3;color:#a23c50}
+html[data-theme="light"] .goal-event-roles span{border-color:#adc9e3;background:#e7f2fd;color:#245f99}
+html[data-theme="light"] .goal-demand-item{border-color:#c8d7e4;background:#fff}
+html[data-theme="light"] .goal-demand-label small{color:#5d7389}
+html[data-theme="light"] .goal-demand-label b{color:#263b52}
+html[data-theme="light"] .goal-demand-track{background:#dbe5ee}
+html[data-theme="light"] .goal-coordination,html[data-theme="light"] .goal-event-details{border-color:#cbd9e5}
+html[data-theme="light"] .goal-coordination-card{border-color:#c7d6e3;background:#fff}
+html[data-theme="light"] .goal-coordination-card-head small,html[data-theme="light"] .goal-coordination-card p,html[data-theme="light"] .goal-coordination-card ul{color:#60758b}
+html[data-theme="light"] .goal-coordination-card-head>span{border-color:#a9c6df;background:#edf5fd;color:#245f99}
+html[data-theme="light"] .goal-coordination-shared small{color:#60758b}
+html[data-theme="light"] .goal-coordination-shared span{border-color:#9fcdbf;background:#ebf8f3;color:#176e54}
+html[data-theme="light"] .goal-coordination-empty{border-color:#b9cadb;background:#f8fafc;color:#60758b}
+html[data-theme="light"] .goal-event-details summary,html[data-theme="light"] .goal-event-details-body a{color:#2465a7}
+html[data-theme="light"] .goal-event-details-body ul,html[data-theme="light"] .goal-event-details-body p,html[data-theme="light"] .goal-event-guardrail{color:#60758b}
 html[data-theme="light"] .today-adaptive-panel{background:linear-gradient(145deg,#fff,#f4f8fd)}
 html[data-theme="light"] .today-adaptive-panel.applied{border-color:#8fcab6;background:linear-gradient(145deg,#f7fffb,#edf9f5)}
 html[data-theme="light"] .today-adaptive-status,html[data-theme="light"] .today-adaptive-signal{border-color:#d1deeb;background:#f5f8fc;color:#344a62}
