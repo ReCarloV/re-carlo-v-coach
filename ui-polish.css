@@ -1,0 +1,183 @@
+.nav{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+.nav-icon{
+  display:grid;
+  place-items:center;
+  width:20px;
+  height:20px;
+  flex:0 0 20px;
+  color:#7890ad;
+}
+.nav-icon svg{
+  width:20px;
+  height:20px;
+  overflow:visible;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.75;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.nav:hover .nav-icon,.nav.active .nav-icon{color:#75adff}
+.nav-label{min-width:0}
+
+.panel-head-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.panel-collapse-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:31px;
+  padding:6px 9px;
+  border:1px solid #345574;
+  border-radius:8px;
+  background:#0a1728;
+  color:#8ea8c5;
+  font:inherit;
+  font-size:9px;
+  font-weight:800;
+  cursor:pointer;
+}
+.panel-collapse-toggle:hover{border-color:#4876a5;color:#d7e9ff}
+.panel-collapse-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.panel-collapse-chevron{
+  display:block;
+  width:7px;
+  height:7px;
+  border:solid currentColor;
+  border-width:0 1.5px 1.5px 0;
+  transform:rotate(45deg) translateY(-1px);
+  transition:transform .2s ease;
+}
+.is-collapsed .panel-collapse-chevron{transform:rotate(-135deg) translate(-1px,-1px)}
+.collapsible-panel-body{
+  display:grid;
+  grid-template-rows:1fr;
+  opacity:1;
+  transition:grid-template-rows .24s ease,opacity .18s ease;
+}
+.collapsible-panel-body-inner{min-height:0;overflow:hidden}
+.is-collapsed .collapsible-panel-body{grid-template-rows:0fr;opacity:0}
+.is-collapsed .panel-head{margin-bottom:0!important}
+.today-adaptive-panel.is-collapsed,.goal-coach-audit.is-collapsed{padding-bottom:16px}
+.today-adaptive-panel .panel-head-actions,.goal-coach-audit .panel-head-actions{align-self:flex-start}
+.today-adaptive-panel.is-collapsed .panel-head-actions,.goal-coach-audit.is-collapsed .panel-head-actions{align-items:center}
+.goal-coach-audit.is-collapsed .goal-coach-phase{margin-bottom:0}
+
+.strength-performance-row{
+  grid-template-columns:minmax(145px,1.15fr) minmax(95px,.72fr) minmax(86px,.58fr) minmax(78px,.55fr) minmax(112px,.75fr);
+}
+.strength-estimate-note{line-height:1.5}
+
+.outcome-record-view[hidden],#outcome-editor-fields[hidden],#outcome-editor-actions[hidden]{display:none}
+.outcome-record-status{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.outcome-record-status>span{font-size:11px}
+.outcome-record-status>small{color:#6e86a3;font-size:9px}
+.outcome-record-metrics{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+.outcome-record-metric{
+  padding:11px 12px;
+  border:1px solid #29425f;
+  border-radius:9px;
+  background:#0a1728;
+}
+.outcome-record-metric small,.outcome-record-metric strong{display:block}
+.outcome-record-metric small{color:#6f87a3;font-size:8px;letter-spacing:.09em}
+.outcome-record-metric strong{margin-top:5px;font-size:14px}
+.outcome-record-strength{margin-top:14px}
+.outcome-record-strength>small{color:#7598c1;font-size:8px;font-weight:850;letter-spacing:.11em}
+.outcome-record-lifts{display:grid;gap:8px;margin-top:9px}
+.outcome-record-lift{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:12px;
+  padding:12px;
+  border:1px solid #31577f;
+  border-radius:10px;
+  background:linear-gradient(145deg,#0e2138,#0a1728);
+}
+.outcome-record-lift strong,.outcome-record-lift span,.outcome-record-lift small{display:block}
+.outcome-record-lift span{margin-top:4px;color:#99b0ca;font-size:11px}
+.outcome-record-lift small{margin-top:4px;color:#617b99;font-size:8px}
+.outcome-record-e1rm{text-align:right}
+.outcome-record-e1rm strong{color:#8fc1ff;font-size:17px}
+.outcome-record-e1rm small{color:#6785a8}
+.outcome-record-notes{
+  margin-top:14px;
+  padding:12px 14px;
+  border-left:3px solid #397bd2;
+  border-radius:0 9px 9px 0;
+  background:#0a192b;
+}
+.outcome-record-notes small,.outcome-record-notes p{display:block}
+.outcome-record-notes small{color:#7191b7;font-size:8px;letter-spacing:.1em}
+.outcome-record-notes p{margin:6px 0 0;color:#afc0d4;font-size:11px;line-height:1.5}
+.outcome-plan-reference{
+  margin-top:14px;
+  border:1px solid #2b405b;
+  border-radius:10px;
+  background:#091522;
+}
+.outcome-plan-reference summary{padding:12px 14px;color:#8eb9ef;font-size:10px;font-weight:800;cursor:pointer}
+.outcome-plan-reference-body{padding:0 14px 14px;color:#8499b2;font-size:10px;line-height:1.5}
+.outcome-plan-reference-body strong{display:block;margin-bottom:5px;color:#d5e2f1;font-size:12px}
+.outcome-plan-reference-body ul{margin:9px 0 0;padding-left:18px}
+.outcome-record-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px}
+
+@media(max-width:900px){
+  .nav{
+    display:grid;
+    justify-items:center;
+    gap:3px;
+    min-width:0;
+    padding:6px 2px 5px;
+    text-align:center;
+    font-size:inherit;
+    border-radius:9px;
+  }
+  .nav:before,.nav:after{content:none}
+  .nav-icon{width:20px;height:20px;color:#7f95b2}
+  .nav-icon svg{width:19px;height:19px;stroke-width:1.8}
+  .nav-label{display:block;color:inherit;font-size:9px;font-weight:750;line-height:1}
+  .nav.active .nav-icon{color:#72aaff}
+}
+@media(max-width:860px){
+  .strength-performance-row{grid-template-columns:1fr 1fr 1fr}
+  .strength-performance-name,.strength-performance-preview{grid-column:1/-1}
+}
+@media(max-width:600px){
+  .outcome-record-metrics{grid-template-columns:1fr 1fr}
+  .outcome-record-lift{grid-template-columns:1fr}
+  .outcome-record-e1rm{text-align:left}
+  .outcome-record-actions>*{flex:1}
+}
+@media(max-width:560px){
+  .today-adaptive-panel .panel-head,.goal-coach-audit .panel-head{gap:10px}
+  .today-adaptive-panel .panel-head-actions,.goal-coach-audit .panel-head-actions{flex-direction:column;align-items:flex-end}
+  .today-adaptive-panel.is-collapsed .panel-head-actions,.goal-coach-audit.is-collapsed .panel-head-actions{flex-direction:row}
+  .panel-collapse-toggle span:first-child{display:none}
+}
+@media(max-width:480px){
+  .strength-performance-row{grid-template-columns:1fr 1fr}
+  .strength-performance-name,.strength-performance-preview{grid-column:1/-1}
+}
+@media(max-width:400px){
+  .outcome-record-metrics{grid-template-columns:1fr}
+  .nav-label{font-size:8px}
+}

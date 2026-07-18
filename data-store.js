@@ -149,7 +149,7 @@
       });
       if(owns(session.outcome,'strengthPerformance')){
         const values=session.outcome.strengthPerformance;
-        if(!Array.isArray(values)||values.length>20||values.some(item=>!isObject(item)||typeof item.exercise!=='string'||!item.exercise.trim()||!isFiniteValue(item.loadKg)||Number(item.loadKg)<=0||Number(item.loadKg)>700||!Number.isInteger(Number(item.reps))||Number(item.reps)<1||Number(item.reps)>10||(owns(item,'bodyweightKg')&&(!isFiniteValue(item.bodyweightKg)||Number(item.bodyweightKg)<20||Number(item.bodyweightKg)>300))))invalid('INVALID_OUTCOME','I set principali registrati per il calcolo e1RM non sono validi.');
+        if(!Array.isArray(values)||values.length>20||values.some(item=>!isObject(item)||typeof item.exercise!=='string'||!item.exercise.trim()||!isFiniteValue(item.loadKg)||Number(item.loadKg)<=0||Number(item.loadKg)>700||!Number.isInteger(Number(item.reps))||Number(item.reps)<1||Number(item.reps)>10||(owns(item,'rpe')&&(!isFiniteValue(item.rpe)||Number(item.rpe)<6||Number(item.rpe)>10||!Number.isInteger(Number(item.rpe)*2)))||(owns(item,'bodyweightKg')&&(!isFiniteValue(item.bodyweightKg)||Number(item.bodyweightKg)<20||Number(item.bodyweightKg)>300))))invalid('INVALID_OUTCOME','I set principali registrati per il calcolo e1RM non sono validi.');
       }
       if(owns(session.outcome,'deviceEvidence')){
         const evidence=session.outcome.deviceEvidence;const allowedFields=new Set(['actualDurationMin','actualDistanceKm']);

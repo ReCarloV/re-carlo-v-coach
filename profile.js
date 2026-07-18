@@ -150,11 +150,11 @@
       const source=document.createElement('em');source.className='strength-source';
       if(!estimate)source.textContent='Registra un set principale';
       else if(estimate.source==='manual')source.textContent='Riferimento manuale';
-      else{const date=new Date(`${estimate.date}T12:00:00`).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});source.textContent=`Da ${key==='pullup'?'+':''}${estimate.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${estimate.reps} · ${date}`;}
-      card.append(name,value,source);if(estimate?.source==='recorded'){const detail=document.createElement('em');detail.className='strength-set';detail.textContent=`${window.rcStrengthPerformanceModel.FORMULAS[formula].label} · ${estimate.exercise}`;card.append(detail);}container.append(card);
+      else{const date=new Date(`${estimate.date}T12:00:00`).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});source.textContent=`Da ${key==='pullup'?'+':''}${estimate.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${estimate.reps}${estimate.rpe!==undefined?` @ RPE ${estimate.rpe.toLocaleString('it-IT')}`:''} · ${date}`;}
+      card.append(name,value,source);if(estimate?.source==='recorded'){const detail=document.createElement('em');detail.className='strength-set';detail.textContent=`${window.rcStrengthPerformanceModel.FORMULAS[formula].label}${estimate.rpe!==undefined?` · RIR ${estimate.rir.toLocaleString('it-IT')} inclusa`:' · RPE non disponibile'} · ${estimate.exercise}`;card.append(detail);}container.append(card);
     });
     document.getElementById('strength-formula').value=formula;
-    document.getElementById('strength-method-summary').textContent=`${window.rcStrengthPerformanceModel.FORMULAS[formula].label} sui migliori set da 1–10 ripetizioni registrati. Un riferimento manuale ha priorità.`;
+    document.getElementById('strength-method-summary').textContent=`${window.rcStrengthPerformanceModel.FORMULAS[formula].label} sui migliori set da 1–10 ripetizioni. Quando presente, l’RPE del set aggiunge la RIR stimata (10 − RPE) prima del calcolo; i dati storici senza RPE restano validi. Un riferimento manuale ha priorità.`;
   }
 
   function renderEquipmentSummary(expanded = false) {

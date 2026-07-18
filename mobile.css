@@ -3,7 +3,7 @@
   body.dialog-open{overflow:hidden}
   .shell{display:block}.sidebar{position:fixed;inset:auto 0 0 0;z-index:60;height:auto;padding:7px 8px calc(7px + env(safe-area-inset-bottom));border:1px solid #1c2f48;border-width:1px 0 0;background:rgba(5,11,21,.96);backdrop-filter:blur(16px)}
   .sidebar .brand,.sidebar-goal{display:none}.sidebar nav{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;margin:0}
-  .nav{min-width:0;padding:6px 2px 5px;text-align:center;font-size:0;border-radius:9px}.nav:before{content:attr(data-mobile-icon);display:block;height:20px;color:#7f95b2;font-size:16px;line-height:20px}.nav:after{content:attr(data-mobile-label);display:block;margin-top:3px;color:inherit;font-size:9px;font-weight:750;line-height:1}.nav.active{box-shadow:none;background:#102544}.nav.active:before{color:#72aaff}
+  .nav{min-width:0;padding:6px 2px 5px;text-align:center;border-radius:9px}.nav.active{box-shadow:none;background:#102544}
   main{padding:18px 14px 48px;max-width:none}main>header{position:relative;top:auto;z-index:1;margin:-18px -14px 18px;padding:calc(12px + env(safe-area-inset-top)) 14px 12px;background:rgba(7,16,31,.96);border-bottom:1px solid rgba(38,55,81,.7)}main>header h1{font-size:21px}main>header .status span{max-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .view>.section-head h1{display:none}.view>.section-head{margin-bottom:18px}.view>.section-head>div>small{display:block;margin-bottom:7px}
   button,.nav,label.file-button{touch-action:manipulation}.modal-actions{padding-bottom:env(safe-area-inset-bottom)}
@@ -20,7 +20,7 @@
   #toast{right:12px;bottom:calc(84px + env(safe-area-inset-bottom));left:12px;text-align:center}
   input,select,textarea{font-size:16px!important}
 }
-@media(max-width:390px){.metrics{grid-template-columns:1fr}.nav:after{font-size:8px}.nav:before{font-size:15px}.cloud-sync-copy{align-items:flex-start}}
+@media(max-width:390px){.metrics{grid-template-columns:1fr}.cloud-sync-copy{align-items:flex-start}}
 
 /* Portrait phone calendar: compact month overview. Landscape keeps full cards and drag/drop. */
 @media(max-width:620px) and (orientation:portrait){

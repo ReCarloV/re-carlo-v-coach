@@ -206,7 +206,7 @@
         const category=document.createElement('span');category.className='calendar-event-category';category.textContent=`${session.demoDataset?'DEMO · ':''}${status.symbol} ${paused?'SOSPESA':meta.label}`;
         const title=document.createElement('span');title.className='calendar-event-title';title.textContent=session.title;
         const duration=document.createElement('span');duration.className='calendar-event-duration';duration.textContent=outcome?.actualDurationMin?`${outcome.actualDurationMin} min reali`:evidence?.prefill.actualDurationMin?`${evidence.prefill.actualDurationMin} min osservati`:`${session.durationMin} min`;
-        button.append(category,title,duration);if(evidence){const linked=document.createElement('span');linked.className='calendar-event-linked';linked.textContent='◆';linked.title=`Dati ${evidenceSourceLabel(evidence)} collegati`;button.append(linked);}button.addEventListener('click',()=>{if(Date.now()<suppressCalendarClickUntil)return;selectionMode?toggleSelection(session.id):open(session);});events.append(button);
+        button.append(category,title,duration);if(evidence){const linked=document.createElement('span');linked.className='calendar-event-linked';linked.textContent='◆';linked.title=`Dati ${evidenceSourceLabel(evidence)} collegati`;button.append(linked);}button.addEventListener('click',()=>{if(Date.now()<suppressCalendarClickUntil)return;selectionMode?toggleSelection(session.id):(session.outcome?openOutcome(session):open(session));});events.append(button);
       });
       cell.append(events);grid.append(cell);
     }
@@ -229,7 +229,7 @@
     ordered.forEach(session => {
       const date = new Date(`${session.date}T12:00:00`); const meta = categoryMeta[session.category];
       const paused=isPaused(session),evidence=!paused?currentEvidenceIndex.get(session.id):null;const selected=selectedIds.has(String(session.id));const article = document.createElement('article'); article.className = `day priority-${session.priority}${session.outcome?` outcome-${session.outcome.status}`:paused?' outcome-paused':''}${evidence?' has-observed-data':''}${session.date===localDate()?' plan-today-session':''}${session.adaptiveAdjustment?' coach-adjusted':''}${selectionMode?' selectable':''}${selected?' selected':''} session-card-action`; article.dataset.sessionId = session.id;article.dataset.sessionDate=session.date;article.tabIndex=0;article.setAttribute('role','button');article.setAttribute('aria-label',`${selectionMode?(selected?'Deseleziona':'Seleziona'):'Apri'} ${session.title}`);
-      const activateCard=()=>selectionMode?toggleSelection(session.id):open(session);article.addEventListener('click',event=>{if(event.target.closest('button,a,input,select,textarea,label'))return;activateCard();});article.addEventListener('keydown',event=>{if(event.target!==article||!['Enter',' '].includes(event.key))return;event.preventDefault();activateCard();});
+      const activateCard=()=>selectionMode?toggleSelection(session.id):(session.outcome?openOutcome(session):open(session));article.addEventListener('click',event=>{if(event.target.closest('button,a,input,select,textarea,label'))return;activateCard();});article.addEventListener('keydown',event=>{if(event.target!==article||!['Enter',' '].includes(event.key))return;event.preventDefault();activateCard();});
       if(selectionMode){const select=document.createElement('button');select.type='button';select.className='session-select-toggle';select.setAttribute('aria-label',`${selected?'Deseleziona':'Seleziona'} ${session.title}`);select.setAttribute('aria-pressed',String(selected));select.textContent='✓';select.addEventListener('click',()=>toggleSelection(session.id));article.append(select);}
       const dateBox = document.createElement('div'); dateBox.className = 'day-date';
       const weekday = document.createElement('small'); weekday.textContent = date.toLocaleDateString('it-IT',{weekday:'short'}).replace('.','').toUpperCase();
@@ -364,7 +364,7 @@
   function athleteStrengthFormula(){try{const value=JSON.parse(localStorage.getItem('rc-athlete-profile-v1')).strengthFormula;return strengthModel.FORMULAS[value]?value:'epley';}catch(_){return 'epley';}}
   function renderStrengthPerformance(session,outcome){
     const section=document.getElementById('strength-performance-fields'),container=document.getElementById('strength-performance-rows');container.replaceChildren();
-    const formula=athleteStrengthFormula();section.querySelector('.strength-performance-heading small').textContent=`${strengthModel.FORMULAS[formula].shortLabel} · 1–10 RIP.`;
+    const formula=athleteStrengthFormula();section.querySelector('.strength-performance-heading small').textContent=`${strengthModel.FORMULAS[formula].shortLabel} · RPE-AWARE`;
     const lifts=session.category==='strength'?strengthModel.editableLifts({...session,outcome}):[];section.dataset.hasRows=String(Boolean(lifts.length));
     const existing=new Map((Array.isArray(outcome?.strengthPerformance)?outcome.strengthPerformance:[]).map(entry=>[strengthModel.liftKey(entry.exercise),entry]));
     lifts.forEach(lift=>{
@@ -372,14 +372,15 @@
       const name=document.createElement('div');name.className='strength-performance-name';const type=document.createElement('small');const plannedLoad=lift.plannedLoadKg!==undefined?`${lift.externalLoad?'+':''}${lift.plannedLoadKg} kg`:null,plannedReps=lift.plannedReps?` × ${lift.plannedReps}`:'';type.textContent=`${lift.externalLoad?`ZAVORRA ESTERNA · BW ${athleteWeightKg()||'—'} KG`:'CARICO TOTALE'}${plannedLoad?` · PREVISTO ${plannedLoad}${plannedReps}`:''}`;const title=document.createElement('strong');title.textContent=lift.label;name.append(type,title);
       const loadLabel=document.createElement('label');loadLabel.textContent=lift.externalLoad?'Zavorra (kg)':'Carico (kg)';const loadInput=document.createElement('input');loadInput.type='number';loadInput.inputMode='decimal';loadInput.min='0.5';loadInput.max=lift.externalLoad?'200':'700';loadInput.step='0.5';loadInput.value=saved.loadKg??'';loadInput.setAttribute('aria-label',`${loadLabel.textContent} ${lift.label}`);loadLabel.append(loadInput);
       const repsLabel=document.createElement('label');repsLabel.textContent='Ripetizioni';const repsInput=document.createElement('input');repsInput.type='number';repsInput.inputMode='numeric';repsInput.min='1';repsInput.max='10';repsInput.step='1';repsInput.value=saved.reps??'';repsInput.setAttribute('aria-label',`Ripetizioni ${lift.label}`);repsLabel.append(repsInput);
+      const rpeLabel=document.createElement('label');rpeLabel.textContent='RPE set';const rpeInput=document.createElement('input');rpeInput.type='number';rpeInput.inputMode='decimal';rpeInput.min='6';rpeInput.max='10';rpeInput.step='0.5';rpeInput.placeholder='Es. 8';rpeInput.value=saved.rpe??'';rpeInput.setAttribute('aria-label',`RPE del set ${lift.label}`);rpeLabel.append(rpeInput);
       if(lift.plannedLoadKg!==undefined)loadInput.placeholder=`Previsto ${lift.externalLoad?'+':''}${lift.plannedLoadKg}`;if(lift.plannedReps)repsInput.placeholder=`Previsto ${lift.plannedReps}`;
       const preview=document.createElement('div');preview.className='strength-performance-preview';const previewLabel=document.createElement('small');previewLabel.textContent=`e1RM · ${strengthModel.FORMULAS[formula].shortLabel}`;const previewValue=document.createElement('strong');preview.append(previewLabel,previewValue);
-      const update=()=>{const hasLoad=loadInput.value!=='',hasReps=repsInput.value!=='';loadInput.required=hasReps;repsInput.required=hasLoad;const value=strengthModel.estimateE1rm(loadInput.value,repsInput.value,{externalLoad:lift.externalLoad,bodyweightKg:athleteWeightKg(),formula});previewValue.textContent=value===null?'—':`${lift.externalLoad?'+':''}${value.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`;};
-      loadInput.addEventListener('input',update);repsInput.addEventListener('input',update);update();row.append(name,loadLabel,repsLabel,preview);container.append(row);
+      const update=()=>{const hasAny=loadInput.value!==''||repsInput.value!==''||rpeInput.value!=='';loadInput.required=hasAny;repsInput.required=hasAny;rpeInput.required=hasAny;const value=strengthModel.estimateE1rm(loadInput.value,repsInput.value,{externalLoad:lift.externalLoad,bodyweightKg:athleteWeightKg(),formula,rpe:rpeInput.value});const rir=strengthModel.rirFromRpe(rpeInput.value);previewLabel.textContent=`e1RM · ${strengthModel.FORMULAS[formula].shortLabel}${rir===null?'':' · RIR '+rir.toLocaleString('it-IT')}`;previewValue.textContent=value===null?'—':`${lift.externalLoad?'+':''}${value.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`;};
+      loadInput.addEventListener('input',update);repsInput.addEventListener('input',update);rpeInput.addEventListener('input',update);update();row.append(name,loadLabel,repsLabel,rpeLabel,preview);container.append(row);
     });
   }
   function strengthPerformanceFromForm(){
-    return [...document.querySelectorAll('#strength-performance-rows .strength-performance-row')].map(row=>{const inputs=row.querySelectorAll('input'),key=row.dataset.liftKey,bodyweightKg=athleteWeightKg();return inputs[0].value&&inputs[1].value?{exercise:row.dataset.exercise,loadKg:Number(inputs[0].value),reps:Number(inputs[1].value),...(key==='pullup'&&bodyweightKg?{bodyweightKg}: {})}:null;}).filter(Boolean);
+    return [...document.querySelectorAll('#strength-performance-rows .strength-performance-row')].map(row=>{const inputs=row.querySelectorAll('input'),key=row.dataset.liftKey,bodyweightKg=athleteWeightKg();return inputs[0].value&&inputs[1].value&&inputs[2].value?{exercise:row.dataset.exercise,loadKg:Number(inputs[0].value),reps:Number(inputs[1].value),rpe:Number(inputs[2].value),...(key==='pullup'&&bodyweightKg?{bodyweightKg}: {})}:null;}).filter(Boolean);
   }
   function toggleOutcomeFields() {
     const status=outcomeForm.elements.status.value,skipped=status==='skipped';
@@ -408,9 +409,50 @@
     add('POTENZA',evidence.observed.averageWatts===null?null:`${Math.round(evidence.observed.averageWatts)} W`,evidence.observed.weightedWatts===null?'media':`ponderata ${Math.round(evidence.observed.weightedWatts)} W`);add('WHOOP STRAIN',evidence.observed.whoopStrain,'osservato');
     const note=document.getElementById('outcome-observed-note');if(evidence.warnings.length){note.className='warning';note.textContent=evidence.warnings.join(' ');}else{note.className='';note.textContent=hasManualOutcome?'La registrazione manuale resta invariata. Questi valori dispositivo vengono affiancati come evidenza osservata.':'Durata e distanza sono precompilate dai dispositivi. RPE, confronto col previsto e dolore richiedono sempre la tua valutazione.';}
   }
+  function outcomeRecordElement(tag,className,text){
+    const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;
+  }
+  function metricValue(value,suffix=''){return value===null||value===undefined||value===''?'—':`${value}${suffix}`;}
+  function renderOutcomeRecord(session){
+    const holder=document.getElementById('outcome-record-view'),outcome=session.outcome;holder.replaceChildren();if(!outcome)return;
+    const statusRow=outcomeRecordElement('div','outcome-record-status'),status=outcomeRecordElement('span',`outcome-status ${outcome.status}`,`${outcomeMeta[outcome.status]?.symbol||'•'} ${outcomeMeta[outcome.status]?.label||'Registrata'}`),recorded=outcomeRecordElement('small','',outcome.updatedAt?`Aggiornata ${new Date(outcome.updatedAt).toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`:'Registrazione salvata');statusRow.append(status,recorded);holder.append(statusRow);
+    const metrics=outcomeRecordElement('div','outcome-record-metrics');const addMetric=(label,value)=>{const item=outcomeRecordElement('div','outcome-record-metric');item.append(outcomeRecordElement('small','',label),outcomeRecordElement('strong','',value));metrics.append(item);};
+    if(outcome.status==='skipped')addMetric('MOTIVO',outcome.skipReason?skipReasonModel.label(outcome.skipReason):'Non specificato');
+    else{
+      addMetric('DURATA REALE',metricValue(outcome.actualDurationMin,' min'));
+      if(session.category==='running')addMetric('DISTANZA REALE',metricValue(outcome.actualDistanceKm,' km'));
+      addMetric('RPE SEDUTA',metricValue(outcome.rpe,' / 10'));
+      addMetric('CARICO INTERNO',metricValue(outcome.sessionLoad,' AU'));
+      addMetric('RISPETTO AL PIANO',({easier:'Più facile','as-planned':'Come previsto',harder:'Più impegnativa'}[outcome.execution]||'—'));
+      addMetric('DOLORE MASSIMO',metricValue(outcome.pain,' / 10'));
+    }
+    const evidenceLabel=evidenceSourceLabel(outcome.deviceEvidence);if(evidenceLabel)addMetric('DATI COLLEGATI',evidenceLabel);holder.append(metrics);
+    if(session.category==='strength'&&outcome.status!=='skipped'){
+      const entries=(Array.isArray(outcome.strengthPerformance)?outcome.strengthPerformance:[]).map(item=>strengthModel.normalizedEntry(item)).filter(Boolean);
+      const section=outcomeRecordElement('section','outcome-record-strength');section.append(outcomeRecordElement('small','','ESERCIZI PRINCIPALI REALMENTE SVOLTI'));
+      const lifts=outcomeRecordElement('div','outcome-record-lifts');
+      if(entries.length)entries.forEach(entry=>{
+        const meta=strengthModel.LIFTS[entry.key],row=outcomeRecordElement('div','outcome-record-lift'),copy=outcomeRecordElement('div'),load=`${meta.externalLoad?'+':''}${entry.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`,setLine=[`${load} × ${entry.reps}`,entry.rpe!==undefined?`RPE ${entry.rpe.toLocaleString('it-IT')}`:null].filter(Boolean).join(' · '),rir=entry.rpe!==undefined?strengthModel.rirFromRpe(entry.rpe):null;
+        copy.append(outcomeRecordElement('strong','',meta.label),outcomeRecordElement('span','',setLine),outcomeRecordElement('small','',rir===null?'RPE del set non registrata nello storico':`RIR stimata ${rir.toLocaleString('it-IT')} · ${entry.reps} ripetizioni svolte + ${rir.toLocaleString('it-IT')} in riserva`));
+        const estimate=strengthModel.estimateE1rm(entry.loadKg,entry.reps,{externalLoad:meta.externalLoad,bodyweightKg:entry.bodyweightKg||athleteWeightKg(),formula:athleteStrengthFormula(),rpe:entry.rpe}),estimateBox=outcomeRecordElement('div','outcome-record-e1rm');estimateBox.append(outcomeRecordElement('small','','e1RM STIMATA'),outcomeRecordElement('strong','',estimate===null?'—':`${meta.externalLoad?'+':''}${estimate.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`));row.append(copy,estimateBox);lifts.append(row);
+      });
+      else lifts.append(outcomeRecordElement('div','outcome-record-lift','Nessun set principale registrato.'));
+      section.append(lifts);holder.append(section);
+    }
+    if(outcome.notes){const notes=outcomeRecordElement('div','outcome-record-notes');notes.append(outcomeRecordElement('small','',session.category==='strength'?'NOTE E COMPLEMENTARI':'NOTE POST-ALLENAMENTO'),outcomeRecordElement('p','',outcome.notes));holder.append(notes);}
+    const reference=outcomeRecordElement('details','outcome-plan-reference'),referenceSummary=outcomeRecordElement('summary','','Vedi programmazione originale'),referenceBody=outcomeRecordElement('div','outcome-plan-reference-body');referenceBody.append(outcomeRecordElement('strong','',session.title),outcomeRecordElement('span','',targetText(session)));
+    if(session.category==='strength'&&Array.isArray(session.details?.strengthBlocks)&&session.details.strengthBlocks.length){const list=outcomeRecordElement('ul');session.details.strengthBlocks.forEach(block=>{const prescription=[block.sets&&block.reps?`${block.sets}×${block.reps}`:block.reps?`${block.reps} rip.`:null,block.loadKg!==''&&block.loadKg!==null&&block.loadKg!==undefined?`@ ${block.loadKg} kg`:null,block.target||null].filter(Boolean).join(' · ');list.append(outcomeRecordElement('li','',`${block.name}${prescription?` — ${prescription}`:''}`));});referenceBody.append(list);}
+    reference.append(referenceSummary,referenceBody);holder.append(reference);
+    const actions=outcomeRecordElement('div','outcome-record-actions'),editPlan=outcomeRecordElement('button','ghost','Modifica programmazione'),editRecord=outcomeRecordElement('button','primary','Modifica registrazione'),closeRecord=outcomeRecordElement('button','ghost','Chiudi');[editPlan,editRecord,closeRecord].forEach(button=>button.type='button');editPlan.addEventListener('click',()=>{closeOutcome();open(session);});editRecord.addEventListener('click',()=>setOutcomeMode(session,true));closeRecord.addEventListener('click',closeOutcome);actions.append(closeRecord,editPlan,editRecord);holder.append(actions);
+  }
+  function setOutcomeMode(session,editMode){
+    const record=document.getElementById('outcome-record-view'),fields=document.getElementById('outcome-editor-fields'),actions=document.getElementById('outcome-editor-actions'),readOnly=Boolean(session.outcome&&!editMode);record.hidden=!readOnly;fields.hidden=readOnly;actions.hidden=readOnly;const title=document.getElementById('outcome-title'),kicker=title.previousElementSibling;
+    if(readOnly){title.textContent=session.outcome.status==='skipped'?'Seduta non svolta':'Allenamento svolto';if(kicker)kicker.textContent='REGISTRAZIONE EFFETTIVA';renderOutcomeRecord(session);}
+    else{title.textContent=session.outcome?'Modifica registrazione':'Check-in post-allenamento';if(kicker)kicker.textContent='CHECK-IN POST-ALLENAMENTO';}
+  }
   function closeOutcome() {activeOutcomeEvidence=null;outcomeModal.classList.remove('open');outcomeModal.setAttribute('aria-hidden','true');}
-  function openOutcome(session) {
-    if(!canRecordOutcome(session)){window.alert(outcomeLockedMessage(session));return;}
+  function openOutcome(session,options={}) {
+    if(!session.outcome&&!canRecordOutcome(session)){window.alert(outcomeLockedMessage(session));return;}
     const outcome=session.outcome||null,evidence=currentEvidenceIndex.get(session.id)||null;outcomeForm.reset();outcomeForm.dataset.category=session.category;
     outcomeForm.elements.sessionId.value=session.id;outcomeForm.elements.status.value=outcome?.status||'completed';
     outcomeForm.elements.actualDurationMin.value=outcome?(outcome.actualDurationMin??''):(evidence?.prefill.actualDurationMin??'');
@@ -419,9 +461,8 @@
     outcomeForm.elements.execution.value=outcome?.execution||'';outcomeForm.elements.pain.value=outcome?.pain??'';
     outcomeForm.elements.skipReason.value=outcome?.skipReason||'time';outcomeForm.elements.outcomeNotes.value=outcome?.notes||'';
     renderStrengthPerformance(session,outcome);
-    document.getElementById('outcome-title').textContent=outcome?'Modifica registrazione':'Check-in post-allenamento';
     const context=document.getElementById('outcome-session-context');const strong=document.createElement('strong');strong.textContent=session.title;const span=document.createElement('span');const date=new Date(`${session.date}T12:00:00`);span.textContent=`${date.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})} · ${categoryMeta[session.category].label} · ${session.durationMin} min previsti`;context.replaceChildren(strong,span);
-    renderObservedEvidence(evidence,Boolean(outcome));document.getElementById('outcome-delete').hidden=!outcome;toggleOutcomeFields();outcomeModal.classList.add('open');outcomeModal.setAttribute('aria-hidden','false');
+    renderObservedEvidence(evidence,Boolean(outcome));document.getElementById('outcome-delete').hidden=!outcome;toggleOutcomeFields();setOutcomeMode(session,Boolean(options.edit));outcomeModal.classList.add('open');outcomeModal.setAttribute('aria-hidden','false');
   }
   function detailsFromForm(data, category) {
     if (category === 'running') return {runType:data.get('runType'),distanceKm:Number(data.get('distanceKm')) || null,runTarget:data.get('runTarget'),hrZone:data.get('hrZone'),paceMin:Number(data.get('paceMin')),paceSec:Number(data.get('paceSec')),runRpe:Number(data.get('runRpe')),runBlocks:JSON.parse(data.get('runBlocks')||'[]')};
