@@ -6,7 +6,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(eventDemand){
   'use strict';
 
-  const VERSION='1.0.0';
+  const VERSION='1.1.0';
   const DAY_MS=86400000;
   const sources={
     distancePractice:{
@@ -48,6 +48,36 @@
       label:'HYROX · rulebook ufficiali correnti',
       url:'https://hyrox.com/rulebook/',
       appliesTo:['hyrox']
+    },
+    spartanFormat:{
+      label:'Spartan · distanze e numero di ostacoli ufficiali',
+      url:'https://www.spartan.com/en/race/spartan-races',
+      appliesTo:['obstacle']
+    },
+    spartanObstacles:{
+      label:'Spartan · famiglie e richieste degli ostacoli',
+      url:'https://www.spartan.com/en/race/spartan-race-obstacles',
+      appliesTo:['obstacle']
+    },
+    ocrPhysiology:{
+      label:'OCR Sprint e Super · risposte fisiologiche, grip e stabilità',
+      url:'https://doi.org/10.3390/app14209604',
+      appliesTo:['obstacle']
+    },
+    ocrDeterminants:{
+      label:'Obstacle course · determinanti fisiologici della prestazione',
+      url:'https://pubmed.ncbi.nlm.nih.gov/10628164/',
+      appliesTo:['obstacle']
+    },
+    ocrExtreme:{
+      label:'OCR estremo · richieste intermittenti in uno studio esplorativo',
+      url:'https://pmc.ncbi.nlm.nih.gov/articles/PMC6720877/',
+      appliesTo:['obstacle']
+    },
+    ocrInjuries:{
+      label:'Obstacle course racing · analisi longitudinale degli infortuni',
+      url:'https://pubmed.ncbi.nlm.nih.gov/29977946/',
+      appliesTo:['obstacle']
     }
   };
 
@@ -269,6 +299,93 @@
     };
   }
 
+  const obstacleDefinitions={
+    'spartan-stadion':{label:'Spartan Stadion',distanceKm:5,obstacles:20,terrain:'stadium',longPriority:54,qualityPriority:108,specificPriority:116},
+    'spartan-sprint':{label:'Spartan Sprint',distanceKm:5,obstacles:20,terrain:'off-road',longPriority:64,qualityPriority:106,specificPriority:116},
+    'spartan-super':{label:'Spartan Super',distanceKm:10,obstacles:25,terrain:'off-road',longPriority:86,qualityPriority:100,specificPriority:116},
+    'spartan-beast':{label:'Spartan Beast',distanceKm:21,obstacles:30,terrain:'off-road',longPriority:108,qualityPriority:94,specificPriority:116},
+    'spartan-ultra':{label:'Spartan Ultra',distanceKm:50,obstacles:60,terrain:'off-road',longPriority:114,qualityPriority:86,specificPriority:112}
+  };
+  function obstaclePhases(definition){
+    const long=definition.distanceKm>=21,ultra=definition.distanceKm>=50,short=definition.distanceKm<=5;
+    return[
+      phase(ultra?120:long?99:short?70:84,'base',`Base ${definition.label}`,'Costruire corsa aerobica, forza relativa, grip e tolleranza al terreno senza circuiti specifici prematuri.'),
+      phase(ultra?84:long?70:short?42:49,'build',`Costruzione ${definition.label}`,'Sviluppare terreno, salite, carry e sospensioni mantenendo qualità tecnica degli ostacoli.'),
+      ...(!short?[phase(ultra?49:long?42:28,'specific-build',`Sviluppo specifico ${definition.label}`,'Integrare corsa su terreno, ostacoli e transizioni con dose progressiva e verificabile.')]:[]),
+      phase(ultra?22:long?22:15,'specific',`Specifico ${definition.label}`,'Rendere stabili ritmo sul terreno, grip, carry e tecnica sotto fatica senza trasformare ogni settimana in gara.'),
+      ...(long?[phase(15,'peak',`Picco specifico ${definition.label}`,'Completare l’ultimo stimolo specifico senza nuovi picchi tardivi di volume o densità.')]:[]),
+      phase(8,'taper',`Taper ${definition.label}`,'Ridurre volume e fatica conservando brevi richiami di terreno, presa e tecnica.'),
+      phase(0,'race-week',`Race week ${definition.label}`,'Proteggere freschezza, mani, avambracci e arti inferiori; nessun lavoro perso viene recuperato.')
+    ];
+  }
+  const obstacleTolerance=[
+    'La corsa su terreno e il volume aerobico progrediscono soltanto dopo due finestre recenti sufficientemente registrate e tollerate.',
+    'Grip, sospensioni e carry crescono separatamente: la riuscita di una componente non autorizza l’aumento automatico delle altre.',
+    'Una seduta specifica più densa richiede tecnica conservata, RPE compatibile, dolore basso e nessun peggioramento netto dell’esecuzione.',
+    'La dose di discese, salite e terreno irregolare dipende dall’esposizione recente e non viene dedotta dalla sola distanza della gara.',
+    'Fase, disponibilità, sintomi e qualità delle mani o della presa possono mantenere la dose anche con recovery del wearable favorevole.'
+  ];
+  const obstacleLimits=[
+    'L’evidenza diretta sull’allenamento OCR è limitata: il pack integra formato ufficiale, studi osservazionali e principi di concurrent/endurance training senza dichiarare una formula universale.',
+    'Le associazioni tra grip, forza relativa e prestazione non dimostrano da sole quale dose di allenamento causi il miglioramento.',
+    'Ordine degli ostacoli, dislivello, fango, meteo e penalità dipendono dall’evento: la scheda gara reale resta una verifica obbligatoria.',
+    'Nessuna simulazione completa viene generata automaticamente; tecnica e densità specifica aumentano soltanto con esiti reali compatibili.',
+    'Per l’Ultra l’estrapolazione è più ampia: pacing, fueling e tolleranza alla durata richiedono storico individuale e confidenza inferiore.'
+  ];
+  function obstacleOverlay(profile){
+    const definition=obstacleDefinitions[profile?.key]||{};
+    return{
+      label:definition.label||profile?.variant?.label||'Obstacle race',
+      detail:`${definition.distanceKm||profile?.distanceKm||'—'} km · ${definition.obstacles||profile?.obstacleCount||'—'} ostacoli · ${definition.terrain==='stadium'?'ambiente stadium':'terreno off-road'}.`,
+      loadDetail:'Il Coach prepara famiglie di richieste e tecnica trasferibile; ostacoli esatti, carichi e penalità vengono verificati sull’evento.'
+    };
+  }
+  function obstacleSessions(definition){
+    const long=definition.distanceKm>=21,short=definition.distanceKm<=5;
+    return[
+      session('easy','Corsa facile su terreno compatibile','easy',['base','build','specific-build','specific','peak','taper','race-week'],'Costruisce frequenza aerobica e controllo del passo senza trasformare ogni uscita in trail intenso.'),
+      session('terrain','Salite, discese e ritmo su terreno','quality',['build','specific-build','specific','peak','taper'],'Un solo stimolo running principale; tecnica e costo eccentrico dipendono dall’esposizione recente.'),
+      ...(!short?[session('long',long?'Lungo trail specifico':'Endurance trail','long',['base','build','specific-build','specific','peak'],'Durata, dislivello e terreno progrediscono separatamente e soltanto dopo tolleranza osservata.')]:[]),
+      session('strength','Forza relativa e riserva di tirata','strength',['base','build','specific-build','specific','peak','taper'],'Tirata, lower body e trunk mantengono qualità; il volume segue il costo di corsa, carry e ostacoli.'),
+      session('grip','Grip, sospensioni e carry','obstacle',['base','build','specific-build','specific','peak','taper'],'Presa, hanging, locomozioni e trasporti con tecnica pulita e progressione separata della densità.'),
+      session('obstacles','Tecnica ostacoli e transizioni','obstacle',['build','specific-build','specific','peak','taper'],'Blocchi frazionati di corsa e ostacoli; nessuna simulazione completa automatica.'),
+      ...(long?[session('fueling','Pacing e fueling sul terreno','fueling',['specific-build','specific','peak'],'Strategia provata nei lunghi adatti e aggiornata per durata, clima e profilo della gara.')]:[])
+    ];
+  }
+  function obstacleConstraint(definition,phaseKey){
+    const late=['specific','peak','taper','race-week'].includes(phaseKey),raceWeek=phaseKey==='race-week',taper=phaseKey==='taper',peak=phaseKey==='peak';
+    const short=definition.distanceKm<=5,long=definition.distanceKm>=21;
+    const minStrengthRir=raceWeek?4:late?3:2,maxActiveSessions=raceWeek?4:(peak||taper)?5:6;
+    const longFactor=raceWeek ? 0.45 : taper ? 0.7 : peak ? 0.9 : 1;
+    const obstacleState=raceWeek?'Solo primer':taper?'Tecnica breve':phaseKey==='specific'?'Priorità specifica':phaseKey==='specific-build'?'Integrazione progressiva':phaseKey==='build'?'Tecnica + densità controllata':'Tecnica di base';
+    return{
+      summary:{
+        base:`La base ${definition.label} coordina corsa, forza relativa e tecnica senza simulazioni premature.`,
+        build:'Terreno, grip, carry e ostacoli progrediscono senza concentrare nello stesso giorno tutte le fonti di fatica.',
+        'specific-build':'Corsa e ostacoli vengono integrati in blocchi frazionati; densità, dislivello e volume restano variabili separate.',
+        specific:'La specificità OCR ha priorità; forza massima e volume aerobico vengono mantenuti con costo compatibile.',
+        peak:'L’ultimo stimolo chiave viene completato senza aggiungere volume o densità tardivi.',
+        taper:'Il volume cala, mentre terreno, presa e tecnica restano riconoscibili in richiami brevi.',
+        'race-week':'Freschezza, integrità di mani e avambracci e Race Day vengono protetti.'
+      }[phaseKey]||`Vincoli specifici per ${definition.label}.`,
+      limits:{
+        longProgressionCap:['peak','taper','race-week'].includes(phaseKey)?1:1.05,
+        aerobicProgressionCap:['peak','taper','race-week'].includes(phaseKey)?1:1.05,
+        maxQuality:1,maxObstacleSpecific:raceWeek||taper?1:2,minStrengthRir,minStrengthSetReduction:late?1:0,maxActiveSessions,
+        hyroxMode:'optional',obstacleMode:raceWeek?'primer':taper?'primer':phaseKey==='specific'?'race-specific':phaseKey==='base'?'foundation':'specific'
+      },
+      generated:{longFactor:short?1:longFactor,qualityStyle:raceWeek||taper?'recall':'hill'},
+      guards:[
+        guard('long',short?'Endurance aerobica':'Lungo trail',short?'Supporto':raceWeek?'Escluso':taper?'Ridotto, non progressivo':peak?'Nessun aumento automatico':'Seduta chiave',short?'La distanza breve non rende il lungo la priorità del microciclo.':'Durata, terreno e dislivello progrediscono solo dopo tolleranza osservata.',late?'warn':'good'),
+        guard('quality','Terreno / salite',raceWeek?'Solo attivazione':'Massimo 1 stimolo','Nessuna seconda qualità running nascosta dentro la seduta specifica.'),
+        guard('easy','Corsa facile',raceWeek?'Breve / shake-out':'Volume sostenibile','Frequenza e controllo del passo restano chiaramente facili.','good'),
+        guard('strength','Forza relativa',late?`Mantenimento · RIR ${minStrengthRir}`:'Sviluppo compatibile','Tirata, lower body e trunk mantengono qualità; accessori cedono prima degli stimoli specifici.'),
+        guard('obstacle','OCR specifico',obstacleState,'Grip, carry, tecnica e transizioni vengono dosati per famiglie; nessuna simulazione completa automatica.',phaseKey==='specific'?'good':late?'warn':'neutral')
+      ],
+      priorities:{race:130,obstacle:definition.specificPriority,metcon:definition.specificPriority,quality:definition.qualityPriority,long:definition.longPriority,'strength-upper':94,'strength-lower':86,easy:78,hyrox:38,cycling:32,recovery:10,other:30}
+    };
+  }
+
   function packFor(goal={}){
     const profile=eventDemand?.profileFor?.(goal);
     if(!profile)return null;
@@ -297,6 +414,18 @@
         definition:null
       };
     }
+    const obstacle=obstacleDefinitions[profile.key];
+    if(obstacle){
+      const overlay=obstacleOverlay(profile);
+      return{
+        version:VERSION,key:profile.key,family:'obstacle',label:`Pack ${obstacle.label}`,status:'contextual',confidence:'contextual',
+        evidenceVersion:`obstacle-${VERSION}`,distanceKm:obstacle.distanceKm,phases:obstaclePhases(obstacle),
+        keySessions:obstacleSessions(obstacle),toleranceChecks:clone(obstacleTolerance),limits:clone(obstacleLimits),
+        sources:sourceList(['spartanFormat','spartanObstacles','ocrPhysiology','ocrDeterminants','ocrExtreme','ocrInjuries','concurrentRunning','enduranceTaper']),
+        overlay,definition:clone(obstacle),
+        guardrail:'Il formato è ufficiale; la prescrizione resta contestuale perché l’evidenza OCR diretta è limitata e terreno, ostacoli e condizioni cambiano tra eventi.'
+      };
+    }
     return{
       version:VERSION,key:profile.key,family:profile.variant?.family||profile.key,label:'Pack da revisionare',status:'pending',confidence:'pending',
       evidenceVersion:null,phases:[],keySessions:[],toleranceChecks:[],limits:['Il formato non possiede ancora un pack prescrittivo revisionato.'],sources:[],
@@ -314,6 +443,7 @@
     const pack=packFor(goal);if(!pack)return null;
     if(pack.family==='running'&&pack.definition)return{...runningConstraint(pack.definition,phaseKey),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence}};
     if(pack.family==='hyrox'&&pack.overlay)return{...hyroxConstraint(phaseKey,pack.overlay),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)}};
+    if(pack.family==='obstacle'&&pack.definition)return{...obstacleConstraint(pack.definition,phaseKey),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)}};
     return null;
   }
   function keySessionsFor(goal,phaseKey){

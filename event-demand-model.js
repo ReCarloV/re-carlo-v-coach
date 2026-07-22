@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
 
-  const VERSION='2.1.0';
+  const VERSION='2.2.0';
   const dimensions=[
     {key:'aerobic',label:'Resistenza aerobica'},
     {key:'threshold',label:'Soglia / ritmo sostenuto'},
@@ -29,6 +29,11 @@
     hyroxRelay:{label:'HYROX · Relay Rulebook 2026/27',url:'https://hyrox.com/wp-content/uploads/2025/07/25_26_HYROX_RulebookRelay_EN.pdf'},
     hyroxAdaptive:{label:'HYROX · Rulebook Adaptive corrente',url:'https://hyrox.com/rulebook/'},
     spartanFormat:{label:'Spartan · formati ufficiali delle gare',url:'https://www.spartan.com/en/race/spartan-races'},
+    spartanObstacles:{label:'Spartan · ostacoli e richieste ufficiali',url:'https://www.spartan.com/en/race/spartan-race-obstacles'},
+    ocrPhysiology:{label:'Obstacle course racing · risposte fisiologiche Sprint e Super',url:'https://doi.org/10.3390/app14209604'},
+    ocrDeterminants:{label:'Obstacle course · determinanti fisiologici della prestazione',url:'https://pubmed.ncbi.nlm.nih.gov/10628164/'},
+    ocrExtreme:{label:'Obstacle course racing estremo · studio fisiologico esplorativo',url:'https://pmc.ncbi.nlm.nih.gov/articles/PMC6720877/'},
+    ocrInjuries:{label:'Obstacle course racing · analisi longitudinale degli infortuni',url:'https://pubmed.ncbi.nlm.nih.gov/29977946/'},
     worldTriathlon:{label:'World Triathlon · Competition Rules 2026',url:'https://triathlon.org/agegroup'},
     ironmanFormat:{label:'IRONMAN · distanze 70.3 e full',url:'https://www.ironman.com/proseries/about-ironman'},
     athxFormat:{label:'ATHX Games · struttura ufficiale',url:'https://athxgames.com/'}
@@ -76,7 +81,7 @@
       ['Corsa off-road','Ostacoli','Terreno variabile'],
       {aerobic:4,threshold:3,strength:4,power:3,strengthEndurance:5,skill:5,impact:5,transitions:4,terrain:5,pacing:3,fueling:3},
       ['Corsa trail','Forza di presa','Carry e ostacoli','Tecnica terreno'],
-      ['spartanFormat','concurrent'],
+      ['spartanFormat','spartanObstacles','ocrPhysiology','ocrDeterminants','ocrExtreme','ocrInjuries','concurrent'],
       'high'
     ),
     triathlon:family(
@@ -222,12 +227,22 @@
       formatDetails:['8 × 1 km','8 stazioni adattive','Standard e classificazione da verificare sul rulebook corrente']
     }
   ];
+  function spartanVariant(key,label,distanceKm,obstacleCount,sessionDurationMin,formatSummary,demands={},terrain='off-road'){
+    return{
+      key,family:'obstacle',label,confidence:'contextual',programmingStatus:'contextual',distanceKm,obstacleCount,sessionDurationMin,terrain,
+      formatSummary,
+      formatDetails:[`${distanceKm} km`,`${obstacleCount} ostacoli`,terrain==='stadium'?'Percorso in ambiente stadium':'Percorso off-road e profilo altimetrico specifico della sede'],
+      keyRoles:['Corsa su terreno specifico','Forza relativa','Grip e sospensioni','Carry','Tecnica ostacoli e transizioni'],
+      sourceKeys:['spartanFormat','spartanObstacles','ocrPhysiology','ocrDeterminants','ocrExtreme','ocrInjuries','concurrent'],
+      demands:{...families.obstacle.demands,...demands}
+    };
+  }
   const spartanVariants=[
-    {key:'spartan-stadion',family:'obstacle',label:'Spartan Stadion',confidence:'format-verified',programmingStatus:'pending',distanceKm:5,sessionDurationMin:60,formatSummary:'5 km e 20 ostacoli in ambiente stadium.',demands:{...families.obstacle.demands,terrain:2,fueling:1}},
-    {key:'spartan-sprint',family:'obstacle',label:'Spartan Sprint',confidence:'format-verified',programmingStatus:'pending',distanceKm:5,sessionDurationMin:75,formatSummary:'5 km e 20 ostacoli.',demands:{...families.obstacle.demands,fueling:2}},
-    {key:'spartan-super',family:'obstacle',label:'Spartan Super',confidence:'format-verified',programmingStatus:'pending',distanceKm:10,sessionDurationMin:120,formatSummary:'10 km e 25 ostacoli.',demands:{...families.obstacle.demands,aerobic:4,fueling:3}},
-    {key:'spartan-beast',family:'obstacle',label:'Spartan Beast',confidence:'format-verified',programmingStatus:'pending',distanceKm:21,sessionDurationMin:240,formatSummary:'21 km e 30 ostacoli.',demands:{...families.obstacle.demands,aerobic:5,fueling:4}},
-    {key:'spartan-ultra',family:'obstacle',label:'Spartan Ultra',confidence:'format-verified',programmingStatus:'pending',distanceKm:50,sessionDurationMin:480,formatSummary:'50 km e 60 ostacoli.',demands:{...families.obstacle.demands,aerobic:5,pacing:5,fueling:5}}
+    spartanVariant('spartan-stadion','Spartan Stadion',5,20,60,'5 km e 20 ostacoli in ambiente stadium.',{terrain:2,fueling:1},'stadium'),
+    spartanVariant('spartan-sprint','Spartan Sprint',5,20,75,'5 km e 20 ostacoli off-road.',{threshold:4,pacing:4,fueling:1}),
+    spartanVariant('spartan-super','Spartan Super',10,25,120,'10 km e 25 ostacoli off-road.',{aerobic:4,threshold:4,pacing:4,fueling:3}),
+    spartanVariant('spartan-beast','Spartan Beast',21,30,240,'21 km e 30 ostacoli off-road.',{aerobic:5,threshold:3,pacing:4,fueling:4}),
+    spartanVariant('spartan-ultra','Spartan Ultra',50,60,480,'50 km e 60 ostacoli off-road.',{aerobic:5,threshold:2,pacing:5,fueling:5})
   ];
   const triathlonVariants=[
     {

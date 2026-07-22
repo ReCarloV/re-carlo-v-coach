@@ -7,7 +7,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(programming,eventDemand){
   'use strict';
 
-  const VERSION='1.0.0';
+  const VERSION='1.1.0';
   const priorityRank={essential:3,important:2,optional:1};
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const sentence=value=>{const text=String(value||'');return text?`${text[0].toUpperCase()}${text.slice(1)}`:text;};
@@ -19,6 +19,7 @@
   const strength=(kind='strength')=>role(kind,kind==='strength-upper'?'Forza upper':kind==='strength-lower'?'Forza lower':'Forza full body','important','Forza di supporto con costo compatibile con gli stimoli specifici.');
   const cycling=()=>role('cycling','Cardio low impact','optional','Volume aerobico opzionale a basso impatto, senza intensità nascosta.');
   const hyrox=(label='HYROX specifico')=>role('hyrox',label,'essential','Unica seduta ibrida chiave coordinata con corsa e forza.');
+  const obstacle=(key='obstacle',label='OCR specifico',priority='essential',reason='Tecnica, grip, carry e transizioni vengono integrati in blocchi frazionati e verificabili.')=>role(key,label,priority,reason,{role:'obstacle'});
 
   function sessionRole(item={}){
     if(item.details?.runType==='Race'||item.goalGenerated)return'race';
@@ -33,6 +34,7 @@
       if(focus==='lower body')return'strength-lower';
       return'strength';
     }
+    if(item.category==='metcon'&&/\b(ocr|spartan|obstacle)\b/i.test(`${item.title||''} ${item.details?.metconType||''}`))return'obstacle';
     if(item.category==='hyrox'||item.category==='metcon')return'hyrox';
     if(item.category==='cycling')return'cycling';
     if(item.category==='recovery')return'recovery';
@@ -102,6 +104,30 @@
     ][count-1]||[];
   }
 
+  function obstacleRoles(pack,count){
+    const definition=pack?.definition||{},short=Number(definition.distanceKm||0)<=5,longFormat=Number(definition.distanceKm||0)>=21;
+    const specific=obstacle('obstacle-technique',`${definition.label||'OCR'} · tecnica, carry e transizioni`);
+    const grip=obstacle('obstacle-grip','Grip, sospensioni e carry','important','Presa e forza resistente progrediscono separatamente, senza cedimento tecnico sistematico.');
+    const terrain=quality('Salite, discese e ritmo su terreno');
+    const endurance=long(longFormat?'Lungo trail specifico':'Endurance trail');
+    if(short)return[
+      [specific],
+      [strength(),specific],
+      [easy(),strength(),specific],
+      [easy(),terrain,strength(),specific],
+      [easy(),terrain,strength(),specific,cycling()],
+      [easy(),terrain,strength('strength-upper'),strength('strength-lower'),specific,cycling()]
+    ][count-1]||[];
+    return[
+      [specific],
+      [endurance,specific],
+      [strength(),endurance,specific],
+      [easy(),strength(),endurance,specific],
+      [easy(),terrain,strength(),endurance,specific],
+      [easy(),terrain,strength(),endurance,grip,specific]
+    ][count-1]||[];
+  }
+
   function genericRoles(count){
     const fallback=[
       [easy()],
@@ -149,7 +175,13 @@
     const goal=input.goal||null,weekStart=input.weekStart||null,count=Math.max(0,Math.min(6,Number(input.sessionCount)||0));
     const weekEnd=weekStart?addDays(weekStart,6):null,pack=programming?.packFor?.(goal)||null,phase=input.phaseConstraints?.phase||programming?.phaseFor?.(goal,weekStart)||null;
     const goals=(Array.isArray(input.goals)?input.goals:[]).filter(Boolean),locked=(Array.isArray(input.lockedSessions)?input.lockedSessions:[]).filter(Boolean);
-    let targetRoles=pack?.family==='running'?runningRoles(pack,count,phase?.key):pack?.family==='hyrox'&&pack.status!=='pending'?hyroxRoles(pack,count):genericRoles(count);
+    let targetRoles=pack?.family==='running'
+      ?runningRoles(pack,count,phase?.key)
+      :pack?.family==='hyrox'&&pack.status!=='pending'
+        ?hyroxRoles(pack,count)
+        :pack?.family==='obstacle'&&pack.status!=='pending'
+          ?obstacleRoles(pack,count)
+          :genericRoles(count);
     const primaryEvent=goal&&weekStart&&eventInWeek(goal,weekStart,weekEnd)?goal:null;
     const secondaryEvents=weekStart?goals.filter(item=>item.id!==goal?.id&&eventInWeek(item,weekStart,weekEnd)).map(item=>({goal:item,relation:eventDemand?.relationFor?.(goal,item,weekStart)||null})):[];
     const preparatory=secondaryEvents.find(item=>item.relation?.role==='preparatory')||null;

@@ -51,6 +51,7 @@
       const text=`${session.details?.runType||''} ${session.title||''}`;return/interval|tempo|threshold|progress|quality|marathon pace|ripetut|soglia|medio/i.test(text)||session.priority==='essential'?'quality':'easy';
     }
     if(session?.category==='strength')return/lower|full/i.test(String(session.details?.strengthFocus||''))?'strength-lower':'strength-upper';
+    if(session?.category==='metcon'&&/\b(ocr|spartan|obstacle)\b/i.test(`${session.title||''} ${session.details?.metconType||''}`))return'obstacle';
     if(['hyrox','metcon','cycling','recovery'].includes(session?.category))return session.category;
     return'other';
   }
@@ -92,6 +93,14 @@
     if(context.programming?.overlay?.mode==='relay'){
       const fullSimulations=active.filter(item=>['hyrox','metcon'].includes(item.category)&&/simulazione completa|full simulation|8\s*[x×]\s*1/i.test(`${item.title||''} ${item.notes||''} ${item.details?.hyroxFormat||''}`)).length;
       if(fullSimulations)warnings.push(`${context.phase.label}: il pack Relay prepara le frazioni assegnate e i cambi; ${fullSimulations} simulazion${fullSimulations===1?'e completa non viene':'i complete non vengono'} trattata come volume individuale obbligatorio.`);
+    }
+    if(context.goal?.type==='obstacle'){
+      const obstacle=counts.obstacle||0,maxSpecific=Number(limits.maxObstacleSpecific||1);
+      if(obstacle>maxSpecific)warnings.push(`${context.phase.label}: risultano ${obstacle} sedute OCR specifiche; il limite operativo è ${maxSpecific}. Grip, carry e tecnica possono essere separati, ma la densità totale non cresce automaticamente.`);
+      if(context.phase.key==='race-week'){
+        const hard=active.filter(item=>roleFor(item)==='obstacle'&&(Number(item.details?.metconRpe||0)>=7||Number(item.durationMin||0)>40)).length;
+        if(hard)warnings.push(`${context.phase.label}: ${hard} sedut${hard===1?'a OCR supera':'e OCR superano'} il primer previsto; mani, avambracci e arti inferiori devono arrivare freschi alla gara.`);
+      }
     }
     return{counts,warnings};
   }

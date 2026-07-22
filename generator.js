@@ -38,10 +38,11 @@
       half:{title:'Blocchi soglia / ritmo mezza',repeats:3,work:10,recovery:3,rpe:7,reason:'Soglia e ritmo mezza vengono sviluppati senza trasformare il lungo in una seconda seduta intensa.'},
       '30k':{title:'Blocchi ritmo 30 km',repeats:3,work:10,recovery:3,rpe:7,reason:'Ritmo sostenibile specifico per la 30 km, separato dal lungo e subordinato alla tolleranza reale.'},
       marathon:{title:'Blocchi ritmo maratona',repeats:3,work:10,recovery:3,rpe:7,reason:'Ritmo maratona controllato: la dose deriva dalla fase e non cresce insieme al lungo nella stessa decisione.'},
+      hill:{title:'Salite e terreno controllato',repeats:6,work:3,recovery:2,rpe:7,targetType:'rpe',reason:'Stimolo specifico per terreno e salite: intensità guidata da RPE e tecnica, non da un passo stradale fittizio.'},
       normal:{title:'Intervalli soglia controllati',repeats:6,work:3,recovery:2,rpe:7,reason:'Stimolo di soglia costruito sui riferimenti attuali e mantenuto come unica qualità running principale.'}
     };
-    const preset=presets[style]||presets.normal,target=phaseConstraints?.targetPace?.label||thresholdPace(),seconds=Number(phaseConstraints?.targetPace?.secondsPerKm)||0,minimum=12+preset.repeats*(preset.work+preset.recovery)+5,duration=Math.min(70,Math.max(roundFive(minutes),Math.ceil(minimum/5)*5)),cooldown=Math.max(5,duration-12-preset.repeats*(preset.work+preset.recovery)),paceTarget=target==='Passo da definire'?'RPE controllato':target;
-    return session('running',preset.title,duration,'essential',{runType:'Intervals',distanceKm:null,runTarget:seconds?'pace':'rpe',hrZone:'Z3',paceMin:seconds?Math.floor(seconds/60):0,paceSec:seconds?seconds%60:0,runRpe:preset.rpe,runBlocks:[{type:'segment',phase:'warmup',unit:'min',amount:12,targetType:'free',target:''},{type:'repeat',repeats:preset.repeats,steps:[{type:'segment',phase:'work',unit:'min',amount:preset.work,targetType:seconds?'pace':'rpe',target:seconds?paceTarget:`${paceTarget} · RPE ${preset.rpe}`},{type:'segment',phase:'recovery',unit:'min',amount:preset.recovery,targetType:'free',target:''}]},{type:'segment',phase:'cooldown',unit:'min',amount:cooldown,targetType:'free',target:''}]},preset.reason);
+    const preset=presets[style]||presets.normal,target=phaseConstraints?.targetPace?.label||thresholdPace(),seconds=Number(phaseConstraints?.targetPace?.secondsPerKm)||0,usePace=preset.targetType!=='rpe'&&seconds>0,minimum=12+preset.repeats*(preset.work+preset.recovery)+5,duration=Math.min(70,Math.max(roundFive(minutes),Math.ceil(minimum/5)*5)),cooldown=Math.max(5,duration-12-preset.repeats*(preset.work+preset.recovery)),paceTarget=target==='Passo da definire'?'RPE controllato':target,workTarget=usePace?paceTarget:preset.targetType==='rpe'?`RPE ${preset.rpe} · tecnica stabile sul terreno`:`${paceTarget} · RPE ${preset.rpe}`;
+    return session('running',preset.title,duration,'essential',{runType:'Intervals',distanceKm:null,runTarget:usePace?'pace':'rpe',hrZone:'Z3',paceMin:usePace?Math.floor(seconds/60):0,paceSec:usePace?seconds%60:0,runRpe:preset.rpe,runBlocks:[{type:'segment',phase:'warmup',unit:'min',amount:12,targetType:'free',target:''},{type:'repeat',repeats:preset.repeats,steps:[{type:'segment',phase:'work',unit:'min',amount:preset.work,targetType:usePace?'pace':'rpe',target:workTarget},{type:'segment',phase:'recovery',unit:'min',amount:preset.recovery,targetType:'free',target:''}]},{type:'segment',phase:'cooldown',unit:'min',amount:cooldown,targetType:'free',target:''}]},preset.reason);
   }
   function qualityRecallRun(minutes,phaseConstraints){const duration=Math.max(30,Math.min(roundFive(minutes*.7),45)),pace=phaseConstraints?.targetPace?.label||'Ritmo gara controllato',seconds=Number(phaseConstraints?.targetPace?.secondsPerKm)||0;return session('running','Richiamo ritmo gara',duration,'essential',{runType:'Intervals',distanceKm:null,runTarget:seconds?'pace':'rpe',hrZone:'Z3',paceMin:seconds?Math.floor(seconds/60):0,paceSec:seconds?seconds%60:0,runRpe:6,runBlocks:[{type:'segment',phase:'warmup',unit:'min',amount:10,targetType:'free',target:''},{type:'repeat',repeats:4,steps:[{type:'segment',phase:'work',unit:'min',amount:2,targetType:seconds?'pace':'rpe',target:seconds?pace:'RPE 6 · ritmo gara controllato'},{type:'segment',phase:'recovery',unit:'min',amount:2,targetType:'free',target:''}]},{type:'segment',phase:'cooldown',unit:'min',amount:Math.max(5,duration-26),targetType:'free',target:''}]},'Richiamo breve di intensità: mantiene gesto e ritmo senza ricreare il volume di una seduta piena.');}
   function longRun(minutes,level){const duration=Math.max(45,roundFive(minutes));const reasons={protect:'Lungo mantenuto in forma ridotta per proteggere il recupero.',reduce:'Lungo ridotto senza eliminare lo stimolo aerobico chiave.',steady:'Seduta chiave per costruire la resistenza specifica verso l’obiettivo principale.',progress:'Piccola progressione del lungo, limitata al tempo massimo dichiarato.'};return session('running','Lungo aerobico',duration,'essential',{runType:'Long run',distanceKm:null,runTarget:'hr',hrZone:'Z2',paceMin:5,paceSec:0,runRpe:5,runBlocks:[{type:'segment',phase:'warmup',unit:'min',amount:10,targetType:'free',target:''},{type:'segment',phase:'work',unit:'min',amount:Math.max(25,duration-20),targetType:'hr',target:hrTarget('Z2')},{type:'segment',phase:'cooldown',unit:'min',amount:10,targetType:'free',target:''}]},reasons[level]||reasons.steady);}
@@ -62,6 +63,19 @@
     const rationale=`${base.rationale} ${overlay.detail||''}${loads}`.trim();
     return{...base,title:overlay.mode==='doubles'?'HYROX Doubles · YGIG e transizioni':overlay.mode==='relay'?'HYROX Relay · frazioni e cambi':base.title,details:{...base.details,hyroxStructuredBlocks:[...(base.details?.hyroxStructuredBlocks||[]),...extra],hyroxVariantMode:overlay.mode,hyroxPro:Boolean(overlay.pro),hyroxStationLoads:overlay.stationLoads||[]},rationale,notes:rationale};
   }
+  function obstacleSpecificForContract(minutes,phaseConstraints,contract,descriptor){
+    const mode=phaseConstraints?.limits?.obstacleMode||'foundation';
+    const presets={
+      foundation:{title:'OCR tecnica + grip',rpe:6,cap:55,blocks:[{name:'Grip e sospensioni tecniche',volume:'4 × 20–30 s',target:'Presa solida · stop prima del cedimento',rest:'60–90 s'},{name:'Carry e locomozioni',volume:'4 × 40–60 m',target:'Postura e appoggi',rest:'90 s'}],reason:'Tecnica di base, presa e trasporti a costo controllato; nessuna simulazione prematura.'},
+      specific:{title:'OCR corsa + ostacoli',rpe:7,cap:65,blocks:[{name:'Corsa su terreno + ostacolo',volume:'4 × (5 min + 1 skill)',target:'RPE 7 · tecnica stabile',rest:'2 min'},{name:'Grip / carry sotto controllo',volume:'4 blocchi',target:'Nessun cedimento tecnico',rest:'90 s'}],reason:'Corsa, ostacoli e transizioni vengono integrati in blocchi frazionati e verificabili.'},
+      'race-specific':{title:'OCR specifico frazionato',rpe:8,cap:70,blocks:[{name:'Corsa + obstacle cluster',volume:'3 × 10 min',target:'RPE 7–8 · transizioni fluide',rest:'3 min'},{name:'Carry + hanging',volume:'3 blocchi',target:'Qualità sotto fatica controllata',rest:'2 min'}],reason:'Specificità OCR ad alta qualità senza trasformare la seduta in una simulazione completa.'},
+      primer:{title:'OCR primer tecnico',rpe:5,cap:40,blocks:[{name:'Grip e obstacle skill',volume:'3 × 3 min',target:'Rapido e pulito',rest:'2 min'},{name:'Carry breve',volume:'3 × 30 m',target:'RPE 5',rest:'Completo'}],reason:'Richiamo breve di presa e tecnica senza fatica residua prima della gara.'}
+    };
+    const preset=presets[mode]||presets.foundation,duration=Math.max(30,Math.min(roundFive(minutes),preset.cap)),overlay=contract?.pack?.overlay||{},gripOnly=/grip|sospension/i.test(descriptor?.label||'');
+    const blocks=gripOnly?[{name:'Grip e sospensioni',volume:'5 × 20–40 s',target:'Tecnica stabile · 2–3 RIR di presa',rest:'60–120 s'},{name:'Carry',volume:'5 × 40–80 m',target:'Postura e passo controllati',rest:'90 s'}]:preset.blocks;
+    const title=gripOnly?'OCR grip, sospensioni e carry':preset.title,rationale=`${preset.reason} ${overlay.detail||''} Gli ostacoli reali e le condizioni della sede restano da verificare.`.trim();
+    return session('metcon',title,duration,descriptor?.priority||'essential',{metconType:'Intervals conditioning',metconRpe:preset.rpe,metconStructuredBlocks:blocks,ocrVariant:contract?.pack?.key||null,ocrMode:mode},rationale);
+  }
   function lowImpactReplacement(minutes){return recoveryRide(minutes,'La qualità running viene sostituita da lavoro aerobico facile e a basso impatto; interrompi se il fastidio aumenta.','essential');}
   function recoverySession(minutes){return session('recovery','Recupero e rivalutazione',Math.max(20,Math.min(roundFive(minutes),40)),'essential',{recoveryType:'Cardio rigenerante'},'Dolore elevato: nessuna progressione running automatica. Recupero, mobilità o cardio tollerato e nuova valutazione prima di correre.');}
   function isRace(item){return item?.details?.runType==='Race'||Boolean(item?.goalGenerated);}
@@ -74,6 +88,7 @@
     if(item.category==='running'){const type=String(item.details?.runType||'').toLowerCase();return /(interval|tempo|threshold|progress|race)/.test(type)?'quality':'easy';}
     if(item.category==='strength')return `strength-${String(item.details?.strengthFocus||'').toLowerCase().replaceAll(' ','-')}`;
     if(item.category==='cycling')return item.priority==='essential'?'quality-low-impact':'cycling';
+    if(item.category==='metcon'&&/\b(ocr|spartan|obstacle)\b/i.test(`${item.title||''} ${item.details?.metconType||''}`))return'obstacle';
     return item.category;
   }
 
@@ -94,6 +109,7 @@
     else if(descriptor.role==='strength-lower')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il lavoro lower lascia spazio a recupero low impact.'):settings.lowerBodyCaution?fullStrength(adaptedMinutes):lowerStrength(adaptedMinutes);
     else if(descriptor.role==='strength')item=settings.lowerBodyProtection?upperStrength(adaptedMinutes):fullStrength(adaptedMinutes);
     else if(descriptor.role==='hyrox')item=hyroxSpecificForContract(adaptedMinutes,phaseConstraints,microcycle);
+    else if(descriptor.role==='obstacle')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il lavoro OCR lascia spazio a cardio low impact finché il segnale lower body non viene rivalutato.','essential'):obstacleSpecificForContract(adaptedMinutes,phaseConstraints,microcycle,descriptor);
     else if(descriptor.role==='cycling')item=recoveryRide(adaptedMinutes);
     else if(descriptor.role==='recovery')item=recoverySession(adaptedMinutes);
     if(!item)return null;
@@ -155,8 +171,10 @@
         if(tooClose)warnings.push('Qualità low impact e lungo sono ravvicinati: mantieni il lavoro facile e rivaluta il recupero.');
       }
     }
+    const specificSlots=[];let specific=remainingTemplates.find(item=>['hyrox','metcon'].includes(item.category));
+    while(specific&&remainingSlots.length){const anchors=[longSlot,qualitySlot,...specificSlots].filter(Boolean);const slot=[...remainingSlots].sort((a,b)=>{const score=item=>anchors.length?Math.min(...anchors.map(anchor=>gapDays(item.date,anchor.date))):0;return score(b)-score(a)||a.date.localeCompare(b.date);})[0];use(specific,slot);specificSlots.push(slot);specific=remainingTemplates.find(item=>['hyrox','metcon'].includes(item.category));}
     const lower=remainingTemplates.find(isLowerStrength);
-    if(lower&&remainingSlots.length){const anchors=[longSlot,qualitySlot].filter(Boolean);const slot=[...remainingSlots].sort((a,b)=>{const score=item=>anchors.length?Math.min(...anchors.map(anchor=>gapDays(item.date,anchor.date))):0;return score(b)-score(a)||a.date.localeCompare(b.date);})[0];use(lower,slot);}
+    if(lower&&remainingSlots.length){const anchors=[longSlot,qualitySlot,...specificSlots].filter(Boolean);const slot=[...remainingSlots].sort((a,b)=>{const score=item=>anchors.length?Math.min(...anchors.map(anchor=>gapDays(item.date,anchor.date))):0;return score(b)-score(a)||a.date.localeCompare(b.date);})[0];use(lower,slot);}
     remainingSlots.sort((a,b)=>a.date.localeCompare(b.date));remainingTemplates.forEach((template,index)=>{if(remainingSlots[index])assigned.push({...template,date:remainingSlots[index].date});});
     return {sessions:assigned.sort((a,b)=>a.date.localeCompare(b.date)),warnings};
   }
