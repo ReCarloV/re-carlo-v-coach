@@ -285,7 +285,7 @@
     const suggestion = suggestedTitle();
     titleInput.placeholder = `Es. ${suggestion}`;
     if (force || titleMode === 'auto' || !titleInput.value.trim()) { titleInput.value = suggestion; titleMode = 'auto'; }
-    document.getElementById('title-hint').textContent = titleMode === 'auto' ? 'Titolo collegato al tipo di seduta; puoi personalizzarlo.' : 'Titolo personalizzato: non verrà sovrascritto.';
+    document.getElementById('title-hint').textContent = titleMode === 'auto' ? 'AUTO' : 'PERSONALIZZATO';
   }
   function close() { modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
   function legacyRows(text, type) {

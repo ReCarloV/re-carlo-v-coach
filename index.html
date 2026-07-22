@@ -77,7 +77,7 @@
       </section>
 
       <section class="view" id="goals">
-        <div class="section-head goals-head"><div><small>PERIODIZZAZIONE</small><h1>Obiettivi e gare</h1><p class="muted">La gara prioritaria guida la preparazione; quelle concluse restano nello storico.</p></div><button class="primary small" id="add-goal" type="button">+ Nuovo obiettivo</button></div>
+        <div class="section-head goals-head"><div><small>PERIODIZZAZIONE</small><h1>Obiettivi e gare</h1></div><button class="primary small" id="add-goal" type="button">+ Nuovo obiettivo</button></div>
         <article class="goal-empty panel" id="goal-empty" hidden><span class="goal-empty-icon"><img src="icons/brand-logo.png" alt=""></span><h2>Nessun obiettivo programmato</h2><p class="muted">Aggiungi una gara o un test per collegare countdown, calendario e periodizzazione.</p><button class="primary" id="goal-empty-add" type="button">Aggiungi il primo obiettivo</button></article>
         <div id="goal-content" hidden>
           <article class="goal-hero" id="goal-hero" aria-live="polite">
@@ -97,7 +97,7 @@
           </div>
         </div>
         <article class="panel goal-attention-panel" id="goal-attention-panel" hidden><div class="panel-head"><div><small>RISULTATO DA REGISTRARE</small><h2>Chiudi le gare concluse</h2></div></div><div class="goal-attention-list" id="goal-attention-list"></div></article>
-        <article class="panel goal-history-panel"><div class="panel-head"><div><small>MEMORIA DEL COACH</small><h2>Storico obiettivi</h2><p class="muted">Risultati e note restano disponibili per le preparazioni future.</p></div></div><div class="goal-history-list" id="goal-history-list"></div></article>
+        <article class="panel goal-history-panel"><div class="panel-head"><div><small>MEMORIA DEL COACH</small><h2>Storico obiettivi</h2></div></div><div class="goal-history-list" id="goal-history-list"></div></article>
       </section>
 
       <section class="view" id="recap">
@@ -109,7 +109,6 @@
             <button class="ghost small" id="recap-next" type="button" aria-label="Settimana successiva">›</button>
           </div>
         </div>
-        <p class="muted recap-intro">Il riepilogo usa soltanto sedute, esiti e check-in realmente registrati. La proposta successiva indica sempre cosa cambierebbe e con quale affidabilità.</p>
         <div class="metrics recap-metrics">
           <article><span>ADERENZA CHIAVE</span><strong id="recap-adherence">—</strong><small id="recap-adherence-note">In attesa di dati</small></article>
           <article><span>CARICO REGISTRATO</span><strong id="recap-load">—</strong><small id="recap-load-note">In attesa di esiti</small></article>
@@ -123,12 +122,12 @@
           <article class="panel recap-recovery" id="recap-recovery" aria-live="polite"></article>
           <article class="panel recap-next-plan" id="recap-next-plan" aria-live="polite"></article>
         </div>
-        <article class="panel recap-history-panel"><div class="panel-head"><div><h2>Storico settimane</h2><p class="muted">Seleziona una settimana per rileggere dati e decisioni.</p></div></div><div class="recap-history" id="recap-history"></div></article>
+        <article class="panel recap-history-panel"><div class="panel-head"><div><h2>Storico settimane</h2></div></div><div class="recap-history" id="recap-history"></div></article>
       </section>
 
       <section class="view" id="plan">
         <div class="section-head"><div><small>PROGRAMMAZIONE</small><h1>Piano adattivo</h1></div><div class="plan-actions"><button class="primary small" id="generate-week">Genera settimana</button><button class="ghost small" id="open-weekly-checkin">Check-in settimana</button><button class="ghost small" id="add-session">+ Seduta manuale</button><button class="ghost small" id="select-sessions" type="button">Seleziona</button></div></div>
-        <p class="muted intro" id="plan-intro">Cinque sedute previste. Se la disponibilità scende, il sistema protegge lungo, qualità e forza essenziale.</p>
+        <p class="muted intro plan-availability-line" id="plan-intro">Disponibilità non impostata</p>
         <div id="weekly-checkin-summary" class="weekly-checkin-summary" hidden></div>
         <div class="plan-view-toolbar">
           <div class="plan-view-switch" role="group" aria-label="Modalità di visualizzazione del piano">
@@ -170,21 +169,21 @@
       </section>
 
       <section class="view" id="data">
-        <div class="section-head data-page-head settings-page-head"><div><small>PREFERENZE E ARCHIVIO</small><h1>Impostazioni</h1><p class="muted">Personalizza l’interfaccia e gestisci le copie dei tuoi dati senza modificare il profilo atleta.</p></div><span class="data-local-badge" id="data-location-badge">Solo su questo dispositivo</span></div>
+        <div class="section-head data-page-head settings-page-head"><div><small>PREFERENZE E ARCHIVIO</small><h1>Impostazioni</h1></div><span class="data-local-badge" id="data-location-badge">Solo su questo dispositivo</span></div>
         <div class="settings-grid">
           <article class="panel appearance-panel">
-            <div><small>INTERFACCIA</small><h2>Aspetto dell’app</h2><p class="muted">Automatico segue l’impostazione chiara o scura del dispositivo.</p></div>
+            <div><small>INTERFACCIA</small><h2>Aspetto dell’app</h2></div>
             <div class="theme-choice-group" role="group" aria-label="Aspetto dell’app">
               <button type="button" data-theme-choice="auto" aria-pressed="false"><span class="theme-choice-icon">◐</span><strong>Automatico</strong><small>Sistema</small></button>
               <button type="button" data-theme-choice="dark" aria-pressed="false"><span class="theme-choice-icon">☾</span><strong>Scuro</strong><small>Performance</small></button>
               <button type="button" data-theme-choice="light" aria-pressed="false"><span class="theme-choice-icon">☀</span><strong>Chiaro</strong><small>Luminoso</small></button>
             </div>
           </article>
-          <article class="panel data-panel"><div><small>PROTEZIONE DATI</small><h2>Backup completo</h2><p class="muted">Salva profilo, foto, piano, risultati, check-in, fastidi, Strava, WHOOP e preferenze in un unico file.</p><small id="backup-status">I dati restano sul tuo dispositivo.</small></div><div class="data-actions"><button class="ghost" id="export-profile">Esporta backup</button><label class="ghost file-button" for="import-profile">Ripristina backup</label><input id="import-profile" type="file" accept="application/json"></div></article>
-          <article class="panel data-panel demo-panel"><div><small>AMBIENTE DI PROVA</small><h2>Mese dimostrativo</h2><p class="muted">Aggiunge giugno 2026 con 20 sedute, risultati e check-in realistici ma chiaramente marcati come demo.</p><small id="demo-data-status">Nessun dato dimostrativo caricato.</small></div><div class="data-actions"><button class="primary" id="load-demo-data" type="button">Carica giugno demo</button><button class="ghost" id="remove-demo-data" type="button" disabled>Rimuovi demo</button></div></article>
+          <article class="panel data-panel"><div><small>PROTEZIONE DATI</small><h2>Backup completo</h2><p class="muted">Tutti i dati dell’app in un unico file.</p><small id="backup-status">Resta sul tuo dispositivo.</small></div><div class="data-actions"><button class="ghost" id="export-profile">Esporta backup</button><label class="ghost file-button" for="import-profile">Ripristina backup</label><input id="import-profile" type="file" accept="application/json"></div></article>
+          <article class="panel data-panel demo-panel"><div><small>AMBIENTE DI PROVA</small><h2>Mese dimostrativo</h2><p class="muted">20 sedute di giugno 2026, marcate DEMO.</p><small id="demo-data-status">Nessun dato dimostrativo caricato.</small></div><div class="data-actions"><button class="primary" id="load-demo-data" type="button">Carica giugno demo</button><button class="ghost" id="remove-demo-data" type="button" disabled>Rimuovi demo</button></div></article>
         </div>
         <div class="settings-section-head">
-          <div><small>STORICO E PROVENIENZA</small><h2>Dati e connessioni</h2><p class="muted">Sincronizza i dispositivi e importa fonti esterne. Ogni operazione viene controllata prima di modificare lo storico.</p></div>
+          <div><small>STORICO E PROVENIENZA</small><h2>Dati e connessioni</h2></div>
         </div>
         <article class="panel cloud-sync-panel" id="cloud-sync-panel" aria-live="polite">
           <div class="cloud-sync-copy">
@@ -208,13 +207,12 @@
         <div class="data-import-grid">
           <article class="panel import-source-card strava-source">
             <div class="import-source-head"><div class="source-logo">S</div><div><small>FONTE ATTIVITÀ</small><h2>Strava</h2></div><span class="source-status waiting" id="strava-source-status">Non collegato</span></div>
-            <p class="muted">Carica l’archivio ZIP completo oppure il solo <code>activities.csv</code>. L’app legge il riepilogo, verifica i file originali e non conserva contatti, media o messaggi.</p>
+            <p class="muted">Archivio ZIP oppure <code>activities.csv</code>.</p>
             <div class="import-safety"><span>✓ Anteprima obbligatoria</span><span>✓ Duplicati esclusi</span><span>✓ Importazione annullabile</span></div>
             <div class="import-source-actions"><label class="primary file-button" for="strava-import-input">Importa Strava</label><input id="strava-import-input" type="file" accept=".zip,.csv,application/zip,text/csv"><small id="strava-import-status" role="status" aria-live="polite">Nessun file selezionato.</small></div>
           </article>
           <article class="panel import-source-card whoop-source">
             <div class="import-source-head"><div class="source-logo whoop">W</div><div><small>RECUPERO E SONNO</small><h2>WHOOP</h2></div><span class="source-status waiting" id="whoop-source-status">Non collegato</span></div>
-            <p class="muted">Collega l’account per aggiornare automaticamente recupero, sonno e allenamenti quando apri l’app dal Mac. Lo ZIP resta disponibile come alternativa manuale.</p>
             <div class="whoop-live-panel" id="whoop-live-panel">
               <div class="whoop-live-state"><i id="whoop-live-dot"></i><div><strong id="whoop-live-title">Controllo del servizio Mac…</strong><small id="whoop-live-detail">La prima configurazione richiede circa due minuti.</small></div></div>
               <div class="whoop-live-actions"><button class="primary whoop-button" id="whoop-live-primary" type="button">Configura collegamento</button><button class="ghost" id="whoop-live-permissions" type="button" hidden>Autorizza FC max</button><button class="ghost" id="whoop-live-settings" type="button" hidden>Impostazioni</button><button class="ghost danger-text" id="whoop-live-disconnect" type="button" hidden>Scollega</button></div>
@@ -223,7 +221,7 @@
           </article>
           <article class="panel import-source-card plan-source">
             <div class="import-source-head"><div class="source-logo plan">P</div><div><small>IMPORTAZIONE OPZIONALE</small><h2>Programmazione esterna</h2></div><span class="source-status optional">Opzionale</span></div>
-            <p class="muted">Usala soltanto per portare nell’app un piano preparato altrove o uno schema base in formato <code>.xlsx</code>. Il Coach non ne ha bisogno per generare il programma: le sedute importate restano modificabili e adattabili.</p>
+            <p class="muted">Per piani <code>.xlsx</code> preparati altrove.</p>
             <div class="import-safety"><span>✓ Base esterna, non obbligatoria</span><span>✓ Anteprima prima del salvataggio</span><span>✓ Adattabile dal Coach</span></div>
             <div class="import-source-actions"><label class="ghost file-button plan-button" for="plan-import-input">Scegli file Excel</label><input id="plan-import-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><small id="plan-import-status" role="status" aria-live="polite">Nessun file selezionato. Il piano attuale resta invariato fino alla conferma.</small></div>
           </article>
@@ -282,7 +280,7 @@
             </div>
           </article>
           <article class="panel import-history-panel">
-            <div class="panel-head"><div><small>TRACCIABILITÀ</small><h2>Importazioni</h2><p class="muted">Ogni operazione conserva fonte, data e attività aggiunte.</p></div></div>
+            <div class="panel-head"><div><small>TRACCIABILITÀ</small><h2>Importazioni</h2></div></div>
             <div class="import-history" id="import-history"></div>
             <button class="ghost compact-more" id="import-history-more" type="button" hidden>Mostra altro</button>
           </article>
@@ -335,12 +333,12 @@
         </div>
 
         <div class="profile-grid">
-          <article class="panel methodology-panel"><div class="methodology-head"><div><h2>Zone cardiache</h2><p class="muted" id="hr-summary">Frequenze cardiache non ancora disponibili.</p><div class="hr-source-strip" id="hr-source-strip"></div></div><label>METODO<select id="hr-zone-method" aria-label="Metodo zone cardiache"><option value="hrr">Karvonen · %HRR</option><option value="hrmax">% FC massima</option><option value="average">Media dei 2 metodi</option><option value="custom">Manuale</option></select></label></div><div id="hr-zones" class="zones"></div><p class="methodology-note" id="hr-method-note"></p><button class="ghost" id="save-hr-zones" type="button">Salva metodo e zone</button></article>
-          <article class="panel methodology-panel"><div class="methodology-head"><div><h2>Ciclismo indoor</h2><p class="muted">Zone espresse rispetto all’FTP attuale.</p></div><label>SCHEMA<select id="ftp-zone-method" aria-label="Schema zone FTP"><option value="coggan7">Coggan · 7 zone</option><option value="coggan5">Coggan · 5 zone</option></select></label></div><label class="field">FTP attuale <div><input id="ftp" type="number" min="1" max="800" step="1" placeholder="es. 260"><span>watt</span></div></label><div id="ftp-zones" class="zones compact"></div><p class="methodology-note">Gli schemi restano separati: una media tra sistemi con un numero diverso di zone non avrebbe un significato allenante chiaro.</p><button class="ghost" id="save-ftp-settings" type="button">Salva FTP e schema</button></article>
-          <article class="panel wide"><div class="panel-head methodology-strength-head"><div><h2>Forza massima stimata</h2><p class="muted" id="strength-method-summary">Stima sui migliori set da 1–10 ripetizioni registrati. Un riferimento manuale ha priorità.</p></div><label>FORMULA e1RM<select id="strength-formula" aria-label="Formula per il massimale stimato"><option value="epley">Epley</option><option value="brzycki">Brzycki</option><option value="lombardi">Lombardi</option><option value="average">Media delle 3</option></select></label></div><div class="strength-max-cards" id="strength-maxes"></div><p class="strength-estimate-note">Per le trazioni il calcolo applica la formula al peso corporeo più la zavorra, ma mostra soltanto la zavorra esterna stimata.</p></article>
-          <article class="panel wide body-monitor"><div class="panel-head"><div><h2>Mappa fastidi e recupero</h2><p class="muted">Segna soltanto i problemi attuali. Quando passano, archiviali: lo storico resta disponibile.</p></div><span class="body-active-count" id="body-active-count">0 attivi</span></div><div class="body-monitor-layout"><div class="body-maps"><div class="body-map"><small>VISTA ANTERIORE</small><div class="body-figure front" aria-label="Mappa corporea anteriore"><span class="body-silhouette">♙</span><button type="button" class="body-point" data-zone="head" data-label="Testa" style="--x:50%;--y:8%" aria-label="Testa"></button><button type="button" class="body-point" data-zone="shoulder-left" data-label="Spalla sinistra" style="--x:34%;--y:23%" aria-label="Spalla sinistra"></button><button type="button" class="body-point" data-zone="shoulder-right" data-label="Spalla destra" style="--x:66%;--y:23%" aria-label="Spalla destra"></button><button type="button" class="body-point" data-zone="elbow-left" data-label="Gomito sinistro" style="--x:25%;--y:38%" aria-label="Gomito sinistro"></button><button type="button" class="body-point" data-zone="elbow-right" data-label="Gomito destro" style="--x:75%;--y:38%" aria-label="Gomito destro"></button><button type="button" class="body-point" data-zone="wrist-left" data-label="Polso sinistro" style="--x:20%;--y:53%" aria-label="Polso sinistro"></button><button type="button" class="body-point" data-zone="wrist-right" data-label="Polso destro" style="--x:80%;--y:53%" aria-label="Polso destro"></button><button type="button" class="body-point" data-zone="chest" data-label="Petto" style="--x:50%;--y:29%" aria-label="Petto"></button><button type="button" class="body-point" data-zone="hip-left" data-label="Anca sinistra" style="--x:42%;--y:50%" aria-label="Anca sinistra"></button><button type="button" class="body-point" data-zone="hip-right" data-label="Anca destra" style="--x:58%;--y:50%" aria-label="Anca destra"></button><button type="button" class="body-point" data-zone="quad-left" data-label="Quadricipite sinistro" style="--x:42%;--y:64%" aria-label="Quadricipite sinistro"></button><button type="button" class="body-point" data-zone="quad-right" data-label="Quadricipite destro" style="--x:58%;--y:64%" aria-label="Quadricipite destro"></button><button type="button" class="body-point" data-zone="knee-left" data-label="Ginocchio sinistro" style="--x:42%;--y:76%" aria-label="Ginocchio sinistro"></button><button type="button" class="body-point" data-zone="knee-right" data-label="Ginocchio destro" style="--x:58%;--y:76%" aria-label="Ginocchio destro"></button><button type="button" class="body-point" data-zone="ankle-left" data-label="Caviglia sinistra" style="--x:42%;--y:92%" aria-label="Caviglia sinistra"></button><button type="button" class="body-point" data-zone="ankle-right" data-label="Caviglia destra" style="--x:58%;--y:92%" aria-label="Caviglia destra"></button></div></div><div class="body-map"><small>VISTA POSTERIORE</small><div class="body-figure back" aria-label="Mappa corporea posteriore"><span class="body-silhouette">♙</span><button type="button" class="body-point" data-zone="neck" data-label="Collo" style="--x:50%;--y:18%" aria-label="Collo"></button><button type="button" class="body-point" data-zone="upper-back" data-label="Dorso" style="--x:50%;--y:29%" aria-label="Dorso"></button><button type="button" class="body-point" data-zone="lower-back" data-label="Zona lombare" style="--x:50%;--y:44%" aria-label="Zona lombare"></button><button type="button" class="body-point" data-zone="glute-left" data-label="Gluteo sinistro" style="--x:42%;--y:54%" aria-label="Gluteo sinistro"></button><button type="button" class="body-point" data-zone="glute-right" data-label="Gluteo destro" style="--x:58%;--y:54%" aria-label="Gluteo destro"></button><button type="button" class="body-point" data-zone="hamstring-left" data-label="Femorale sinistro" style="--x:42%;--y:66%" aria-label="Femorale sinistro"></button><button type="button" class="body-point" data-zone="hamstring-right" data-label="Femorale destro" style="--x:58%;--y:66%" aria-label="Femorale destro"></button><button type="button" class="body-point" data-zone="calf-left" data-label="Polpaccio sinistro" style="--x:42%;--y:82%" aria-label="Polpaccio sinistro"></button><button type="button" class="body-point" data-zone="calf-right" data-label="Polpaccio destro" style="--x:58%;--y:82%" aria-label="Polpaccio destro"></button></div></div></div><div class="body-monitor-side"><form id="body-issue-form" class="body-issue-form" hidden><input name="zone" type="hidden"><div class="body-selection"><small>ZONA SELEZIONATA</small><strong id="body-selected-label"></strong></div><div class="form-grid compact"><label>Struttura<select name="type"><option>Articolare</option><option>Muscolare</option><option>Tendineo</option><option>Altro</option></select></label><label>Intensità attuale<input name="pain" type="number" min="0" max="10" value="1" required></label><label class="full">Descrizione breve<input name="description" maxlength="80" placeholder="Es. fastidio laterale nei cambi di ritmo" required></label><label class="full">Note facoltative<textarea name="notes" rows="2" placeholder="Quando compare, movimenti che lo modificano..."></textarea></label></div><div class="body-form-actions"><button class="ghost" id="cancel-body-issue" type="button">Annulla</button><button class="primary" type="submit">Inizia monitoraggio</button></div></form><div id="body-empty" class="body-empty">Seleziona un punto sulla mappa per iniziare a monitorarlo.</div><div id="active-body-issues" class="body-issue-list"></div></div></div><details class="body-history"><summary>Storico problemi archiviati <span id="archived-issues-count">0</span></summary><div id="archived-body-issues" class="body-issue-list archived"></div></details></article>
+          <article class="panel methodology-panel"><div class="methodology-head"><div><h2>Zone cardiache</h2><p class="muted" id="hr-summary">Frequenze cardiache non ancora disponibili.</p><div class="hr-source-strip" id="hr-source-strip"></div></div><label>METODO<select id="hr-zone-method" aria-label="Metodo zone cardiache"><option value="hrr">Karvonen · %HRR</option><option value="hrmax">% FC massima</option><option value="average">Media dei 2 metodi</option><option value="custom">Manuale</option></select></label></div><div id="hr-zones" class="zones"></div><details class="methodology-details"><summary>Come sono calcolate</summary><p class="methodology-note" id="hr-method-note"></p></details><button class="ghost" id="save-hr-zones" type="button">Salva metodo e zone</button></article>
+          <article class="panel methodology-panel"><div class="methodology-head"><div><h2>Ciclismo indoor</h2></div><label>SCHEMA<select id="ftp-zone-method" aria-label="Schema zone FTP"><option value="coggan7">Coggan · 7 zone</option><option value="coggan5">Coggan · 5 zone</option></select></label></div><label class="field">FTP attuale <div><input id="ftp" type="number" min="1" max="800" step="1" placeholder="es. 260"><span>watt</span></div></label><div id="ftp-zones" class="zones compact"></div><details class="methodology-details"><summary>Nota sul metodo</summary><p class="methodology-note">Gli schemi a cinque e sette zone restano separati.</p></details><button class="ghost" id="save-ftp-settings" type="button">Salva FTP e schema</button></article>
+          <article class="panel wide"><div class="panel-head methodology-strength-head"><div><h2>Forza massima stimata</h2></div><label>FORMULA e1RM<select id="strength-formula" aria-label="Formula per il massimale stimato"><option value="epley">Epley</option><option value="brzycki">Brzycki</option><option value="lombardi">Lombardi</option><option value="average">Media delle 3</option></select></label></div><div class="strength-max-cards" id="strength-maxes"></div><details class="methodology-details strength-method-details"><summary>Come leggiamo gli e1RM</summary><p class="methodology-note" id="strength-method-summary">Stima sui migliori set da 1–10 ripetizioni registrati. Un riferimento manuale ha priorità.</p><p class="strength-estimate-note">Nelle trazioni il risultato mostra soltanto la zavorra esterna stimata.</p></details></article>
+          <article class="panel wide body-monitor"><div class="panel-head"><div><h2>Mappa fastidi e recupero</h2></div><span class="body-active-count" id="body-active-count">0 attivi</span></div><div class="body-monitor-layout"><div class="body-maps"><div class="body-map"><small>VISTA ANTERIORE</small><div class="body-figure front" aria-label="Mappa corporea anteriore"><span class="body-silhouette">♙</span><button type="button" class="body-point" data-zone="head" data-label="Testa" style="--x:50%;--y:8%" aria-label="Testa"></button><button type="button" class="body-point" data-zone="shoulder-left" data-label="Spalla sinistra" style="--x:34%;--y:23%" aria-label="Spalla sinistra"></button><button type="button" class="body-point" data-zone="shoulder-right" data-label="Spalla destra" style="--x:66%;--y:23%" aria-label="Spalla destra"></button><button type="button" class="body-point" data-zone="elbow-left" data-label="Gomito sinistro" style="--x:25%;--y:38%" aria-label="Gomito sinistro"></button><button type="button" class="body-point" data-zone="elbow-right" data-label="Gomito destro" style="--x:75%;--y:38%" aria-label="Gomito destro"></button><button type="button" class="body-point" data-zone="wrist-left" data-label="Polso sinistro" style="--x:20%;--y:53%" aria-label="Polso sinistro"></button><button type="button" class="body-point" data-zone="wrist-right" data-label="Polso destro" style="--x:80%;--y:53%" aria-label="Polso destro"></button><button type="button" class="body-point" data-zone="chest" data-label="Petto" style="--x:50%;--y:29%" aria-label="Petto"></button><button type="button" class="body-point" data-zone="hip-left" data-label="Anca sinistra" style="--x:42%;--y:50%" aria-label="Anca sinistra"></button><button type="button" class="body-point" data-zone="hip-right" data-label="Anca destra" style="--x:58%;--y:50%" aria-label="Anca destra"></button><button type="button" class="body-point" data-zone="quad-left" data-label="Quadricipite sinistro" style="--x:42%;--y:64%" aria-label="Quadricipite sinistro"></button><button type="button" class="body-point" data-zone="quad-right" data-label="Quadricipite destro" style="--x:58%;--y:64%" aria-label="Quadricipite destro"></button><button type="button" class="body-point" data-zone="knee-left" data-label="Ginocchio sinistro" style="--x:42%;--y:76%" aria-label="Ginocchio sinistro"></button><button type="button" class="body-point" data-zone="knee-right" data-label="Ginocchio destro" style="--x:58%;--y:76%" aria-label="Ginocchio destro"></button><button type="button" class="body-point" data-zone="ankle-left" data-label="Caviglia sinistra" style="--x:42%;--y:92%" aria-label="Caviglia sinistra"></button><button type="button" class="body-point" data-zone="ankle-right" data-label="Caviglia destra" style="--x:58%;--y:92%" aria-label="Caviglia destra"></button></div></div><div class="body-map"><small>VISTA POSTERIORE</small><div class="body-figure back" aria-label="Mappa corporea posteriore"><span class="body-silhouette">♙</span><button type="button" class="body-point" data-zone="neck" data-label="Collo" style="--x:50%;--y:18%" aria-label="Collo"></button><button type="button" class="body-point" data-zone="upper-back" data-label="Dorso" style="--x:50%;--y:29%" aria-label="Dorso"></button><button type="button" class="body-point" data-zone="lower-back" data-label="Zona lombare" style="--x:50%;--y:44%" aria-label="Zona lombare"></button><button type="button" class="body-point" data-zone="glute-left" data-label="Gluteo sinistro" style="--x:42%;--y:54%" aria-label="Gluteo sinistro"></button><button type="button" class="body-point" data-zone="glute-right" data-label="Gluteo destro" style="--x:58%;--y:54%" aria-label="Gluteo destro"></button><button type="button" class="body-point" data-zone="hamstring-left" data-label="Femorale sinistro" style="--x:42%;--y:66%" aria-label="Femorale sinistro"></button><button type="button" class="body-point" data-zone="hamstring-right" data-label="Femorale destro" style="--x:58%;--y:66%" aria-label="Femorale destro"></button><button type="button" class="body-point" data-zone="calf-left" data-label="Polpaccio sinistro" style="--x:42%;--y:82%" aria-label="Polpaccio sinistro"></button><button type="button" class="body-point" data-zone="calf-right" data-label="Polpaccio destro" style="--x:58%;--y:82%" aria-label="Polpaccio destro"></button></div></div></div><div class="body-monitor-side"><form id="body-issue-form" class="body-issue-form" hidden><input name="zone" type="hidden"><div class="body-selection"><small>ZONA SELEZIONATA</small><strong id="body-selected-label"></strong></div><div class="form-grid compact"><label>Struttura<select name="type"><option>Articolare</option><option>Muscolare</option><option>Tendineo</option><option>Altro</option></select></label><label>Intensità attuale<input name="pain" type="number" min="0" max="10" value="1" required></label><label class="full">Descrizione breve<input name="description" maxlength="80" placeholder="Es. fastidio laterale nei cambi di ritmo" required></label><label class="full">Note facoltative<textarea name="notes" rows="2" placeholder="Quando compare, movimenti che lo modificano..."></textarea></label></div><div class="body-form-actions"><button class="ghost" id="cancel-body-issue" type="button">Annulla</button><button class="primary" type="submit">Inizia monitoraggio</button></div></form><div id="body-empty" class="body-empty">Seleziona un punto sulla mappa per iniziare a monitorarlo.</div><div id="active-body-issues" class="body-issue-list"></div></div></div><details class="body-history"><summary>Storico problemi archiviati <span id="archived-issues-count">0</span></summary><div id="archived-body-issues" class="body-issue-list archived"></div></details></article>
           <article class="panel wide"><h2>Personal best</h2><div class="pb-cards" id="profile-pbs"></div></article>
-          <article class="panel wide"><div class="panel-head"><div><h2>Discipline e setup</h2><p class="muted">Informazioni usate dal coach per scegliere modalità e metriche.</p></div></div><div class="profile-lists"><div><small>DISCIPLINE</small><p id="profile-sports"></p></div><div><small>ATTREZZATURA, DISPOSITIVI E PIATTAFORME</small><div id="profile-devices" class="equipment-summary"></div></div></div></article>
+          <article class="panel wide"><div class="panel-head"><div><h2>Discipline e setup</h2></div></div><div class="profile-lists"><div><small>DISCIPLINE</small><p id="profile-sports"></p></div><div><small>ATTREZZATURA, DISPOSITIVI E PIATTAFORME</small><div id="profile-devices" class="equipment-summary"></div></div></div></article>
         </div>
       </section>
     </main>
@@ -348,7 +346,6 @@
   <div class="checkin-modal" id="weekly-checkin-modal" role="dialog" aria-modal="true" aria-labelledby="weekly-checkin-title" aria-hidden="true">
     <form class="checkin-dialog" id="weekly-checkin-form">
       <div class="panel-head"><div><small>PIANO ADATTIVO</small><h2 id="weekly-checkin-title" tabindex="-1">Disponibilità della settimana</h2></div><button class="icon-button" type="button" data-close-checkin="weekly" aria-label="Chiudi">×</button></div>
-      <p class="muted">Queste informazioni definiscono quante sedute generare e dove proteggere gli allenamenti essenziali.</p>
       <div class="form-grid">
         <label>Settimana dal<input name="weekStart" type="date" required></label>
         <label>Numero massimo di sedute<select name="sessions"><option value="3">3 sedute</option><option value="4">4 sedute</option><option value="5" selected>5 sedute</option><option value="6">6 sedute</option></select></label>
@@ -364,7 +361,6 @@
   <div class="checkin-modal" id="pre-checkin-modal" role="dialog" aria-modal="true" aria-labelledby="pre-checkin-title" aria-hidden="true">
     <form class="checkin-dialog" id="pre-checkin-form">
       <div class="panel-head"><div><small>PRIMA DELLA SEDUTA</small><h2 id="pre-checkin-title" tabindex="-1">Come stai oggi?</h2></div><button class="icon-button" type="button" data-close-checkin="pre" aria-label="Chiudi">×</button></div>
-      <p class="muted">Il coach confronterà il tuo stato con lo stimolo programmato.</p>
       <div class="pre-session-context" id="pre-session-context" hidden></div>
       <div class="form-grid">
         <label>Energia<select name="energy"><option value="1">1 · Molto bassa</option><option value="2">2 · Bassa</option><option value="3" selected>3 · Normale</option><option value="4">4 · Buona</option><option value="5">5 · Ottima</option></select></label>
@@ -400,7 +396,7 @@
       <div class="form-grid session-common">
         <label>Categoria<select name="category" id="session-category"><option value="running">Corsa</option><option value="cycling">Ciclismo indoor</option><option value="strength">Forza</option><option value="hyrox">HYROX Spec</option><option value="metcon">Metcon</option><option value="test">Test</option><option value="recovery">Recupero</option></select></label>
         <label>Data<input name="date" type="date" required></label>
-        <label class="full">Titolo della seduta<input name="title" id="session-title" required maxlength="80" placeholder="Es. Easy run"><span class="field-hint" id="title-hint">Proposto automaticamente; puoi personalizzarlo.</span></label>
+        <label class="full">Titolo della seduta<input name="title" id="session-title" required maxlength="80" placeholder="Es. Easy run"><span class="field-hint compact-mode-hint" id="title-hint">AUTO</span></label>
         <label>Durata prevista (min)<input name="durationMin" type="number" inputmode="numeric" min="5" max="600" step="5" required></label>
         <label>Priorità<select name="priority"><option value="essential">Essenziale</option><option value="important">Importante</option><option value="optional">Opzionale</option></select></label>
       </div>
@@ -414,7 +410,7 @@
           <label data-run-target="pace">Passo: minuti/km<input name="paceMin" type="number" min="2" max="15" step="1" value="5"></label>
           <label data-run-target="pace">Passo: secondi<input name="paceSec" type="number" min="0" max="59" step="1" value="0"></label>
           <label data-run-target="rpe">RPE target<input name="runRpe" type="number" min="1" max="10" step="0.5" value="6"></label>
-          <div class="full run-workout-builder"><div class="builder-heading"><div><strong>Struttura della corsa</strong><span>Crea una timeline oppure una sequenza di fasi da ripetere</span></div><div class="builder-buttons"><button class="ghost" id="add-run-segment" type="button">+ Segmento</button><button class="ghost" id="add-run-repeat" type="button">+ Blocco ripetuto</button></div></div><div id="run-workout-rows" class="run-workout-rows"></div><input name="runBlocks" type="hidden"></div>
+          <div class="full run-workout-builder"><div class="builder-heading"><div><strong>Struttura della corsa</strong></div><div class="builder-buttons"><button class="ghost" id="add-run-segment" type="button">+ Segmento</button><button class="ghost" id="add-run-repeat" type="button">+ Blocco ripetuto</button></div></div><div id="run-workout-rows" class="run-workout-rows"></div><input name="runBlocks" type="hidden"></div>
         </div>
       </section>
 
@@ -425,7 +421,7 @@
           <label>FTP minima (%)<input name="ftpMin" type="number" min="30" max="150" value="60"></label>
           <label>FTP massima (%)<input name="ftpMax" type="number" min="30" max="150" value="70"></label>
           <label>Cadenza target (rpm)<input name="cadence" type="number" min="40" max="150" value="90"></label>
-          <div class="full ride-workout-builder"><div class="builder-heading"><div><strong>Struttura dei rulli</strong><span>Blocchi, watt e cadenza derivati automaticamente dalla FTP del profilo</span></div><span class="profile-derived-badge">DAL PROFILO</span></div><div id="ride-workout-rows" class="ride-workout-rows"></div><input name="rideBlocks" type="hidden"></div>
+          <div class="full ride-workout-builder"><div class="builder-heading"><div><strong>Struttura dei rulli</strong></div><span class="profile-derived-badge">DAL PROFILO</span></div><div id="ride-workout-rows" class="ride-workout-rows"></div><input name="rideBlocks" type="hidden"></div>
         </div>
       </section>
 
@@ -433,8 +429,8 @@
         <h3>Parametri forza</h3><div class="form-grid">
           <label>Focus<select name="strengthFocus" data-title-source><option>Upper body</option><option>Lower body</option><option>Full body</option><option>HYROX strength</option><option>Accessori / prevenzione</option></select></label>
           <label>RIR target<input name="targetRir" type="number" min="0" max="6" step="0.5" value="2"></label>
-          <div class="full workout-builder" data-builder="strength"><div class="builder-heading"><div><strong>Esercizi</strong><span>Carico previsto separato dal target; il carico effettivo verrà registrato dopo la seduta</span></div><button class="ghost add-workout-row" type="button">+ Esercizio</button></div><div class="workout-rows"></div><input name="strengthBlocks" type="hidden"></div>
-          <label class="full">Complementari e indicazioni <span class="field-hint">note libere, escluse dal calcolo e1RM</span><textarea name="strengthAccessories" rows="4" placeholder="Es. 2–3 esercizi upper back, cuffia e core a scelta"></textarea></label>
+          <div class="full workout-builder" data-builder="strength"><div class="builder-heading"><div><strong>Esercizi</strong></div><button class="ghost add-workout-row" type="button">+ Esercizio</button></div><div class="workout-rows"></div><input name="strengthBlocks" type="hidden"></div>
+          <label class="full">Complementari e indicazioni <span class="field-hint">Fuori dal calcolo e1RM</span><textarea name="strengthAccessories" rows="4" placeholder="Es. 2–3 esercizi upper back, cuffia e core a scelta"></textarea></label>
         </div>
       </section>
 
@@ -442,7 +438,7 @@
         <h3>Parametri HYROX Spec</h3><div class="form-grid">
           <label>Formato<select name="hyroxFormat" data-title-source><option>HYROX engine</option><option>HYROX stations</option><option>Compromised running</option><option>HYROX partial simulation</option><option>HYROX full simulation</option></select></label>
           <label>RPE target<input name="hyroxRpe" type="number" min="1" max="10" step="0.5" value="7"></label>
-          <div class="full workout-builder" data-builder="hyrox"><div class="builder-heading"><div><strong>Blocchi e stazioni</strong><span>Ordine, volume, target e recupero della seduta</span></div><button class="ghost add-workout-row" type="button">+ Blocco</button></div><div class="workout-rows"></div><input name="hyroxStructuredBlocks" type="hidden"></div>
+          <div class="full workout-builder" data-builder="hyrox"><div class="builder-heading"><div><strong>Blocchi e stazioni</strong></div><button class="ghost add-workout-row" type="button">+ Blocco</button></div><div class="workout-rows"></div><input name="hyroxStructuredBlocks" type="hidden"></div>
         </div>
       </section>
 
@@ -450,7 +446,7 @@
         <h3>Parametri Metcon</h3><div class="form-grid">
           <label>Formato<select name="metconType" data-title-source><option>AMRAP</option><option>EMOM</option><option>For time</option><option>Chipper</option><option>Intervals conditioning</option><option>Mixed modal conditioning</option></select></label>
           <label>RPE target<input name="metconRpe" type="number" min="1" max="10" step="0.5" value="8"></label>
-          <div class="full workout-builder" data-builder="metcon"><div class="builder-heading"><div><strong>Struttura</strong><span>Blocchi, movimenti, intensità e recuperi</span></div><button class="ghost add-workout-row" type="button">+ Blocco</button></div><div class="workout-rows"></div><input name="metconStructuredBlocks" type="hidden"></div>
+          <div class="full workout-builder" data-builder="metcon"><div class="builder-heading"><div><strong>Struttura</strong></div><button class="ghost add-workout-row" type="button">+ Blocco</button></div><div class="workout-rows"></div><input name="metconStructuredBlocks" type="hidden"></div>
         </div>
       </section>
 
@@ -498,18 +494,18 @@
           </div>
           <div class="outcome-load-preview"><span>CARICO INTERNO (sRPE)</span><strong id="outcome-load-value">0 AU</strong><small>durata reale × RPE</small></div>
           <section class="endurance-performance" id="endurance-performance-fields" hidden>
-            <div class="endurance-performance-heading"><div><strong>Blocchi realmente svolti</strong><span>Parti dalla seduta programmata e modifica solo quantità, ripetizioni o target che hai cambiato davvero.</span></div><small>DATI EFFETTIVI PER IL COACH</small></div>
+            <div class="endurance-performance-heading"><div><strong>Blocchi realmente svolti</strong></div><small>DATI EFFETTIVI PER IL COACH</small></div>
             <div class="endurance-performance-rows" id="endurance-performance-rows"></div>
           </section>
           <section class="strength-performance" id="strength-performance-fields" hidden>
-            <div class="strength-performance-heading"><div><strong>Set principali effettivi per e1RM</strong><span>Parti dai fondamentali programmati e aggiungi quelli che hai svolto davvero. I complementari restano nelle note.</span></div><small>1–10 RIPETIZIONI</small></div>
+            <div class="strength-performance-heading"><div><strong>Set principali effettivi per e1RM</strong></div><small>1–10 RIPETIZIONI</small></div>
             <div class="strength-performance-add">
               <label>Altro esercizio principale svolto<select id="strength-performance-exercise" aria-label="Altro esercizio principale svolto"></select></label>
               <button class="ghost" id="add-strength-performance" type="button">+ Aggiungi esercizio</button>
             </div>
             <div class="strength-performance-rows" id="strength-performance-rows"></div>
             <p class="strength-performance-empty" id="strength-performance-empty" hidden>Nessun fondamentale e1RM selezionato. Aggiungilo qui sopra se ne hai svolto uno.</p>
-            <p class="strength-estimate-note">L’RPE del set viene convertita in RIR (10 − RPE) e aggiunta alle ripetizioni svolte prima di applicare la formula e1RM selezionata. È una stima operativa, più prudente da leggere su carichi alti e set vicini al cedimento.</p>
+            <details class="methodology-details strength-inline-method"><summary>Metodo e1RM</summary><p class="strength-estimate-note">Carico, ripetizioni e RPE; RIR stimata = 10 − RPE.</p></details>
           </section>
         </div>
         <div id="outcome-skipped-fields" hidden>

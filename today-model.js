@@ -215,7 +215,8 @@
       const durationKnown=number(primary.outcome.actualDurationMin)>0,rpeKnown=number(primary.outcome.rpe)>0;
       const missingLoadFields=[!durationKnown?'durata reale':'',!rpeKnown?'RPE':''].filter(Boolean);
       const loadText=durationKnown&&rpeKnown?`Carico interno ${number(primary.outcome.sessionLoad)} AU`:`Carico interno non calcolato: completa ${missingLoadFields.join(' e ')}`;
-      return {tone:'good',title:`${outcomeLabel[primary.outcome.status]} · RPE ${primary.outcome.rpe||'—'}`,text:`${loadText}${number(primary.outcome.pain)?` · dolore massimo ${number(primary.outcome.pain)}/10`:''}.`};
+      if(!durationKnown||!rpeKnown)return {tone:'warn',title:'Registrazione incompleta',text:`${loadText}.`};
+      return {tone:'good',title:loadText,text:number(primary.outcome.pain)?`Dolore massimo ${number(primary.outcome.pain)}/10.`:''};
     }
     if(checkin?.recommendation)return {tone:checkin.recommendation.level||'neutral',title:checkin.recommendation.title,text:checkin.recommendation.text};
     const regions=regionsForSession(primary);const relevant=issues.filter(issue=>regions.has(issueRegion(issue)));const stale=relevant.find(issue=>issue.requiresUpdate);const worst=relevant.filter(issue=>issue.isFresh).sort((a,b)=>b.latestPain-a.latestPain)[0];

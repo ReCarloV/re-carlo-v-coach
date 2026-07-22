@@ -544,6 +544,11 @@ html[data-theme="light"] .body-silhouette{color:#afbdca}
 html[data-theme="light"] .methodology-head>label,html[data-theme="light"] .methodology-strength-head>label{color:#5e7289}
 html[data-theme="light"] .methodology-head select,html[data-theme="light"] .methodology-strength-head select{border-color:#c7d5e4;background:#fff;color:#1b2d44}
 html[data-theme="light"] .methodology-note,html[data-theme="light"] .zone-detail{color:#647991}
+html[data-theme="light"] .methodology-details{border-color:#c9d7e5;background:#f7fafe;color:#5f748b}
+html[data-theme="light"] .methodology-details summary{color:#486580}
+html[data-theme="light"] .methodology-details[open] summary{border-color:#c9d7e5}
+html[data-theme="light"] .methodology-details .methodology-note,html[data-theme="light"] .methodology-details .strength-estimate-note{color:#5d7289}
+html[data-theme="light"] .compact-mode-hint{border-color:#b8cadc;color:#526f8c!important;background:#f4f8fc}
 html[data-theme="light"] .zone-range,html[data-theme="light"] .hr-input:disabled{color:#344b65}
 html[data-theme="light"] .zone .track{height:9px;border:1px solid #bdccdc;background:#fff}
 html[data-theme="light"] .zone .track i{border-radius:8px}

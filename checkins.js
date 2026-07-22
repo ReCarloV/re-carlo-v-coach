@@ -49,7 +49,7 @@
     const saved=parse(WEEKLY_KEY,null);const summary=document.getElementById('weekly-checkin-summary'),trigger=document.getElementById('open-weekly-checkin');summary.hidden=true;summary.replaceChildren();
     if(!saved){trigger.textContent='Check-in settimana';return;}
     trigger.textContent=`Disponibilità · ${saved.sessions} sedute`;
-    document.getElementById('plan-intro').textContent=`Settimana impostata su ${saved.sessions} sedute. Il piano proteggerà lungo, qualità e forza essenziale nei giorni disponibili.`;
+    document.getElementById('plan-intro').textContent=`Disponibilità · ${saved.sessions} sedute · ${saved.sessionMinutes} min · lungo ${saved.longRunMinutes} min`;
   }
 
   function todayCheckins(sessionId=null){

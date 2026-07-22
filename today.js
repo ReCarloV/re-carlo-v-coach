@@ -43,12 +43,10 @@
   function formatDate(value){return new Date(`${value}T12:00:00`).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});}
 
   function renderNoSession(model){
-    const head=element('div','panel-head');const copy=element('div');copy.append(element('span','tag rest','OGGI'),element('h2','',model.nextSession?'Nessuna seduta prevista oggi':'Il piano è libero oggi'));head.append(copy);
-    const description=element('p','muted',model.nextSession?`Prossima seduta ${formatDate(model.nextSession.date)}.`:'Non ci sono ancora sedute future programmate. Aggiorna la disponibilità per generare la prossima settimana.');
-    const empty=element('div','today-empty-state');empty.append(element('strong','',model.nextSession?.title||'Recupero o pianificazione'),element('span','',model.nextSession?window.rcSessions?.describe?.(model.nextSession.id)||`${model.nextSession.durationMin} min`:'Il coach userà giorni disponibili, carico e check-in per costruire la proposta.'));
-    const note=element('div','coach-note');note.id='today-coach-note';note.append(element('strong','',model.coachNote.title),element('p','',model.coachNote.text));
+    const head=element('div','panel-head');const copy=element('div');copy.append(element('span','tag rest','OGGI'),element('h2','',model.nextSession?'Rest day':'Piano libero'));head.append(copy);
+    const empty=element('div','today-empty-state');empty.append(element('strong','',model.nextSession?`Prossima · ${model.nextSession.title}`:'Nessuna seduta programmata'),element('span','',model.nextSession?`${formatDate(model.nextSession.date)} · ${window.rcSessions?.describe?.(model.nextSession.id)||`${model.nextSession.durationMin} min`}`:'Imposta la disponibilità per creare la settimana.'));
     const action=element('button','primary',model.nextSession?'Apri il piano':'Imposta la settimana');action.type='button';action.addEventListener('click',()=>{window.rcNavigation?.show('plan');if(!model.nextSession)setTimeout(()=>document.getElementById('open-weekly-checkin')?.click(),0);});
-    sessionPanel.append(head,description,empty,note,action);
+    sessionPanel.append(head,empty,action);
   }
   function secondaryRow(item){
     const row=element('div','today-secondary-row');const status=item.outcome?({completed:'Svolta',partial:'Parziale',skipped:'Non svolta'}[item.outcome.status]||'Registrata'):'Programmata';
@@ -60,7 +58,7 @@
     const edit=element('button','ghost','Modifica');edit.type='button';edit.addEventListener('click',()=>window.rcSessions.openEditor(session.id));head.append(copy,edit);
     const summary=element('p','muted',execution?.adapted?`${execution.mode==='replace'?`In sostituzione di “${session.title}”`:`Adattata da ${session.durationMin} a ${execution.effectiveDurationMin} min`} · il piano originale resta nello storico`:model.primarySummary);
     const prescription=element('div','prescription today-prescription');model.prescription.forEach(block=>{const card=element('div',block.intensity?`intensity-${block.intensity}`:'');card.append(element('small','',block.label.toUpperCase()),element('strong','',block.value||'Da definire'));prescription.append(card);});
-    const note=element('div',`coach-note ${toneClass[model.coachNote.tone]||''}`.trim());note.id='today-coach-note';note.append(element('strong','',model.coachNote.title),element('p','',model.coachNote.text));
+    const note=element('div',`coach-note ${toneClass[model.coachNote.tone]||''}`.trim());note.id='today-coach-note';note.append(element('strong','',model.coachNote.title));if(model.coachNote.text)note.append(element('p','',model.coachNote.text));
     const actions=element('div','today-session-actions');const primaryAction=element('button','primary');primaryAction.type='button';
     if(session.outcome){primaryAction.textContent='Apri registrazione';primaryAction.addEventListener('click',()=>window.rcSessions.openOutcome(session.id));}
     else {primaryAction.id='open-pre-checkin';primaryAction.textContent=model.checkin?'Aggiorna check-in pre sessione':'Avvia check-in pre sessione';primaryAction.addEventListener('click',()=>window.rcCheckins.openPre(session.id));}
@@ -74,13 +72,13 @@
   function renderWeek(model){
     weekPanel.replaceChildren();const head=element('div','panel-head');head.append(element('h2','','Settimana'),element('span','muted',model.week.sessions?`${model.week.completedCount} di ${model.week.sessions} eseguite`:'Nessuna seduta'));weekPanel.append(head);
     const bars=element('div','week-bars');model.week.days.forEach(day=>{const column=element('div',day.isToday?'current':'');const label=element('span','week-bar-label',day.label);label.setAttribute('aria-hidden','true');const states=[];if(day.performed)states.push('performed');if(day.planned)states.push('planned');if(day.skipped)states.push('skipped');if(!states.length)states.push('empty');const bar=element('i',`${states.join(' ')}${states.length>1?' mixed':''}`);bar.style.setProperty('--h',`${day.height}%`);const parts=[];if(day.performed)parts.push(`${day.performed} svolta${day.performed===1?'':'e'} · carico interno ${day.load?`${day.load} AU`:'non disponibile'}`);if(day.planned)parts.push(`${day.planned} programmata${day.planned===1?'':'e'}`);if(day.skipped)parts.push(`${day.skipped} non svolta${day.skipped===1?'':'e'}`);const detail=parts.join(' · ')||'Nessuna seduta';const accessibleDetail=`${day.dayName}${day.isToday?', oggi':''}: ${detail}`;const track=element('span','week-bar-track');track.setAttribute('aria-hidden','true');track.append(bar);const tooltip=element('span','week-bar-tooltip',accessibleDetail);tooltip.setAttribute('aria-hidden','true');column.title=detail;column.tabIndex=0;column.setAttribute('aria-label',accessibleDetail);bar.setAttribute('aria-hidden','true');column.append(track,label,tooltip);bars.append(column);});weekPanel.append(bars);
-    const legend=element('div','week-legend');[['performed','Svolta'],['planned','Programmata'],['skipped','Non svolta']].forEach(([state,label])=>{const item=element('span');item.append(element('i',state),document.createTextNode(label));legend.append(item);});weekPanel.append(legend,element('p','today-week-scale','Altezza = carico interno giornaliero sRPE (minuti reali × RPE), rapportato al giorno più carico della settimana. Le barre tratteggiate indicano lavoro ancora programmato. Passa sul giorno per il dettaglio.'));
+    const legend=element('div','week-legend');[['performed','Svolta'],['planned','Programmata'],['skipped','Non svolta']].forEach(([state,label])=>{const item=element('span');item.append(element('i',state),document.createTextNode(label));legend.append(item);});weekPanel.append(legend,element('p','today-week-scale','Altezza: carico interno giornaliero (durata × RPE).'));
     const summary=element('div','summary-row');const distance=model.week.distanceKnown?`${model.week.runningDistance.toFixed(model.week.runningDistance%1?1:0)} km${model.week.distancePartial?' · parziale':''}`:'—';const values=[['Corsa',distance],['Forza',`${model.week.strengthCount} sedut${model.week.strengthCount===1?'a':'e'}`],['Tempo',model.week.actualMinutes?formatMinutes(model.week.actualMinutes):'—']];values.forEach(([label,value])=>{const item=element('span','',label);item.append(element('strong','',value));summary.append(item);});weekPanel.append(summary);
-    const note=element('p','today-week-note');
-    if(model.week.pastUnrecorded)note.textContent=`${model.week.pastUnrecorded} sedut${model.week.pastUnrecorded===1?'a passata è':'e passate sono'} ancora da registrare.`;
-    else if(!model.week.completedCount)note.textContent=model.week.sessions?'Le sedute programmate appariranno qui dopo la registrazione.':'Genera il piano per iniziare a costruire lo storico.';
-    else note.textContent=`${model.load7.partial?'Carico parziale':'Carico'} registrato negli ultimi 7 giorni: ${model.load7.value} AU${model.load7.partial?` · ${model.load7.knownSessions}/${model.load7.sessions} sedute con durata e RPE completi`:''}.`;
-    weekPanel.append(note);
+    let noteText='';
+    if(model.week.pastUnrecorded)noteText=`${model.week.pastUnrecorded} sedut${model.week.pastUnrecorded===1?'a passata è':'e passate sono'} ancora da registrare.`;
+    else if(!model.week.completedCount)noteText=model.week.sessions?'Le sedute programmate appariranno qui dopo la registrazione.':'Genera il piano per iniziare a costruire lo storico.';
+    else if(model.load7.partial)noteText=`Carico parziale: ${model.load7.knownSessions}/${model.load7.sessions} sedute con durata e RPE completi.`;
+    if(noteText)weekPanel.append(element('p','today-week-note',noteText));
   }
   function render(){const model=currentModel();renderMetrics(model);renderWhoopOverview(model);renderAdaptive(model);renderSession(model);renderWeek(model);const profile=safeDataset('profile',null);window.rcNavigation?.setTitle('today',profile?.firstName&&profile.profileSetupComplete!==false?`Oggi, ${profile.firstName}.`:'Oggi');}
 
