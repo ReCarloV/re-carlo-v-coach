@@ -6,7 +6,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(eventDemand){
   'use strict';
 
-  const VERSION='1.2.0';
+  const VERSION='1.3.0';
   const DAY_MS=86400000;
   const sources={
     distancePractice:{
@@ -32,7 +32,62 @@
     concurrentRunning:{
       label:'Running · forza ed endurance concorrenti in runner allenati',
       url:'https://pubmed.ncbi.nlm.nih.gov/34767655/',
-      appliesTo:['running','hyrox']
+      appliesTo:['running','hyrox','triathlon']
+    },
+    worldTriathlonFormat:{
+      label:'World Triathlon · distanze Age Group Sprint e Standard',
+      url:'https://triathlon.org/agegroup',
+      appliesTo:['triathlon']
+    },
+    worldTriathlonRules:{
+      label:'World Triathlon · regole correnti, muta e specificità dell’evento',
+      url:'https://triathlon.org/faqs',
+      appliesTo:['triathlon']
+    },
+    ironmanRules:{
+      label:'IRONMAN · Competition Rules correnti',
+      url:'https://www.ironman.com/resources/rules-and-policies/competition-rules',
+      appliesTo:['triathlon']
+    },
+    triSprintTransition:{
+      label:'Sprint triathlon · influenza del ciclismo sulla corsa successiva',
+      url:'https://pubmed.ncbi.nlm.nih.gov/10211859/',
+      appliesTo:['triathlon']
+    },
+    triTransitionReview:{
+      label:'Triathlon · transizione ciclismo-corsa e implicazioni pratiche',
+      url:'https://pubmed.ncbi.nlm.nih.gov/11049151/',
+      appliesTo:['triathlon']
+    },
+    triVariableCycling:{
+      label:'Triathlon · potenza ciclistica variabile e corsa successiva',
+      url:'https://pubmed.ncbi.nlm.nih.gov/23347994/',
+      appliesTo:['triathlon']
+    },
+    triOpenWater:{
+      label:'Nuoto open water · efficienza e biomeccanica sui 1500 m',
+      url:'https://pubmed.ncbi.nlm.nih.gov/38648801/',
+      appliesTo:['triathlon']
+    },
+    triPoolTest:{
+      label:'Triathlon · test in piscina e prestazione open water',
+      url:'https://pubmed.ncbi.nlm.nih.gov/38132720/',
+      appliesTo:['triathlon']
+    },
+    triFueling:{
+      label:'Half-Ironman · assunzione di carboidrati e prestazione',
+      url:'https://pubmed.ncbi.nlm.nih.gov/28350714/',
+      appliesTo:['triathlon']
+    },
+    triLongCourse:{
+      label:'IRONMAN age group · predittori ciclistici e running della prestazione',
+      url:'https://pubmed.ncbi.nlm.nih.gov/40153133/',
+      appliesTo:['triathlon']
+    },
+    triInjury:{
+      label:'Triathlon · specializzazione, stress cumulativo e infortuni',
+      url:'https://pubmed.ncbi.nlm.nih.gov/20042924/',
+      appliesTo:['triathlon']
     },
     hyroxPhysiology:{
       label:'HYROX · richieste fisiologiche in una simulazione Individual Open',
@@ -508,6 +563,94 @@
     };
   }
 
+  const triathlonDefinitions={
+    'triathlon-sprint':{label:'Triathlon Sprint',swimKm:.75,bikeKm:20,runKm:5,longCourse:false,qualityPriority:110,bikePriority:108,runPriority:106},
+    'triathlon-standard':{label:'Triathlon Standard / Olimpico',swimKm:1.5,bikeKm:40,runKm:10,longCourse:false,qualityPriority:106,bikePriority:110,runPriority:108},
+    'ironman-70-3':{label:'IRONMAN 70.3',swimKm:1.9,bikeKm:90,runKm:21.1,longCourse:true,qualityPriority:88,bikePriority:116,runPriority:110},
+    'ironman-full':{label:'IRONMAN Full',swimKm:3.8,bikeKm:180,runKm:42.2,longCourse:true,qualityPriority:76,bikePriority:120,runPriority:114}
+  };
+  function triathlonPhases(definition){
+    const full=definition.runKm>40,long=definition.longCourse;
+    return[
+      phase(full?224:long?168:84,'base',`Base ${definition.label}`,'Costruire frequenza sostenibile nelle tre discipline, efficienza in acqua e tolleranza al carico senza brick prematuri.'),
+      phase(full?154:long?112:56,'build',`Costruzione ${definition.label}`,'Sviluppare separatamente nuoto, bici e corsa prima di aumentare la specificità delle transizioni.'),
+      ...(long?[phase(full?98:70,'specific-build',`Sviluppo specifico ${definition.label}`,'Integrare pacing, durata, brick controllati e fueling mantenendo distinti i carichi delle tre discipline.')]:[]),
+      phase(full?49:long?35:15,'specific',`Specifico ${definition.label}`,'Rendere stabili transizioni, pacing e gestione dello sforzo senza simulazioni complete automatiche.'),
+      ...(long?[phase(full?29:22,'peak',`Picco specifico ${definition.label}`,'Completare gli ultimi stimoli chiave senza nuovi picchi tardivi di durata o impatto.')]:[]),
+      phase(full?18:long?15:8,'taper',`Taper ${definition.label}`,'Ridurre il volume conservando brevi richiami nelle tre discipline e routine di transizione.'),
+      phase(0,'race-week',`Race week ${definition.label}`,'Proteggere freschezza, attrezzatura e piano di esecuzione; nessun lavoro perso viene recuperato.')
+    ];
+  }
+  const triathlonTolerance=[
+    'Nuoto, bici, corsa e brick hanno controlli di tolleranza separati: un buon esito in una disciplina non autorizza la progressione automatica delle altre.',
+    'Il volume di corsa cresce soltanto dopo esiti, dolore, RPE e impatto compatibili; il basso impatto della bici non dimostra tolleranza meccanica alla corsa.',
+    'Il nuoto progredisce su tecnica, continuità o volume, non su tutte le variabili insieme; CSS e passo vengono usati solo dopo un test reale registrato.',
+    'Il brick cresce dopo sedute singole tollerate e resta frazionato: durata della bici e corsa successiva non aumentano automaticamente insieme.',
+    'Per 70.3 e Full, pacing e fueling vengono provati nei lavori adatti e non introdotti per la prima volta in gara.',
+    'WHOOP e frequenza cardiaca sostengono il contesto, ma non sostituiscono competenza tecnica in acqua, esiti e carico per disciplina.'
+  ];
+  const triathlonLimits=[
+    'Il formato è verificato su fonti ufficiali; la dose resta contestuale perché corso, dislivello, drafting, temperatura dell’acqua e regole locali dipendono dall’evento.',
+    'La letteratura disponibile non definisce una ripartizione universale ottimale tra nuoto, bici e corsa per ogni atleta e distanza.',
+    'Nessuna simulazione completa di gara viene generata automaticamente, soprattutto per 70.3 e Full.',
+    'Open water, muta, partenza di gruppo, orientamento e transizioni richiedono contesto reale e condizioni sicure; non vengono sostituiti da una prescrizione generica.',
+    'Con meno di tre sedute settimanali non è possibile coprire stabilmente le tre discipline; per 70.3 e Full una disponibilità ridotta abbassa esplicitamente la confidenza.'
+  ];
+  function triathlonOverlay(definition){
+    return{
+      label:definition.label,longCourse:definition.longCourse,
+      swimKm:definition.swimKm,bikeKm:definition.bikeKm,runKm:definition.runKm,
+      detail:`${String(definition.swimKm).replace('.',',')} km nuoto · ${definition.bikeKm} km bici · ${String(definition.runKm).replace('.',',')} km corsa.`,
+      ruleCaution:'Drafting, muta, cut-off, percorso e regolamento della singola gara devono essere confermati dalla guida atleta dell’evento.'
+    };
+  }
+  function triathlonSessions(definition){
+    const long=definition.longCourse;
+    return[
+      session('swim-technique','Nuoto · tecnica ed efficienza','tri-swim',['base','build','specific-build','specific','taper','race-week'],'Tecnica, assetto e respirazione precedono la densità; nessun passo viene inventato senza test reale.'),
+      session('swim-endurance',long?'Nuoto · continuità e open-water skills':'Nuoto · aerobico / ritmo controllato','tri-swim',['build','specific-build','specific','peak','taper'],'Continuità e abilità specifiche progrediscono in ambiente sicuro e con riscontro tecnico.'),
+      session('bike',long?'Bici · endurance, pacing e fueling':'Bici · qualità specifica','tri-bike',['base','build','specific-build','specific','peak','taper','race-week'],'La bici viene prescritta su FTP/RPE osservati e sul profilo reale del percorso, senza intensità nascosta.'),
+      session('run',long?'Corsa · endurance su fatica controllata':'Corsa · ritmo specifico','tri-run',['base','build','specific-build','specific','peak','taper','race-week'],'Il carico di corsa conserva un controllo meccanico distinto dalla bici.'),
+      session('brick','Brick bici-corsa e transizioni','tri-brick',['build','specific-build','specific','peak','taper'],'Blocchi controllati per pacing e T2; non sono simulazioni complete automatiche.'),
+      session('strength','Forza di supporto','strength',['base','build','specific-build','specific','peak','taper'],'Forza e controllo neuromuscolare restano subordinati agli stimoli chiave nelle tre discipline.'),
+      ...(long?[session('fueling','Fueling e piano di esecuzione','fueling',['specific-build','specific','peak'],'Strategia verificata in allenamento e adattata a durata, clima e tolleranza individuale.')]:[])
+    ];
+  }
+  function triathlonConstraint(definition,phaseKey,overlay){
+    const raceWeek=phaseKey==='race-week',taper=phaseKey==='taper',peak=phaseKey==='peak',late=['specific','peak','taper','race-week'].includes(phaseKey);
+    const mode=raceWeek?'primer':taper?'primer':phaseKey==='specific'||peak?'race-specific':phaseKey==='base'?'foundation':'specific';
+    const maxBrick=raceWeek?0:1,minStrengthRir=raceWeek?4:late?3:2;
+    return{
+      summary:{
+        base:'Le tre discipline costruiscono frequenza e competenza separatamente; tecnica in acqua e continuità vengono prima dei brick.',
+        build:'Nuoto, bici e corsa progrediscono con carichi distinti; entra un solo brick controllato quando le sedute singole sono tollerate.',
+        'specific-build':'Durata, pacing, transizioni e fueling diventano più specifici senza far crescere insieme tutte le discipline.',
+        specific:`Pacing e transizioni ${definition.label} hanno priorità; nessuna simulazione completa sostituisce la qualità delle singole discipline.`,
+        peak:'Gli ultimi stimoli chiave vengono completati senza nuovi picchi tardivi di durata, impatto o densità.',
+        taper:'Il volume cala nelle tre discipline; restano richiami brevi, transizioni e routine già provate.',
+        'race-week':'Freschezza, attrezzatura e piano gara sono intoccabili: solo attivazioni brevi e nessun brick aggiuntivo.'
+      }[phaseKey]||`Vincoli specifici per ${definition.label}.`,
+      limits:{
+        longProgressionCap:['peak','taper','race-week'].includes(phaseKey)?1:1.05,
+        aerobicProgressionCap:['peak','taper','race-week'].includes(phaseKey)?1:1.05,
+        swimProgressionCap:['peak','taper','race-week'].includes(phaseKey)?1:1.05,
+        bikeProgressionCap:['peak','taper','race-week'].includes(phaseKey)?1:1.05,
+        runProgressionCap:['peak','taper','race-week'].includes(phaseKey)?1:1.05,
+        maxQuality:definition.longCourse?1:2,maxTriBrick:maxBrick,minStrengthRir,minStrengthSetReduction:late?1:0,
+        maxActiveSessions:raceWeek?4:taper?5:6,hyroxMode:'optional',triathlonMode:mode
+      },
+      generated:{longFactor:raceWeek?0.45:taper?0.7:peak?0.9:1,qualityStyle:raceWeek||taper?'recall':definition.longCourse?'tri-endurance':'tri-short'},
+      guards:[
+        guard('tri-swim','Nuoto',raceWeek?'Attivazione breve':phaseKey==='base'?'Tecnica + continuità':'Tecnica + specificità','Nessun CSS o passo viene stimato senza test; open water e muta richiedono condizioni reali e sicure.','good'),
+        guard('tri-bike','Bici',raceWeek?'Attivazione breve':definition.longCourse?'Pacing prioritario':'Qualità specifica','FTP, RPE e stabilità della potenza sono riferimenti distinti; terreno e drafting dipendono dalla gara.'),
+        guard('tri-run','Corsa',raceWeek?'Shake-out':definition.longCourse?'Tolleranza + pacing':'Ritmo specifico','Il carico meccanico viene autorizzato dagli esiti running, non dal solo volume ciclistico.'),
+        guard('tri-brick','Brick',raceWeek?'Escluso':taper?'Primer breve':'Massimo 1',raceWeek?'Nessun brick aggiuntivo nella settimana gara.':'Bici e corsa vengono combinate in dose controllata; nessuna simulazione completa automatica.',late?'warn':'neutral'),
+        guard('strength','Forza',late?`Mantenimento · RIR ${minStrengthRir}`:'Sviluppo compatibile','Il volume di forza cede prima degli stimoli specifici nelle tre discipline.')
+      ],
+      priorities:{race:130,'tri-bike':definition.bikePriority,'tri-run':definition.runPriority,'tri-swim':112,'tri-brick':114,cycling:definition.bikePriority,running:definition.runPriority,quality:definition.qualityPriority,long:definition.runPriority-5,'strength-upper':70,'strength-lower':68,easy:74,hyrox:28,metcon:26,recovery:12,other:30}
+    };
+  }
+
   function packFor(goal={}){
     const profile=eventDemand?.profileFor?.(goal);
     if(!profile)return null;
@@ -548,6 +691,18 @@
         guardrail:'Il formato è ufficiale; la prescrizione resta contestuale perché l’evidenza OCR diretta è limitata e terreno, ostacoli e condizioni cambiano tra eventi.'
       };
     }
+    const triathlon=triathlonDefinitions[profile.key];
+    if(triathlon){
+      const overlay=triathlonOverlay(triathlon);
+      return{
+        version:VERSION,key:profile.key,family:'triathlon',label:`Pack ${triathlon.label}`,status:'contextual',confidence:'contextual',
+        evidenceVersion:`triathlon-${VERSION}`,phases:triathlonPhases(triathlon),keySessions:triathlonSessions(triathlon),
+        toleranceChecks:clone(triathlonTolerance),limits:clone(triathlonLimits),
+        sources:sourceList(['worldTriathlonFormat','worldTriathlonRules','ironmanRules','triSprintTransition','triTransitionReview','triVariableCycling','triOpenWater','triPoolTest','triFueling','triLongCourse','triInjury','concurrentRunning','enduranceTaper']),
+        overlay,definition:clone(triathlon),
+        guardrail:`La prescrizione è contestuale: distanze e struttura sono ufficiali, mentre dose, progressione e ripartizione tra discipline dipendono dallo storico individuale. ${overlay.ruleCaution}`
+      };
+    }
     const athx=athxDefinitions[profile.key];
     if(athx){
       const overlay=athxOverlay(profile,athx);
@@ -578,6 +733,7 @@
     if(pack.family==='running'&&pack.definition)return{...runningConstraint(pack.definition,phaseKey),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence}};
     if(pack.family==='hyrox'&&pack.overlay)return{...hyroxConstraint(phaseKey,pack.overlay),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)}};
     if(pack.family==='obstacle'&&pack.definition)return{...obstacleConstraint(pack.definition,phaseKey),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)}};
+    if(pack.family==='triathlon'&&pack.definition)return{...triathlonConstraint(pack.definition,phaseKey,pack.overlay),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)}};
     if(pack.family==='athx'&&pack.definition)return{...athxConstraint(pack.definition,phaseKey,pack.overlay),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)}};
     return null;
   }

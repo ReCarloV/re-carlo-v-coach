@@ -75,7 +75,7 @@
   function hasPlyometricWork(sessions){return(Array.isArray(sessions)?sessions:[]).some(item=>/plyo|pliometr|balz|jump|salti/i.test(`${item?.title||''} ${item?.details?.strengthFocus||''} ${item?.notes||''}`));}
   function hasStrengthWork(sessions,plan){return Boolean(plan?.strength)||(Array.isArray(sessions)?sessions:[]).some(item=>item?.category==='strength');}
   function hasHybridWork(sessions,plan,goal){return goal?.type==='hyrox'||Boolean(plan?.hyrox)||(Array.isArray(sessions)?sessions:[]).some(item=>['hyrox','metcon'].includes(item?.category));}
-  function hasEnduranceWork(sessions,plan,goal,observed){return['marathon','half-marathon','running','cycling','obstacle'].includes(goal?.type)||Boolean(plan?.runs)||Boolean(observed?.runs)||(Array.isArray(sessions)?sessions:[]).some(item=>['running','cycling'].includes(item?.category));}
+  function hasEnduranceWork(sessions,plan,goal,observed){return['marathon','half-marathon','running','cycling','obstacle','triathlon'].includes(goal?.type)||Boolean(plan?.runs)||Boolean(observed?.runs)||(Array.isArray(sessions)?sessions:[]).some(item=>['running','swimming','cycling'].includes(item?.category));}
   function activeDomainKeys(input={}){
     const endurance=hasEnduranceWork(input.sessions,input.plan,input.goal,input.observed),strength=hasStrengthWork(input.sessions,input.plan),hybrid=hasHybridWork(input.sessions,input.plan,input.goal),plyometric=hasPlyometricWork(input.sessions),keys=['monitoring'];
     if(endurance)keys.push('endurance');

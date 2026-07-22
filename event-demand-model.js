@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
 
-  const VERSION='2.3.0';
+  const VERSION='2.4.0';
   const dimensions=[
     {key:'aerobic',label:'Resistenza aerobica'},
     {key:'threshold',label:'Soglia / ritmo sostenuto'},
@@ -34,8 +34,14 @@
     ocrDeterminants:{label:'Obstacle course · determinanti fisiologici della prestazione',url:'https://pubmed.ncbi.nlm.nih.gov/10628164/'},
     ocrExtreme:{label:'Obstacle course racing estremo · studio fisiologico esplorativo',url:'https://pmc.ncbi.nlm.nih.gov/articles/PMC6720877/'},
     ocrInjuries:{label:'Obstacle course racing · analisi longitudinale degli infortuni',url:'https://pubmed.ncbi.nlm.nih.gov/29977946/'},
-    worldTriathlon:{label:'World Triathlon · Competition Rules 2026',url:'https://triathlon.org/agegroup'},
-    ironmanFormat:{label:'IRONMAN · distanze 70.3 e full',url:'https://www.ironman.com/proseries/about-ironman'},
+    worldTriathlon:{label:'World Triathlon · distanze Age Group',url:'https://triathlon.org/agegroup'},
+    worldTriathlonRules:{label:'World Triathlon · regole e decisione muta',url:'https://triathlon.org/faqs'},
+    ironmanFormat:{label:'IRONMAN · formato 70.3',url:'https://www.ironman.com/races/im703-puerto-rico'},
+    ironmanRules:{label:'IRONMAN · Competition Rules correnti',url:'https://www.ironman.com/resources/rules-and-policies/competition-rules'},
+    triathlonTransition:{label:'Triathlon · implicazioni della transizione bici-corsa',url:'https://pubmed.ncbi.nlm.nih.gov/11049151/'},
+    triathlonVariableBike:{label:'Triathlon · ciclismo variabile e corsa successiva',url:'https://pubmed.ncbi.nlm.nih.gov/23347994/'},
+    triathlonOpenWater:{label:'Nuoto open water · efficienza e biomeccanica sui 1500 m',url:'https://pubmed.ncbi.nlm.nih.gov/38648801/'},
+    triathlonFueling:{label:'Half-Ironman · carboidrati e prestazione',url:'https://pubmed.ncbi.nlm.nih.gov/28350714/'},
     athxFormat:{label:'ATHX Games · struttura ufficiale',url:'https://athxgames.com/'},
     athxWorkouts2026:{label:'ATHX Games · workout ufficiali 2026',url:'https://athxgames.com/workouts/2026'},
     athxStandards2026:{label:'ATHX Games · movement standards 2026',url:'https://athxgames.com/movement-standards/2026'},
@@ -94,7 +100,7 @@
       ['Nuoto','Ciclismo','Corsa','Transizioni'],
       {aerobic:5,threshold:4,strength:2,power:2,strengthEndurance:3,skill:5,impact:3,transitions:5,terrain:2,pacing:5,fueling:4},
       ['Nuoto specifico','Ciclismo specifico','Corsa','Brick e transizioni','Pacing e fueling'],
-      ['worldTriathlon','ironmanFormat','concurrent'],
+      ['worldTriathlon','worldTriathlonRules','ironmanFormat','ironmanRules','triathlonTransition','triathlonVariableBike','triathlonOpenWater','triathlonFueling','concurrent'],
       'high'
     ),
     athx:family(
@@ -250,23 +256,35 @@
   ];
   const triathlonVariants=[
     {
-      key:'triathlon-sprint',family:'triathlon',label:'Triathlon Sprint',confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:90,
+      key:'triathlon-sprint',family:'triathlon',label:'Triathlon Sprint',confidence:'contextual',programmingStatus:'contextual',sessionDurationMin:90,
+      swimKm:.75,bikeKm:20,runKm:5,longCourse:false,
       formatSummary:'750 m nuoto + circa 20 km bici + 5 km corsa.',formatDetails:['Nuoto 0,75 km','Bici circa 20 km','Corsa 5 km','T1 e T2'],
-      demands:{...families.triathlon.demands,threshold:5,fueling:2}
+      keyRoles:['Tecnica ed efficienza in acqua','Ciclismo specifico','Corsa ad alta intensità aerobica','Brick breve e transizioni'],
+      sourceKeys:['worldTriathlon','worldTriathlonRules','triathlonTransition','triathlonVariableBike','triathlonOpenWater','concurrent'],
+      demands:{...families.triathlon.demands,threshold:5,power:4,fueling:2}
     },
     {
-      key:'triathlon-standard',family:'triathlon',label:'Triathlon Standard / Olimpico',confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:150,
+      key:'triathlon-standard',family:'triathlon',label:'Triathlon Standard / Olimpico',confidence:'contextual',programmingStatus:'contextual',sessionDurationMin:150,
+      swimKm:1.5,bikeKm:40,runKm:10,longCourse:false,
       formatSummary:'1,5 km nuoto + 40 km bici + 10 km corsa.',formatDetails:['Nuoto 1,5 km','Bici 40 km','Corsa 10 km','T1 e T2'],
+      keyRoles:['Tecnica ed efficienza in acqua','Ciclismo sostenuto','Corsa specifica','Brick e transizioni','Pacing'],
+      sourceKeys:['worldTriathlon','worldTriathlonRules','triathlonTransition','triathlonVariableBike','triathlonOpenWater','concurrent'],
       demands:{...families.triathlon.demands,fueling:3}
     },
     {
-      key:'ironman-70-3',family:'triathlon',label:'IRONMAN 70.3',confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:360,
+      key:'ironman-70-3',family:'triathlon',label:'IRONMAN 70.3',confidence:'contextual',programmingStatus:'contextual',sessionDurationMin:360,
+      swimKm:1.9,bikeKm:90,runKm:21.1,longCourse:true,
       formatSummary:'1,9 km nuoto + 90 km bici + 21,1 km corsa.',formatDetails:['Nuoto 1,9 km','Bici 90 km','Corsa 21,1 km','Totale 113 km / 70.3 mi'],
+      keyRoles:['Nuoto continuo e open-water skills','Endurance e pacing bici','Corsa su fatica','Brick controllato','Fueling'],
+      sourceKeys:['ironmanFormat','ironmanRules','triathlonTransition','triathlonVariableBike','triathlonOpenWater','triathlonFueling','concurrent'],
       demands:{...families.triathlon.demands,aerobic:5,threshold:3,impact:4,pacing:5,fueling:5}
     },
     {
-      key:'ironman-full',family:'triathlon',label:'IRONMAN Full',confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:720,
+      key:'ironman-full',family:'triathlon',label:'IRONMAN Full',confidence:'contextual',programmingStatus:'contextual',sessionDurationMin:720,
+      swimKm:3.8,bikeKm:180,runKm:42.2,longCourse:true,
       formatSummary:'3,8 km nuoto + 180 km bici + 42,2 km corsa.',formatDetails:['Nuoto 3,8 km','Bici 180 km','Corsa 42,2 km','Totale 226 km / 140.6 mi'],
+      keyRoles:['Nuoto continuo e open-water skills','Lungo bici e pacing','Corsa su fatica','Brick controllato','Fueling e gestione della durata'],
+      sourceKeys:['ironmanFormat','ironmanRules','triathlonTransition','triathlonVariableBike','triathlonOpenWater','triathlonFueling','concurrent'],
       demands:{...families.triathlon.demands,aerobic:5,threshold:2,impact:5,pacing:5,fueling:5}
     }
   ];

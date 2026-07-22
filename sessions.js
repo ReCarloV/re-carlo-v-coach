@@ -2,7 +2,7 @@
   const STORAGE_KEY = 'rc-training-sessions-v1';
   const VIEW_KEY = 'rc-plan-view-v1';
   const categoryMeta = {
-    running:{ label:'CORSA', css:'run' }, cycling:{ label:'RULLI', css:'bike' },
+    running:{ label:'CORSA', css:'run' }, swimming:{ label:'NUOTO', css:'swim' }, cycling:{ label:'BICI', css:'bike' },
     strength:{ label:'FORZA', css:'strength' }, hyrox:{ label:'HYROX SPEC', css:'hyrox' },
     metcon:{ label:'METCON', css:'metcon' }, test:{ label:'TEST', css:'test' }, recovery:{ label:'RECUPERO', css:'rest' }
   };
@@ -42,11 +42,12 @@
   let activeOutcomeEvidence=null;
   let activeActualEnduranceBlocks=[];
   const builderFields = {
+    swimming:[['name','Blocco','Es. Tecnica assetto'],['volume','Volume','10 min / 8 × 50 m'],['target','Target','RPE 5 · tecnica'],['rest','Recupero','20 s']],
     strength:[['name','Esercizio','Es. Bench press'],['sets','Serie','4'],['reps','Ripetizioni','5'],['loadKg','Carico previsto (kg)','80'],['target','Target','RIR 2 / 80% 1RM'],['rest','Recupero','2 min']],
     hyrox:[['name','Blocco / stazione','Es. Sled push'],['volume','Volume','4 × 25 m'],['target','Target','RPE 8'],['rest','Recupero','90 s']],
     metcon:[['name','Blocco / movimento','Es. Row'],['volume','Volume','12 cal'],['target','Target','RPE 8'],['rest','Recupero','30 s']]
   };
-  const builderInputNames = {strength:'strengthBlocks',hyrox:'hyroxStructuredBlocks',metcon:'metconStructuredBlocks'};
+  const builderInputNames = {swimming:'swimStructuredBlocks',strength:'strengthBlocks',hyrox:'hyroxStructuredBlocks',metcon:'metconStructuredBlocks'};
   const strengthExerciseLibrary = ['Back Squat','Barbell Row','Bench Press','Bulgarian Split Squat','Deadlift','Front Squat','Hip Thrust','Incline Bench Press','Military Press','Romanian Deadlift','Trap Bar Deadlift','Weighted Chin-up','Weighted Pull-up'];
 
   function migrateSession(session) {
@@ -116,8 +117,10 @@
     if (session.category === 'cycling') {
       const ftp = athleteFtp(); const hasFtp=Number(d.ftpMin)>0&&Number(d.ftpMax)>0;const ftpRange=hasFtp?`${d.ftpMin}–${d.ftpMax}% FTP`:'';const watts = hasFtp&&ftp ? `${Math.round(ftp*d.ftpMin/100)}–${Math.round(ftp*d.ftpMax/100)} W` : '';
       const phases=Array.isArray(d.rideBlocks)?d.rideBlocks.reduce((sum,item)=>sum+(item.type==='repeat'?(Number(item.repeats)||1)*(item.steps?.length||0):1),0):0;
-      return [`${session.durationMin} min`,d.rideType,ftpRange,watts,d.cadence ? `${d.cadence} rpm` : '',phases?`${phases} fasi programmate`:'',d.powerSource].filter(Boolean).join(' · ');
+      const brick=d.brickRun?`poi corsa ${d.brickRun.durationMin} min · ${d.brickRun.target}`:'';
+      return [`${session.durationMin} min`,d.rideType,ftpRange,watts,d.cadence ? `${d.cadence} rpm` : '',phases?`${phases} fasi programmate`:'',brick,d.powerSource].filter(Boolean).join(' · ');
     }
+    if (session.category === 'swimming') return [`${session.durationMin} min`,d.swimDistanceM?`${d.swimDistanceM} m`:'',d.swimType,d.swimRpe?`RPE ${d.swimRpe}`:'',Array.isArray(d.swimStructuredBlocks)&&d.swimStructuredBlocks.length?`${d.swimStructuredBlocks.length} blocchi`:'' ].filter(Boolean).join(' · ');
     if (session.category === 'strength') {
       const exercises = Array.isArray(d.strengthBlocks) ? d.strengthBlocks.slice(0,3).map(item => [item.name,item.sets && item.reps ? `${item.sets}×${item.reps}` : '',item.loadKg!==''&&item.loadKg!==null&&item.loadKg!==undefined?`@ ${item.loadKg} kg`:null].filter(Boolean).join(' ')).join(' · ') : String(d.exercises || '').split('\n').map(item => item.trim()).filter(Boolean).slice(0,3).join(' · ');
       return [`${session.durationMin} min`,d.strengthFocus,d.targetRir !== '' ? `RIR ${d.targetRir}` : '',exercises].filter(Boolean).join(' · ');
@@ -277,7 +280,7 @@
     document.querySelectorAll('[data-run-target]').forEach(field => field.classList.toggle('active', field.dataset.runTarget === runTargetInput.value));
   }
   function suggestedTitle() {
-    const fields = {running:'runType',cycling:'rideType',strength:'strengthFocus',hyrox:'hyroxFormat',metcon:'metconType',test:'testType',recovery:'recoveryType'};
+    const fields = {running:'runType',swimming:'swimType',cycling:'rideType',strength:'strengthFocus',hyrox:'hyroxFormat',metcon:'metconType',test:'testType',recovery:'recoveryType'};
     const field = form.elements.namedItem(fields[categoryInput.value]);
     return field?.value || categoryMeta[categoryInput.value].label;
   }
@@ -320,6 +323,7 @@
     const d=session?.details || {};
     renderRunBuilder(Array.isArray(d.runBlocks)?d.runBlocks:[]);
     renderRideBuilder(Array.isArray(d.rideBlocks)?d.rideBlocks:[]);
+    renderBuilder('swimming',Array.isArray(d.swimStructuredBlocks)?d.swimStructuredBlocks:[]);
     renderBuilder('strength',Array.isArray(d.strengthBlocks)?d.strengthBlocks:legacyRows(d.exercises,'strength'));
     renderBuilder('hyrox',Array.isArray(d.hyroxStructuredBlocks)?d.hyroxStructuredBlocks:legacyRows(d.hyroxBlocks,'hyrox'));
     renderBuilder('metcon',Array.isArray(d.metconStructuredBlocks)?d.metconStructuredBlocks:legacyRows(d.metconBlocks,'metcon'));
@@ -467,7 +471,7 @@
     performance.querySelectorAll('input,select').forEach(field=>field.disabled=skipped);
     skippedFields.querySelectorAll('input,select').forEach(field=>field.disabled=!skipped);
     const distanceField=document.getElementById('outcome-distance-field'),distanceInput=outcomeForm.elements.actualDistanceKm;
-    const isRunning=outcomeForm.dataset.category==='running';distanceField.hidden=!isRunning;distanceInput.disabled=skipped||!isRunning;
+    const hasDistance=['running','swimming'].includes(outcomeForm.dataset.category);distanceField.hidden=!hasDistance;distanceInput.disabled=skipped||!hasDistance;
     const strengthFields=document.getElementById('strength-performance-fields');strengthFields.hidden=skipped||outcomeForm.dataset.category!=='strength'||strengthFields.dataset.hasRows!=='true';
     const enduranceFields=document.getElementById('endurance-performance-fields');enduranceFields.hidden=skipped||!['running','cycling'].includes(outcomeForm.dataset.category)||enduranceFields.dataset.hasRows!=='true';
     document.getElementById('skip-reason-impact').textContent=skipReasonModel.impact(outcomeForm.elements.skipReason.value);
@@ -499,7 +503,7 @@
     if(outcome.status==='skipped')addMetric('MOTIVO',outcome.skipReason?skipReasonModel.label(outcome.skipReason):'Non specificato');
     else{
       addMetric('DURATA REALE',metricValue(outcome.actualDurationMin,' min'));
-      if(session.category==='running')addMetric('DISTANZA REALE',metricValue(outcome.actualDistanceKm,' km'));
+      if(['running','swimming'].includes(session.category))addMetric('DISTANZA REALE',metricValue(outcome.actualDistanceKm,' km'));
       addMetric('RPE SEDUTA',metricValue(outcome.rpe,' / 10'));
       addMetric('CARICO INTERNO',metricValue(outcome.sessionLoad,' AU'));
       addMetric('RISPETTO AL PIANO',({easier:'Più facile','as-planned':'Come previsto',harder:'Più impegnativa'}[outcome.execution]||'—'));
@@ -532,6 +536,7 @@
     if(outcome.notes){const notes=outcomeRecordElement('div','outcome-record-notes');notes.append(outcomeRecordElement('small','',session.category==='strength'?'NOTE E COMPLEMENTARI':'NOTE POST-ALLENAMENTO'),outcomeRecordElement('p','',outcome.notes));holder.append(notes);}
     const reference=outcomeRecordElement('details','outcome-plan-reference'),referenceSummary=outcomeRecordElement('summary','','Vedi programmazione originale'),referenceBody=outcomeRecordElement('div','outcome-plan-reference-body');referenceBody.append(outcomeRecordElement('strong','',session.title),outcomeRecordElement('span','',targetText(session)));
     if(session.category==='strength'&&Array.isArray(session.details?.strengthBlocks)&&session.details.strengthBlocks.length){const list=outcomeRecordElement('ul');session.details.strengthBlocks.forEach(block=>{const prescription=[block.sets&&block.reps?`${block.sets}×${block.reps}`:block.reps?`${block.reps} rip.`:null,block.loadKg!==''&&block.loadKg!==null&&block.loadKg!==undefined?`@ ${block.loadKg} kg`:null,block.target||null].filter(Boolean).join(' · ');list.append(outcomeRecordElement('li','',`${block.name}${prescription?` — ${prescription}`:''}`));});referenceBody.append(list);}
+    if(session.category==='swimming'&&Array.isArray(session.details?.swimStructuredBlocks)&&session.details.swimStructuredBlocks.length){const list=outcomeRecordElement('ul');session.details.swimStructuredBlocks.forEach(block=>list.append(outcomeRecordElement('li','',`${block.name||'Blocco'} — ${[block.volume,block.target,block.rest?`rec. ${block.rest}`:''].filter(Boolean).join(' · ')}`)));referenceBody.append(list);}
     if(['running','cycling'].includes(session.category)){const planned=prescriptionModel?.plannedBlocks?.(session)||[];if(planned.length){const list=outcomeRecordElement('ul');planned.forEach(block=>list.append(outcomeRecordElement('li','',`${prescriptionModel.blockLabel(block)} — ${prescriptionModel.blockSummary(block)}`)));referenceBody.append(list);}}
     reference.append(referenceSummary,referenceBody);holder.append(reference);
     const actions=outcomeRecordElement('div','outcome-record-actions'),editPlan=outcomeRecordElement('button','ghost','Modifica programmazione'),editRecord=outcomeRecordElement('button','primary','Modifica registrazione'),closeRecord=outcomeRecordElement('button','ghost','Chiudi');[editPlan,editRecord,closeRecord].forEach(button=>button.type='button');editPlan.addEventListener('click',()=>{closeOutcome();open(session);});editRecord.addEventListener('click',()=>setOutcomeMode(session,true));closeRecord.addEventListener('click',closeOutcome);actions.append(closeRecord,editPlan,editRecord);holder.append(actions);
@@ -558,6 +563,7 @@
   }
   function detailsFromForm(data, category) {
     if (category === 'running') return {runType:data.get('runType'),distanceKm:Number(data.get('distanceKm')) || null,runTarget:data.get('runTarget'),hrZone:data.get('hrZone'),paceMin:Number(data.get('paceMin')),paceSec:Number(data.get('paceSec')),runRpe:Number(data.get('runRpe')),runBlocks:JSON.parse(data.get('runBlocks')||'[]')};
+    if (category === 'swimming') return {swimType:data.get('swimType'),swimDistanceM:Number(data.get('swimDistanceM'))||null,swimRpe:Number(data.get('swimRpe')),swimStructuredBlocks:builderRows('swimming')};
     if (category === 'cycling') return {rideType:data.get('rideType'),powerSource:data.get('powerSource'),ftpMin:Number(data.get('ftpMin')),ftpMax:Number(data.get('ftpMax')),cadence:Number(data.get('cadence')),rideBlocks:JSON.parse(data.get('rideBlocks')||'[]')};
     if (category === 'strength') return {strengthFocus:data.get('strengthFocus'),targetRir:Number(data.get('targetRir')),strengthBlocks:builderRows('strength'),strengthAccessories:data.get('strengthAccessories').trim()};
     if (category === 'hyrox') return {hyroxFormat:data.get('hyroxFormat'),hyroxRpe:Number(data.get('hyroxRpe')),hyroxStructuredBlocks:builderRows('hyrox')};
@@ -600,7 +606,7 @@
     event.preventDefault();const data=new FormData(outcomeForm),id=data.get('sessionId'),existing=sessions.find(item=>item.id===id);if(!existing)return;
     if(!canRecordOutcome(existing)){closeOutcome();window.alert(outcomeLockedMessage(existing));return;}
     const status=data.get('status'),skipped=status==='skipped',duration=skipped?null:Number(data.get('actualDurationMin')),rpe=skipped?null:Number(data.get('rpe'));
-    const actualDistanceKm=!skipped&&existing.category==='running'&&data.get('actualDistanceKm')?Number(data.get('actualDistanceKm')):null;let deviceEvidence=null;
+    const actualDistanceKm=!skipped&&['running','swimming'].includes(existing.category)&&data.get('actualDistanceKm')?Number(data.get('actualDistanceKm')):null;let deviceEvidence=null;
     if(!skipped&&activeOutcomeEvidence?.sessionId===id&&executionModel)deviceEvidence=executionModel.createDeviceEvidenceSnapshot(activeOutcomeEvidence,{actualDurationMin:duration,actualDistanceKm},new Date());
     else if(!skipped&&existing.outcome?.deviceEvidence)deviceEvidence=existing.outcome.deviceEvidence;
     const outcome={status,actualDurationMin:duration,actualDistanceKm,rpe,sessionLoad:skipped?0:Math.round(duration*rpe),execution:skipped?null:data.get('execution'),pain:skipped?null:Number(data.get('pain')),skipReason:skipped?data.get('skipReason'):null,notes:data.get('outcomeNotes').trim(),...(existing.category==='strength'?{strengthPerformance:skipped?[]:strengthPerformanceFromForm()}:{}),...(['running','cycling'].includes(existing.category)&&!skipped&&activeActualEnduranceBlocks.length?{actualEnduranceBlocks:endurancePerformanceFromForm()}:{}),...(deviceEvidence?{deviceEvidence}:{}),recordedAt:existing.outcome?.recordedAt||new Date().toISOString(),updatedAt:new Date().toISOString()};

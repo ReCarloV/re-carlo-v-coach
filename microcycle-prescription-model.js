@@ -7,7 +7,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(programming,eventDemand){
   'use strict';
 
-  const VERSION='1.2.0';
+  const VERSION='1.3.0';
   const priorityRank={essential:3,important:2,optional:1};
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const sentence=value=>{const text=String(value||'');return text?`${text[0].toUpperCase()}${text.slice(1)}`:text;};
@@ -21,9 +21,12 @@
   const hyrox=(label='HYROX specifico')=>role('hyrox',label,'essential','Unica seduta ibrida chiave coordinata con corsa e forza.');
   const obstacle=(key='obstacle',label='OCR specifico',priority='essential',reason='Tecnica, grip, carry e transizioni vengono integrati in blocchi frazionati e verificabili.')=>role(key,label,priority,reason,{role:'obstacle'});
   const athx=(key='athx-combined',label='ATHX specifico',priority='essential',reason='Le richieste ATHX vengono preparate in blocchi distinti e verificabili.')=>role(key,label,priority,reason,{role:'athx',athxRole:key});
+  const triathlon=(key,label,priority='essential',reason='Le discipline e le transizioni vengono dosate separatamente.')=>role(key,label,priority,reason,{role:key.replace(/-\d+$/,''),triathlonRole:key.replace(/-\d+$/,'')});
 
   function sessionRole(item={}){
     if(item.details?.runType==='Race'||item.goalGenerated)return'race';
+    if(item.details?.triathlonRole)return item.details.triathlonRole;
+    if(item.category==='swimming')return'tri-swim';
     if(item.category==='running'&&(item.details?.runType==='Long run'||/lungo/i.test(item.title||'')))return'long';
     if(item.category==='running'){
       const text=`${item.details?.runType||''} ${item.title||''}`.toLowerCase();
@@ -145,6 +148,24 @@
     ][count-1]||[];
   }
 
+  function triathlonRoles(pack,count){
+    const definition=pack?.definition||{},longCourse=Boolean(definition.longCourse),label=definition.label||'Triathlon';
+    const swimTechnique=triathlon('tri-swim',`Nuoto · tecnica ed efficienza`,'essential','Assetto, respirazione e continuità precedono l’intensità; nessun passo viene inventato senza un test reale.');
+    const swimEndurance=triathlon('tri-swim-2',longCourse?'Nuoto · continuità e open-water skills':'Nuoto · aerobico / ritmo controllato','important','Una seconda esposizione consolida continuità e abilità specifiche senza aumentare insieme volume e densità.');
+    const bike=triathlon('tri-bike',longCourse?'Bici · endurance, pacing e fueling':'Bici · qualità specifica','essential','Il carico ciclistico usa FTP/RPE e profilo dell’evento senza autorizzare automaticamente più corsa.');
+    const run=triathlon('tri-run',longCourse?'Corsa · endurance su fatica controllata':'Corsa · ritmo specifico','essential','La tolleranza meccanica running resta distinta dal carico a basso impatto della bici.');
+    const brick=triathlon('tri-brick','Brick bici-corsa e transizioni','essential','T2 e corsa successiva vengono allenate in blocchi controllati, non con una simulazione completa automatica.');
+    const strengthRole=strength();strengthRole.reason=`Forza di supporto compatibile con i carichi chiave di ${label}.`;
+    return[
+      [brick],
+      [swimTechnique,brick],
+      [swimTechnique,bike,run],
+      [swimTechnique,bike,run,brick],
+      [swimTechnique,bike,run,brick,strengthRole],
+      [swimTechnique,swimEndurance,bike,run,brick,strengthRole]
+    ][count-1]||[];
+  }
+
   function genericRoles(count){
     const fallback=[
       [easy()],
@@ -179,6 +200,9 @@
     if(descriptor.role===actual)return true;
     if(descriptor.role==='strength')return actual.startsWith('strength');
     if(descriptor.role.startsWith('strength-')&&actual==='strength')return true;
+    if(descriptor.role==='tri-swim'&&actual==='swimming')return true;
+    if(descriptor.role==='tri-bike'&&actual==='cycling')return true;
+    if(descriptor.role==='tri-run'&&['easy','quality','long'].includes(actual))return true;
     if(descriptor.role==='long'&&actual==='race'&&preparatoryEvent&&session.goalId===preparatoryEvent.id)return true;
     return false;
   }
@@ -200,6 +224,8 @@
         ?obstacleRoles(pack,count)
         :pack?.family==='athx'&&pack.status!=='pending'
           ?athxRoles(pack,count)
+          :pack?.family==='triathlon'&&pack.status!=='pending'
+            ?triathlonRoles(pack,count)
           :genericRoles(count);
     const primaryEvent=goal&&weekStart&&eventInWeek(goal,weekStart,weekEnd)?goal:null;
     const secondaryEvents=weekStart?goals.filter(item=>item.id!==goal?.id&&eventInWeek(item,weekStart,weekEnd)).map(item=>({goal:item,relation:eventDemand?.relationFor?.(goal,item,weekStart)||null})):[];
@@ -227,6 +253,9 @@
     });
     const warnings=[];
     if(pack?.status==='pending')warnings.push('Il formato non dispone ancora di un pack prescrittivo revisionato: il Coach usa soltanto ruoli generici e conservativi.');
+    if(pack?.family==='triathlon'&&count<3)warnings.push('Con meno di tre sedute la settimana non copre stabilmente nuoto, bici e corsa: il Coach mostra il limite invece di fingere una preparazione completa.');
+    const weeklyCapacity=count*Math.max(0,Number(input.sessionMinutes)||0);
+    if(pack?.family==='triathlon'&&pack.definition?.longCourse&&(count<5||weeklyCapacity&&weeklyCapacity<300))warnings.push('La disponibilità dichiarata è ridotta per un obiettivo long-course: il piano resta contestuale e la confidenza sulla copertura di 70.3/Full viene abbassata.');
     const uncoveredEvents=allRoles.filter(item=>item.role==='race'&&item.status!=='covered');
     if(uncoveredEvents.length)warnings.push('La gara della settimana non risulta ancora presente tra le sedute protette: sincronizza l’obiettivo prima di confermare il piano.');
     if(extras.length)warnings.push(`${extras.length} sedut${extras.length===1?'a protetta occupa':'e protette occupano'} spazio nel microciclo senza essere riscritt${extras.length===1?'a':'e'} dal Coach.`);

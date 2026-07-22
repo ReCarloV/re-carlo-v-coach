@@ -12,7 +12,7 @@
   const deviceValue=(value,source)=>value===null?null:{value,source};
 
   function chooseDuration(session,strava,whoop){
-    const stravaMin=stravaDuration(strava),whoopMin=whoopDuration(whoop);const endurance=['running','cycling'].includes(session?.category);let selected=null;
+    const stravaMin=stravaDuration(strava),whoopMin=whoopDuration(whoop);const endurance=['running','swimming','cycling'].includes(session?.category);let selected=null;
     if(endurance)selected=deviceValue(stravaMin,'strava')||deviceValue(whoopMin,'whoop');
     else selected=deviceValue(whoopMin,'whoop')||deviceValue(stravaMin,'strava');
     const difference=stravaMin!==null&&whoopMin!==null?Math.abs(stravaMin-whoopMin):null;const reference=Math.max(stravaMin||0,whoopMin||0);const conflict=difference!==null&&difference>Math.max(10,reference*.25);
@@ -26,7 +26,7 @@
   function buildSessionEvidence(session,input={}){
     if(!session?.id)return null;const decisions=Array.isArray(input.decisions)?input.decisions:[];const decision=decisions.find(item=>item.status==='confirmed'&&item.sessionId===session.id);if(!decision)return null;
     const strava=(input.stravaActivities||[]).find(item=>item.id===decision.stravaActivityId)||null;const whoop=(input.whoopWorkouts||[]).find(item=>item.id===decision.whoopWorkoutId)||null;if(!strava&&!whoop)return null;
-    const duration=chooseDuration(session,strava,whoop);const observedDistance=['running','cycling'].includes(session.category)?distanceKm(strava):null;const plannedDuration=number(session.durationMin);const plannedDistance=planDistance(session);const selectedDuration=duration.selected?.value??null;const movingSeconds=number(strava?.movingSec);const paceSeconds=session.category==='running'&&observedDistance&&movingSeconds?movingSeconds/observedDistance:null;const sourceCount=Number(Boolean(strava))+Number(Boolean(whoop));const warnings=[];
+    const duration=chooseDuration(session,strava,whoop);const observedDistance=['running','swimming','cycling'].includes(session.category)?distanceKm(strava):null;const plannedDuration=number(session.durationMin);const swimDistanceM=number(session.details?.swimDistanceM);const plannedDistance=session.category==='swimming'&&swimDistanceM&&swimDistanceM>0?swimDistanceM/1000:planDistance(session);const selectedDuration=duration.selected?.value??null;const movingSeconds=number(strava?.movingSec);const paceSeconds=session.category==='running'&&observedDistance&&movingSeconds?movingSeconds/observedDistance:null;const sourceCount=Number(Boolean(strava))+Number(Boolean(whoop));const warnings=[];
     if(duration.conflict)warnings.push(`Le durate Strava e WHOOP differiscono di ${Math.round(duration.differenceMin)} minuti: controlla il valore prima di salvare.`);
     return{
       sessionId:session.id,decisionId:decision.id,date:session.date,stravaActivityId:strava?.id||null,whoopWorkoutId:whoop?.id||null,sourceCount,matchConfidence:number(decision.confidence),quality:quality(decision,sourceCount,duration.conflict),warnings,

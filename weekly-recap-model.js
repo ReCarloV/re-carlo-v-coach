@@ -13,7 +13,7 @@
     progress:{title:'Progressione controllata',tone:'good'}
   };
   const confidenceMeta={low:{label:'Bassa',tone:'warn'},medium:{label:'Media',tone:'neutral'},high:{label:'Alta',tone:'good'}};
-  const categoryLabels={running:'Corsa',cycling:'Rulli',strength:'Forza',hyrox:'HYROX',metcon:'Metcon',test:'Test',recovery:'Recupero'};
+  const categoryLabels={running:'Corsa',swimming:'Nuoto',cycling:'Bici',strength:'Forza',hyrox:'HYROX',metcon:'Metcon',test:'Test',recovery:'Recupero'};
 
   function iso(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
   function dateAtNoon(value){return new Date(`${value}T12:00:00`);}

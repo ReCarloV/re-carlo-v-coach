@@ -94,6 +94,7 @@
   function regionsForSession(session) {
     if (!session) return ['lower','upper','trunk','head','unknown'];
     if (['running','cycling'].includes(session.category)) return ['lower','trunk'];
+    if (session.category === 'swimming') return ['upper','trunk'];
     if (session.category === 'strength') {
       const focus = String(session.details?.strengthFocus || '').toLowerCase();
       if (/upper/.test(focus)) return ['upper','trunk'];

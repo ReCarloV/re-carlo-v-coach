@@ -3,7 +3,7 @@
   const model=window.rcReconciliationModel;const store=window.rcDataStore;const panel=document.getElementById('reconciliation-panel');if(!model||!store||!panel)return;
   const list=document.getElementById('reconciliation-list');const moreButton=document.getElementById('reconciliation-more');const confirmHighButton=document.getElementById('reconciliation-confirm-high');const cutoffButton=document.getElementById('reconciliation-ignore-old');const cutoffNote=document.getElementById('reconciliation-cutoff-note');const history=document.getElementById('reconciliation-history');let visible=6;let current=null;
   const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
-  const categoryLabels={running:'Corsa',cycling:'Ciclismo',strength:'Forza',hyrox:'HYROX Spec',metcon:'Metcon',test:'Test',recovery:'Recupero',outdoor:'Outdoor',other:'Altro'};
+  const categoryLabels={running:'Corsa',swimming:'Nuoto',cycling:'Ciclismo',strength:'Forza',hyrox:'HYROX Spec',metcon:'Metcon',test:'Test',recovery:'Recupero',outdoor:'Outdoor',other:'Altro'};
   const formatDate=key=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||'')))return'—';const [year,month,day]=key.split('-').map(Number);return new Date(year,month-1,day).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',year:'numeric'});};
   const localDateKey=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
   const recentCutoff=()=>{const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()-30);return localDateKey(date);};

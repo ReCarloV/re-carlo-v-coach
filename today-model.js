@@ -11,7 +11,7 @@
   'use strict';
 
   const categoryMeta = {
-    running:{label:'CORSA',css:'run'},cycling:{label:'RULLI',css:'bike'},strength:{label:'FORZA',css:'strength'},
+    running:{label:'CORSA',css:'run'},swimming:{label:'NUOTO',css:'swim'},cycling:{label:'BICI',css:'bike'},strength:{label:'FORZA',css:'strength'},
     hyrox:{label:'HYROX SPEC',css:'hyrox'},metcon:{label:'METCON',css:'metcon'},test:{label:'TEST',css:'test'},recovery:{label:'RECUPERO',css:'rest'}
   };
   const priorityRank = {essential:0,important:1,optional:2};
@@ -75,10 +75,10 @@
     return (Array.isArray(items)?items:[]).filter(issue=>issue.status!=='resolved').map(issue=>symptomModel?symptomModel.decorate(issue,today):{...issue,latestPain:Number(issue.latestPain??issue.initialPain)||0,isFresh:true,requiresUpdate:false}).sort((a,b)=>Number(b.isFresh)-Number(a.isFresh)||(Number(b.latestPain)||0)-(Number(a.latestPain)||0));
   }
   function issueRegion(issue){const zone=String(issue?.zone||''),label=String(issue?.zoneLabel||'');if(/^(hip|quad|knee|ankle|glute|hamstring|calf)(-|$)/.test(zone)||/(anca|quadricipite|ginocchio|caviglia|gluteo|femorale|polpaccio)/i.test(label))return 'lower';if(/^(shoulder|elbow|wrist)(-|$)/.test(zone)||/(spalla|gomito|polso)/i.test(label))return 'upper';if(/^(chest|upper-back|lower-back|neck)(-|$)/.test(zone)||/(petto|dorso|schiena|lombare|collo)/i.test(label))return 'trunk';if(/^head(?:-|$)/.test(zone)||/testa/i.test(label))return 'head';return 'unknown';}
-  function regionsForSession(session){if(!session)return new Set(['lower','upper','trunk','head','unknown']);if(['running','cycling'].includes(session.category))return new Set(['lower','trunk','head','unknown']);if(session.category==='strength'){const focus=String(session.details?.strengthFocus||'').toLowerCase();if(/upper/.test(focus))return new Set(['upper','trunk','head','unknown']);if(/lower/.test(focus))return new Set(['lower','trunk','head','unknown']);}return new Set(['lower','upper','trunk','head','unknown']);}
+  function regionsForSession(session){if(!session)return new Set(['lower','upper','trunk','head','unknown']);if(['running','cycling'].includes(session.category))return new Set(['lower','trunk','head','unknown']);if(session.category==='swimming')return new Set(['upper','trunk','head','unknown']);if(session.category==='strength'){const focus=String(session.details?.strengthFocus||'').toLowerCase();if(/upper/.test(focus))return new Set(['upper','trunk','head','unknown']);if(/lower/.test(focus))return new Set(['lower','trunk','head','unknown']);}return new Set(['lower','upper','trunk','head','unknown']);}
   function sessionSubtype(session) {
     const details=session.details||{};
-    return {running:details.runType,cycling:details.rideType,strength:details.strengthFocus,hyrox:details.hyroxFormat,metcon:details.metconType,test:details.testType,recovery:details.recoveryType}[session.category]||'';
+    return {running:details.runType,swimming:details.swimType,cycling:details.rideType,strength:details.strengthFocus,hyrox:details.hyroxFormat,metcon:details.metconType,test:details.testType,recovery:details.recoveryType}[session.category]||'';
   }
   function sessionTag(session) {
     const meta=categoryMeta[session.category]||{label:String(session.category||'SEDUTA').toUpperCase(),css:'rest'};
@@ -108,11 +108,18 @@
         {label:'Obiettivo',value:target}
       ];
     }
+    if(session.category==='swimming'){
+      const blocks=Array.isArray(details.swimStructuredBlocks)?details.swimStructuredBlocks:[];
+      if(blocks.length)return blocks.map(item=>({label:item.name||'Blocco',value:[item.volume,item.target,item.rest?`rec. ${item.rest}`:''].filter(Boolean).join(' · '),intensity:/rpe\s*(7|8|9|10)|soglia|css/i.test(`${item.target||''} ${item.name||''}`)?'threshold':'easy'}));
+      return[{label:'Durata',value:`${session.durationMin} min`},...(details.swimDistanceM?[{label:'Distanza',value:`${details.swimDistanceM} m`}]:[]),{label:'Obiettivo',value:[details.swimType,details.swimRpe?`RPE ${details.swimRpe}`:''].filter(Boolean).join(' · ')||'Tecnica controllata'}];
+    }
     if(session.category==='cycling'&&Array.isArray(details.rideBlocks)&&details.rideBlocks.length){
       const phaseLabels={warmup:'Riscaldamento',work:'Lavoro',recovery:'Recupero',cooldown:'Defaticamento'};
-      return details.rideBlocks.map(item=>item.type==='repeat'
+      const blocks=details.rideBlocks.map(item=>item.type==='repeat'
         ?{label:`${number(item.repeats)||1}× sequenza`,value:(item.steps||[]).map(formatSegment).join(' / ')||'Fasi da definire',intensity:item.intensity||item.steps?.[0]?.intensity||'tempo'}
         :{label:phaseLabels[item.phase]||'Blocco',value:formatSegment(item),intensity:item.intensity||'easy'});
+      if(details.brickRun)blocks.push({label:'T2 → corsa',value:`${details.brickRun.durationMin} min · ${details.brickRun.target||'ritmo controllato'} · ${details.brickRun.transition||'transizione ordinata'}`,intensity:'tempo'});
+      return blocks;
     }
     if(session.category==='cycling'){
       const watts=number(details.ftpMin)&&number(details.ftpMax)?`${details.ftpMin}–${details.ftpMax}% FTP`:'Da definire';
@@ -153,6 +160,7 @@
   function sessionSummary(session) {
     const details=session.details||{}; const parts=[`${session.durationMin} min`,priorityLabel[session.priority]];
     if(session.category==='running'&&details.distanceKm)parts.splice(1,0,`${details.distanceKm} km`);
+    if(session.category==='swimming'&&details.swimDistanceM)parts.splice(1,0,`${details.swimDistanceM} m`);
     if(session.category==='cycling'&&details.ftpMin&&details.ftpMax)parts.splice(1,0,`${details.ftpMin}–${details.ftpMax}% FTP`);
     if(session.outcome?.status==='skipped')return `Non svolta${session.outcome.skipReason?` · ${skipReasonModel.label(session.outcome.skipReason)}`:''}`;
     if(performed(session))return [outcomeLabel[session.outcome.status],session.outcome.actualDurationMin?`${session.outcome.actualDurationMin} min reali`:'',session.outcome.rpe?`RPE ${session.outcome.rpe}`:''].filter(Boolean).join(' · ');
@@ -182,6 +190,7 @@
     }
     return {
       running:'Mantieni intensità controllata e tecnica pulita; esegui circa il 75% del volume e interrompi ciò che aumenta il fastidio.',
+      swimming:'Proteggi riscaldamento e tecnica; riduci il volume centrale e interrompi se assetto o sintomi peggiorano.',
       strength:'Una serie in meno sui fondamentali, almeno RIR 3 e nessun cedimento; elimina gli accessori se necessario.',
       cycling:'Resta in intensità facile e regolare, circa Z1–Z2 o 5–10% FTP sotto il target previsto.',
       hyrox:'Riduci del 25% volume e densità; niente tentativi massimali e corsa soltanto se ben tollerata.',

@@ -8,7 +8,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(raceCoach,methodology,programming){
   'use strict';
 
-  const VERSION='2.1.0';
+  const VERSION='2.2.0';
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const guard=(key,label,state,detail,tone='neutral')=>({key,label,state,detail,tone});
 
@@ -46,6 +46,8 @@
   }
   function roleFor(session){
     if(session?.details?.runType==='Race'||session?.goalGenerated)return'race';
+    if(session?.details?.triathlonRole)return session.details.triathlonRole;
+    if(session?.category==='swimming')return'tri-swim';
     if(session?.category==='running'){
       if(session.details?.runType==='Long run'||/\b(long|lungo)\b/i.test(session.title||''))return'long';
       const text=`${session.details?.runType||''} ${session.title||''}`;return/interval|tempo|threshold|progress|quality|marathon pace|ripetut|soglia|medio/i.test(text)||session.priority==='essential'?'quality':'easy';
@@ -112,6 +114,16 @@
       }
       const fullSimulations=active.filter(item=>roleFor(item)==='athx'&&/simulazione completa|full simulation|2[,\.]?5\s*ore/i.test(`${item.title||''} ${item.notes||''}`)).length;
       if(fullSimulations)warnings.push(`${context.phase.label}: ${fullSimulations} simulazion${fullSimulations===1?'e completa ATHX non viene':'i complete ATHX non vengono'} trattata come seduta automatica obbligatoria.`);
+    }
+    if(context.goal?.type==='triathlon'){
+      const bricks=counts['tri-brick']||0,maxBrick=Number(limits.maxTriBrick??1);
+      if(bricks>maxBrick)warnings.push(`${context.phase.label}: risultano ${bricks} brick; il limite operativo è ${maxBrick}. Bici e corsa non vengono fatte crescere insieme senza esiti separati compatibili.`);
+      if(context.phase.key==='race-week'){
+        const hard=active.filter(item=>['tri-swim','tri-bike','tri-run','tri-brick'].includes(roleFor(item))&&(Number(item.details?.swimRpe||item.details?.runRpe||0)>=7||Number(item.durationMin||0)>60)).length;
+        if(hard)warnings.push(`${context.phase.label}: ${hard} sedut${hard===1?'a supera':'e superano'} il richiamo previsto; la race week protegge freschezza nelle tre discipline.`);
+      }
+      const fullSimulations=active.filter(item=>['tri-swim','tri-bike','tri-run','tri-brick'].includes(roleFor(item))&&/simulazione completa|full simulation|full race simulation|gara completa/i.test(`${item.title||''} ${item.notes||''}`)).length;
+      if(fullSimulations)warnings.push(`${context.phase.label}: ${fullSimulations} simulazion${fullSimulations===1?'e completa non viene':'i complete non vengono'} trattata come seduta automatica obbligatoria dal pack triathlon.`);
     }
     return{counts,warnings};
   }

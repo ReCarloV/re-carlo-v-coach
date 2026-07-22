@@ -19,7 +19,7 @@
   const APP_NAME = 'Re Carlo V Personal Coach';
   const BACKUP_VERSION = 9;
   const MAX_PROFILE_PHOTO_BYTES = 2 * 1024 * 1024;
-  const sessionCategories = new Set(['running','cycling','strength','hyrox','metcon','test','recovery']);
+  const sessionCategories = new Set(['running','swimming','cycling','strength','hyrox','metcon','test','recovery']);
   const sessionPriorities = new Set(['essential','important','optional']);
   const outcomeStatuses = new Set(['completed','partial','skipped']);
   const weekDays = new Set(['Lun','Mar','Mer','Gio','Ven','Sab','Dom']);

@@ -134,6 +134,7 @@
   }
   function enrichSession(session,context={}){
     if(!session||session.outcome||!['running','cycling'].includes(session.category))return session;
+    if(session.details?.prescriptionLocked)return session;
     const blocks=session.category==='running'?runPrescription(session,context):ridePrescription(session,context);
     if(!blocks.length)return session;
     const key=session.category==='running'?'runBlocks':'rideBlocks',details={...(session.details||{}),[key]:blocks,prescriptionVersion:VERSION};

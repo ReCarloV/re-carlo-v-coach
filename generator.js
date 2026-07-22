@@ -3,8 +3,8 @@
   const PRE_KEY='rc-pre-session-checkins-v1';
   const modal=document.getElementById('generator-modal');
   const preview=document.getElementById('generator-preview');
-  const categoryLabels={running:'CORSA',cycling:'RULLI',strength:'FORZA',hyrox:'HYROX SPEC',metcon:'METCON',test:'TEST',recovery:'RECUPERO'};
-  const categoryClasses={running:'run',cycling:'bike',strength:'strength',hyrox:'hyrox',metcon:'metcon',test:'test',recovery:'rest'};
+  const categoryLabels={running:'CORSA',swimming:'NUOTO',cycling:'BICI',strength:'FORZA',hyrox:'HYROX SPEC',metcon:'METCON',test:'TEST',recovery:'RECUPERO'};
+  const categoryClasses={running:'run',swimming:'swim',cycling:'bike',strength:'strength',hyrox:'hyrox',metcon:'metcon',test:'test',recovery:'rest'};
   const adjustmentModel=window.rcWeeklyPlanAdjustmentModel;
   const applicationModel=window.rcAdaptiveApplicationModel;
   const phaseModel=window.rcPhaseConstraintsModel;
@@ -50,6 +50,40 @@
   function lowerStrength(minutes){return session('strength','Lower strength',Math.min(roundFive(minutes),70),'important',{strengthFocus:'Lower body',targetRir:2,strengthBlocks:[{name:'Back Squat',sets:'4',reps:'5',target:'RIR 2',rest:'3 min'},{name:'Romanian Deadlift',sets:'3',reps:'6',target:'RIR 2',rest:'2–3 min'}],strengthAccessories:'Unilaterali e core facoltativi, senza accumulare cedimento.'},'Conserva la forza degli arti inferiori con volume compatibile con la preparazione maratona.');}
   function fullStrength(minutes){return session('strength','Full body strength',Math.min(roundFive(minutes),70),'important',{strengthFocus:'Full body',targetRir:2,strengthBlocks:[{name:'Back Squat',sets:'3',reps:'5',target:'RIR 2',rest:'3 min'},{name:'Bench Press',sets:'3',reps:'5',target:'RIR 2',rest:'2–3 min'},{name:'Weighted Pull-up',sets:'3',reps:'5',target:'RIR 2',rest:'2–3 min'}],strengthAccessories:'Solo complementari essenziali se rimane tempo.'},'Un’unica seduta mantiene i principali pattern di forza nelle settimane più dense.');}
   function recoveryRide(minutes,rationale='Cardio a basso impatto per aggiungere lavoro aerobico favorendo il recupero.',priority='optional'){return session('cycling','Low impact recovery',Math.max(25,Math.min(roundFive(minutes),45)),priority,{rideType:'Recovery ride',powerSource:'Technogym Ride',ftpMin:50,ftpMax:60,cadence:90},rationale);}
+  function triathlonSwimForContract(minutes,phaseConstraints,contract,descriptor){
+    const mode=phaseConstraints?.limits?.triathlonMode||'foundation',longCourse=Boolean(contract?.pack?.overlay?.longCourse),second=/continuità|open-water|aerobico/i.test(descriptor?.label||'');
+    const duration=Math.max(30,Math.min(roundFive(minutes),mode==='primer'?40:70)),effort=mode==='primer'?5:mode==='race-specific'?7:6;
+    const blocks=second
+      ?[{name:'Riscaldamento + assetto',volume:'10 min',target:'RPE 3–4 · respirazione fluida',rest:'Libero'},{name:longCourse?'Continuità aerobica':'Aerobico controllato',volume:`${Math.max(15,duration-20)} min`,target:`RPE ${effort} · tecnica stabile`,rest:'Pause brevi se la tecnica cala'},{name:'Defaticamento',volume:'5–10 min',target:'Facile',rest:'—'}]
+      :[{name:'Riscaldamento tecnico',volume:'10 min',target:'RPE 3 · assetto e respirazione',rest:'Libero'},{name:'Tecnica + continuità',volume:`${Math.max(15,duration-20)} min`,target:`RPE ${Math.min(effort,6)} · qualità prima della velocità`,rest:'20–40 s tra blocchi'},{name:'Defaticamento',volume:'5–10 min',target:'Facile',rest:'—'}];
+    const type=second?(longCourse?'Open water skills / continuità':'Aerobico continuo'):'Tecnica / efficienza';
+    const rationale=`Il nuoto viene prescritto su tecnica, durata e RPE: CSS o passo non vengono inventati senza un test reale. ${contract?.pack?.overlay?.ruleCaution||''}`.trim();
+    return session('swimming',second?'Nuoto · continuità specifica':'Nuoto · tecnica ed efficienza',duration,descriptor?.priority||'essential',{swimType:type,swimDistanceM:null,swimRpe:effort,swimStructuredBlocks:blocks,triathlonRole:'tri-swim',triathlonVariant:contract?.pack?.key||null},rationale);
+  }
+  function triathlonBikeForContract(minutes,phaseConstraints,contract){
+    const mode=phaseConstraints?.limits?.triathlonMode||'foundation',longCourse=Boolean(contract?.pack?.overlay?.longCourse),primer=mode==='primer';
+    const duration=Math.max(35,Math.min(roundFive(minutes*(longCourse&&!primer?1.35:1)),longCourse?150:90));
+    const ftpMin=primer?55:longCourse?60:mode==='race-specific'?80:70,ftpMax=primer?70:longCourse?75:mode==='race-specific'?92:82;
+    const title=primer?'Bici · race activation':longCourse?'Bici · endurance e pacing':'Bici · qualità specifica';
+    const work=Math.max(15,duration-20),rideBlocks=[{type:'segment',phase:'warmup',unit:'min',amount:10,targetType:'ftp',target:'50–60% FTP',ftpMin:50,ftpMax:60,cadence:90,intensity:'easy'},{type:'segment',phase:'work',unit:'min',amount:work,targetType:'ftp',target:`${ftpMin}–${ftpMax}% FTP · potenza regolare`,ftpMin,ftpMax,cadence:88,intensity:longCourse?'endurance':'tempo'},{type:'segment',phase:'cooldown',unit:'min',amount:10,targetType:'ftp',target:'45–55% FTP',ftpMin:45,ftpMax:55,cadence:90,intensity:'easy'}];
+    const rationale=longCourse?'Pacing e continuità ciclistica hanno priorità; durata e intensità non crescono insieme e il fueling viene provato nei lavori adatti.':'Qualità ciclistica controllata e specifica; profilo del percorso e drafting restano da confermare sull’evento.';
+    return session('cycling',title,duration,'essential',{rideType:longCourse?'Endurance ride':'Tempo ride',powerSource:'Altro / da scegliere',ftpMin,ftpMax,cadence:88,rideBlocks,prescriptionLocked:true,triathlonRole:'tri-bike',triathlonVariant:contract?.pack?.key||null},rationale);
+  }
+  function triathlonRunForContract(minutes,analysis,phaseConstraints,contract){
+    const longCourse=Boolean(contract?.pack?.overlay?.longCourse),mode=phaseConstraints?.limits?.triathlonMode||'foundation';
+    let item=longCourse&&mode!=='primer'?longRun(Math.max(45,Math.min(roundFive(minutes*1.15),100)),analysis.level):qualityRunForPack(minutes,mode==='foundation',phaseConstraints);
+    if(mode==='primer')item=easyRun(Math.min(minutes,35));
+    const title=mode==='primer'?'Corsa · race activation':longCourse?'Corsa · endurance controllata':'Corsa · ritmo triathlon';
+    const rationale=`${item.rationale} La tolleranza meccanica viene letta dagli esiti running e non dedotta dal volume in bici.`;
+    return{...item,title,details:{...item.details,triathlonRole:'tri-run',triathlonVariant:contract?.pack?.key||null},rationale,notes:rationale};
+  }
+  function triathlonBrickForContract(minutes,phaseConstraints,contract){
+    const mode=phaseConstraints?.limits?.triathlonMode||'foundation',longCourse=Boolean(contract?.pack?.overlay?.longCourse),primer=mode==='primer';
+    const duration=Math.max(40,Math.min(roundFive(minutes),primer?45:90)),runMinutes=primer?8:longCourse?20:15,bikeMinutes=Math.max(25,duration-runMinutes-5),ftpMin=primer?55:longCourse?65:75,ftpMax=primer?70:longCourse?78:88;
+    const rideBlocks=[{type:'segment',phase:'warmup',unit:'min',amount:10,targetType:'ftp',target:'50–60% FTP',ftpMin:50,ftpMax:60,cadence:90,intensity:'easy'},{type:'segment',phase:'work',unit:'min',amount:Math.max(15,bikeMinutes-10),targetType:'ftp',target:`${ftpMin}–${ftpMax}% FTP · potenza stabile`,ftpMin,ftpMax,cadence:88,intensity:'tempo'}];
+    const rationale='Brick frazionato per T2, controllo del pacing e corsa successiva: la bici e la corsa non aumentano insieme e la seduta non simula l’intera gara.';
+    return session('cycling','Brick bici → corsa',duration,'essential',{rideType:'Brick ride',powerSource:'Altro / da scegliere',ftpMin,ftpMax,cadence:88,rideBlocks,prescriptionLocked:true,brickRun:{durationMin:runMinutes,target:longCourse?'RPE 5–6 · passo sostenibile':'RPE 6–7 · ritmo controllato',transition:'T2 rapida ma ordinata'},triathlonRole:'tri-brick',triathlonVariant:contract?.pack?.key||null},rationale);
+  }
   function hyroxSpecific(minutes,mode='foundation'){
     const presets={foundation:{title:'HYROX tecnica + engine',format:'HYROX stations',rpe:6,cap:55,blocks:[{name:'Tecnica SkiErg / Row',volume:'3 × 4 min',target:'RPE 6',rest:'2 min'},{name:'Sled + wall ball skill',volume:'3 giri tecnici',target:'Qualità',rest:'2 min'}],rationale:'Tecnica e base ibrida a costo controllato, senza simulazione prematura.'},specific:{title:'HYROX strength endurance',format:'HYROX partial simulation',rpe:7,cap:65,blocks:[{name:'Run + stations',volume:'4 × (800 m + 1 stazione)',target:'RPE 7',rest:'2 min'},{name:'Transizioni',volume:'4 ingressi',target:'Fluide',rest:'Incluso'}],rationale:'Forza resistente e transizioni progrediscono senza trasformare ogni settimana in una gara.'},'race-specific':{title:'HYROX compromised running',format:'HYROX partial simulation',rpe:8,cap:65,blocks:[{name:'Compromised run',volume:'5 × (1 km + stazione)',target:'Ritmo gara controllato',rest:'90 s'},{name:'Wall ball finish',volume:'3 × 20',target:'Tecnica gara',rest:'90 s'}],rationale:'Stimolo specifico su corsa compromessa e stazioni, dosato come unica seduta ibrida chiave.'},primer:{title:'HYROX race primer',format:'HYROX stations',rpe:6,cap:40,blocks:[{name:'Stazioni gara',volume:'4 × 2 min',target:'Tecnica brillante',rest:'2 min'},{name:'Transizioni',volume:'4 passaggi',target:'Fluide',rest:'Completo'}],rationale:'Primer tecnico breve: conserva ritmo e coordinazione senza fatica residua.'}};const preset=presets[mode]||presets.foundation;return session('hyrox',preset.title,Math.max(30,Math.min(roundFive(minutes),preset.cap)),'essential',{hyroxFormat:preset.format,hyroxRpe:preset.rpe,hyroxStructuredBlocks:preset.blocks},preset.rationale);
   }
@@ -131,6 +165,8 @@
   function isLowerStrength(item){return item.category==='strength'&&['Lower body','Full body'].includes(item.details?.strengthFocus);}
   function sessionRole(item){
     if(isRace(item))return 'race';
+    if(item.details?.triathlonRole)return item.details.triathlonRole;
+    if(item.category==='swimming')return'tri-swim';
     if(isLong(item))return 'long';
     if(item.category==='running'){const type=String(item.details?.runType||'').toLowerCase();return /(interval|tempo|threshold|progress|race)/.test(type)?'quality':'easy';}
     if(item.category==='strength')return `strength-${String(item.details?.strengthFocus||'').toLowerCase().replaceAll(' ','-')}`;
@@ -159,6 +195,10 @@
     else if(descriptor.role==='hyrox')item=hyroxSpecificForContract(adaptedMinutes,phaseConstraints,microcycle);
     else if(descriptor.role==='obstacle')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il lavoro OCR lascia spazio a cardio low impact finché il segnale lower body non viene rivalutato.','essential'):obstacleSpecificForContract(adaptedMinutes,phaseConstraints,microcycle,descriptor);
     else if(descriptor.role==='athx')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il lavoro ATHX ad alto impatto lascia spazio a cardio low impact finché il segnale lower body non viene rivalutato.','essential'):athxSpecificForContract(adaptedMinutes,phaseConstraints,microcycle,descriptor);
+    else if(descriptor.role==='tri-swim')item=triathlonSwimForContract(adaptedMinutes,phaseConstraints,microcycle,descriptor);
+    else if(descriptor.role==='tri-bike')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'La seduta bici viene mantenuta facile e rivalutata se il segnale lower body aumenta.','essential'):triathlonBikeForContract(adaptedMinutes,phaseConstraints,microcycle);
+    else if(descriptor.role==='tri-run')item=settings.suspendRunning?recoverySession(adaptedMinutes):triathlonRunForContract(adaptedMinutes,analysis,phaseConstraints,microcycle);
+    else if(descriptor.role==='tri-brick')item=settings.lowerBodyProtection||settings.suspendRunning?triathlonSwimForContract(adaptedMinutes,phaseConstraints,microcycle,{priority:'essential',label:'Nuoto tecnico sostitutivo'}):triathlonBrickForContract(adaptedMinutes,phaseConstraints,microcycle);
     else if(descriptor.role==='cycling')item=recoveryRide(adaptedMinutes);
     else if(descriptor.role==='recovery')item=recoverySession(adaptedMinutes);
     if(!item)return null;
@@ -241,7 +281,7 @@
     const stored=parse(WEEKLY_KEY,null);if(!stored)return {missing:true};const weekly={...stored,weekStart:mondayFor(stored.weekStart)};
     const dayIndex={Lun:0,Mar:1,Mer:2,Gio:3,Ven:4,Sab:5,Dom:6};const allSessions=window.rcSessions.getAll();const phaseDecision=phaseFor(weekly,allSessions,adaptationFor(weekly,allSessions)),analysis=phaseDecision.analysis,phaseConstraints=phaseDecision.context;
     const selected=(weekly.days||[]).map(day=>({day,index:dayIndex[day],date:dateFor(weekly.weekStart,dayIndex[day])})).filter(item=>Number.isInteger(item.index)).sort((a,b)=>a.index-b.index);if(!selected.length)return {missingDays:true,weekly};
-    const requested=Number(weekly.sessions)||5;const readinessCount=Math.max(1,Math.min(6,requested+analysis.settings.sessionDelta)),phaseCap=Number(phaseConstraints?.limits?.maxActiveSessions)||6,adaptedCount=Math.min(readinessCount,phaseCap);const end=addDays(weekly.weekStart,6);const today=localDate();const weekSessions=allSessions.filter(item=>item.date>=weekly.weekStart&&item.date<=end);const locked=lockedSessions(allSessions,weekly.weekStart,end,today),activeLocked=locked.filter(item=>item.adaptiveAdjustment?.status!=='paused');const lockedIds=new Set(locked.map(item=>item.id)),lockedDates=new Set(locked.map(item=>item.date));const available=selected.filter(slot=>slot.date>=today&&!lockedDates.has(slot.date));const importedPlan=weekSessions.filter(item=>item.planImport&&!lockedIds.has(item.id));const hasAppliedAdjustments=weekSessions.some(item=>item.adaptiveAdjustment&&!item.outcome&&!item.goalSubstitution&&item.date>today);const microcycle=microcycleModel?.build({goal:phaseDecision.goal,goals:phaseDecision.goals,weekStart:weekly.weekStart,sessionCount:adaptedCount,phaseConstraints,lockedSessions:activeLocked,analysis})||null;
+    const requested=Number(weekly.sessions)||5;const readinessCount=Math.max(1,Math.min(6,requested+analysis.settings.sessionDelta)),phaseCap=Number(phaseConstraints?.limits?.maxActiveSessions)||6,adaptedCount=Math.min(readinessCount,phaseCap);const end=addDays(weekly.weekStart,6);const today=localDate();const weekSessions=allSessions.filter(item=>item.date>=weekly.weekStart&&item.date<=end);const locked=lockedSessions(allSessions,weekly.weekStart,end,today),activeLocked=locked.filter(item=>item.adaptiveAdjustment?.status!=='paused');const lockedIds=new Set(locked.map(item=>item.id)),lockedDates=new Set(locked.map(item=>item.date));const available=selected.filter(slot=>slot.date>=today&&!lockedDates.has(slot.date));const importedPlan=weekSessions.filter(item=>item.planImport&&!lockedIds.has(item.id));const hasAppliedAdjustments=weekSessions.some(item=>item.adaptiveAdjustment&&!item.outcome&&!item.goalSubstitution&&item.date>today);const microcycle=microcycleModel?.build({goal:phaseDecision.goal,goals:phaseDecision.goals,weekStart:weekly.weekStart,sessionCount:adaptedCount,sessionMinutes:Number(weekly.sessionMinutes)||60,longSessionMinutes:Number(weekly.longRunMinutes)||120,phaseConstraints,lockedSessions:activeLocked,analysis})||null;
     let assigned,sourceMode='generated',adjustedPlan=null;
     if(importedPlan.length&&adjustmentModel){
       sourceMode='excel';const targetCount=Math.min(importedPlan.length,Math.max(0,adaptedCount-activeLocked.length),available.length);adjustedPlan=adjustmentModel.buildAdjustment({sessions:importedPlan,analysis,phaseConstraints,targetCount,now:new Date()});const slots=chooseSlots(available,adjustedPlan.active.length,adjustedPlan.active.some(isLong));const scheduled=assignImportedPlan(adjustedPlan.active,slots,analysis);assigned={sessions:[...scheduled.sessions,...adjustedPlan.paused].sort((a,b)=>a.date.localeCompare(b.date)),warnings:scheduled.warnings};

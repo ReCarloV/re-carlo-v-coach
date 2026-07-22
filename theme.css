@@ -436,6 +436,7 @@ html[data-theme="light"] .tag{border:1px solid transparent}
 html[data-theme="light"] .tag.run{border-color:#a6c5e7;background:#e7f1fd;color:#245f99}
 html[data-theme="light"] .tag.strength{border-color:#c9b4df;background:#f2eafb;color:#754e9d}
 html[data-theme="light"] .tag.bike{border-color:#98d1c5;background:#e7f7f3;color:#176f61}
+html[data-theme="light"] .tag.swim{border-color:#90cde0;background:#e7f7fc;color:#176b83}
 html[data-theme="light"] .tag.rest{border-color:#c5d0dc;background:#edf2f6;color:#52667d}
 html[data-theme="light"] .tag.hyrox{border-color:#dfbd82;background:#fff3df;color:#885b12}
 html[data-theme="light"] .tag.metcon{border-color:#dcaccb;background:#fcebf6;color:#984074}
