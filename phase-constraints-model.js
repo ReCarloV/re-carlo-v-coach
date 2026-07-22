@@ -2,10 +2,11 @@
   const raceCoach=typeof module!=='undefined'&&module.exports?require('./race-coach-model.js'):root?.rcRaceCoachModel;
   const methodology=typeof module!=='undefined'&&module.exports?require('./coach-methodology-model.js'):root?.rcCoachMethodologyModel;
   const programming=typeof module!=='undefined'&&module.exports?require('./event-programming-model.js'):root?.rcEventProgrammingModel;
-  const api=factory(raceCoach,methodology,programming);
+  const trainingRoles=typeof module!=='undefined'&&module.exports?require('./training-role-model.js'):root?.rcTrainingRoleModel;
+  const api=factory(raceCoach,methodology,programming,trainingRoles);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcPhaseConstraintsModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(raceCoach,methodology,programming){
+})(typeof globalThis!=='undefined'?globalThis:this,function(raceCoach,methodology,programming,trainingRoles){
   'use strict';
 
   const VERSION='2.2.0';
@@ -45,18 +46,7 @@
     const specific=['specific','peak','taper','race-week'].includes(phaseKey);return{race:130,long:110,quality:100,easy:80,'strength-upper':specific?65:70,'strength-lower':specific?58:68,hyrox:specific?25:48,metcon:specific?20:42,cycling:35,recovery:10,other:30};
   }
   function roleFor(session){
-    if(session?.details?.runType==='Race'||session?.goalGenerated)return'race';
-    if(session?.details?.triathlonRole)return session.details.triathlonRole;
-    if(session?.category==='swimming')return'tri-swim';
-    if(session?.category==='running'){
-      if(session.details?.runType==='Long run'||/\b(long|lungo)\b/i.test(session.title||''))return'long';
-      const text=`${session.details?.runType||''} ${session.title||''}`;return/interval|tempo|threshold|progress|quality|marathon pace|ripetut|soglia|medio/i.test(text)||session.priority==='essential'?'quality':'easy';
-    }
-    if(session?.category==='strength')return/lower|full/i.test(String(session.details?.strengthFocus||''))?'strength-lower':'strength-upper';
-    if(session?.details?.athxRole||/\bathx\b/i.test(`${session?.title||''} ${session?.details?.metconType||''}`))return'athx';
-    if(session?.category==='metcon'&&/\b(ocr|spartan|obstacle)\b/i.test(`${session.title||''} ${session.details?.metconType||''}`))return'obstacle';
-    if(['hyrox','metcon','cycling','recovery'].includes(session?.category))return session.category;
-    return'other';
+    return trainingRoles?.roleFor?.(session)||session?.category||'other';
   }
   function forWeek(input={}){
     const goal=input.goal||null,weekStart=input.weekStart||input.today;if(!goal?.date||!weekStart||!raceCoach?.phaseFor)return null;

@@ -2,10 +2,11 @@
   const programming=typeof module!=='undefined'&&module.exports?require('./event-programming-model.js'):root?.rcEventProgrammingModel;
   const eventDemand=typeof module!=='undefined'&&module.exports?require('./event-demand-model.js'):root?.rcEventDemandModel;
   const transitionModel=typeof module!=='undefined'&&module.exports?require('./goal-transition-model.js'):root?.rcGoalTransitionModel;
-  const api=factory(programming,eventDemand,transitionModel);
+  const trainingRoles=typeof module!=='undefined'&&module.exports?require('./training-role-model.js'):root?.rcTrainingRoleModel;
+  const api=factory(programming,eventDemand,transitionModel,trainingRoles);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcMicrocyclePrescriptionModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(programming,eventDemand,transitionModel){
+})(typeof globalThis!=='undefined'?globalThis:this,function(programming,eventDemand,transitionModel,trainingRoles){
   'use strict';
 
   const VERSION='1.4.0';
@@ -26,26 +27,7 @@
   const triathlon=(key,label,priority='essential',reason='Le discipline e le transizioni vengono dosate separatamente.')=>role(key,label,priority,reason,{role:key.replace(/-\d+$/,''),triathlonRole:key.replace(/-\d+$/,'')});
 
   function sessionRole(item={}){
-    if(item.details?.runType==='Race'||item.goalGenerated)return'race';
-    if(item.details?.triathlonRole)return item.details.triathlonRole;
-    if(item.category==='swimming')return'tri-swim';
-    if(item.category==='running'&&(item.details?.runType==='Long run'||/lungo/i.test(item.title||'')))return'long';
-    if(item.category==='running'){
-      const text=`${item.details?.runType||''} ${item.title||''}`.toLowerCase();
-      return/(interval|tempo|threshold|progress|quality|marathon pace|ripetut|soglia|medio)/.test(text)?'quality':'easy';
-    }
-    if(item.category==='strength'){
-      const focus=String(item.details?.strengthFocus||'').toLowerCase();
-      if(focus==='upper body')return'strength-upper';
-      if(focus==='lower body')return'strength-lower';
-      return'strength';
-    }
-    if(item.details?.athxRole||/\bathx\b/i.test(`${item.title||''} ${item.details?.metconType||''}`))return'athx';
-    if(item.category==='metcon'&&/\b(ocr|spartan|obstacle)\b/i.test(`${item.title||''} ${item.details?.metconType||''}`))return'obstacle';
-    if(item.category==='hyrox'||item.category==='metcon')return'hyrox';
-    if(item.category==='cycling')return'cycling';
-    if(item.category==='recovery')return'recovery';
-    return item.category||'other';
+    return trainingRoles?.roleFor?.(item)||item.category||'other';
   }
 
   function runningRoles(pack,count,phaseKey){
@@ -222,7 +204,7 @@
     return next;
   }
   function matches(descriptor,session,preparatoryEvent){
-    if(descriptor.goalId)return session.goalId===descriptor.goalId||session.date===descriptor.eventDate&&sessionRole(session)==='race';
+    if(descriptor.goalId)return session.goalId===descriptor.goalId||session.id===`goal-session:${descriptor.goalId}`;
     const actual=sessionRole(session);
     if(descriptor.role===actual)return true;
     if(descriptor.role==='strength')return actual.startsWith('strength');

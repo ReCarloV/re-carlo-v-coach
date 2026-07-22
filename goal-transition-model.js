@@ -6,7 +6,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(eventDemand){
   'use strict';
 
-  const VERSION='1.0.0';
+  const VERSION='1.1.0';
   const DAY_MS=86400000;
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const dateAtNoon=value=>new Date(`${value}T12:00:00`);
@@ -40,7 +40,7 @@
 
   function previousPrimary(activeGoal,goals=[],weekStart){
     if(!activeGoal?.date||!weekStart)return null;
-    return(Array.isArray(goals)?goals:[]).filter(goal=>goal?.id!==activeGoal.id&&goal?.priority==='A'&&goal?.date<weekStart&&goal.date<activeGoal.date).sort((a,b)=>b.date.localeCompare(a.date))[0]||null;
+    return(Array.isArray(goals)?goals:[]).filter(goal=>goal?.id!==activeGoal.id&&goal?.priority==='A'&&goal?.status!=='cancelled'&&goal?.date<=weekStart&&goal.date<activeGoal.date).sort((a,b)=>b.date.localeCompare(a.date))[0]||null;
   }
   function raceOutcome(goal,sessions=[]){
     if(!goal?.id)return null;
@@ -77,16 +77,19 @@
     const previous=previousPrimary(activeGoal,input.goals,weekStart);
     if(!previous||!isMarathon(previous)||familyFor(activeGoal)!=='hyrox')return null;
     const daysAfter=daysBetween(previous.date,weekStart),gapDays=daysBetween(previous.date,activeGoal.date);
-    if(daysAfter<0||daysAfter>21||gapDays<=0)return null;
-    const planned=stages.find(item=>daysAfter>=item.fromDay&&daysAfter<=item.toDay)||null;
+    if(daysAfter<0||gapDays<=0)return null;
+    const signals=signalsFor(previous,input.sessions,input.analysis);
+    if(daysAfter>21&&signals.ready)return null;
+    const prolonged=daysAfter>21;
+    const planned=prolonged?stages[2]:stages.find(item=>daysAfter>=item.fromDay&&daysAfter<=item.toDay)||null;
     if(!planned)return null;
-    const signals=signalsFor(previous,input.sessions,input.analysis),hold=planned.key!=='restore'&&!signals.ready;
+    const hold=prolonged||planned.key!=='restore'&&!signals.ready;
     const effective=hold?stages[0]:planned;
     const relation=eventDemand?.relationFor?.(previous,activeGoal,weekStart)||null;
     const status=hold?'hold':planned.key;
     return{
-      version:VERSION,status,plannedStage:planned.key,stage:effective.key,label:hold?'Transizione in attesa':effective.label,
-      summary:hold?`Il calendario sarebbe nella fase “${planned.label}”, ma il Coach mantiene il recupero: ${signals.missing.join('; ')}.`:effective.summary,
+      version:VERSION,status,plannedStage:prolonged?'ordinary':planned.key,stage:effective.key,label:hold?'Transizione in attesa':effective.label,
+      summary:hold?(prolonged?`I 21 giorni operativi sono conclusi, ma il normale pack resta in attesa: ${signals.missing.join('; ')}.`:`Il calendario sarebbe nella fase “${planned.label}”, ma il Coach mantiene il recupero: ${signals.missing.join('; ')}.`):effective.summary,
       previousGoal:clone(previous),activeGoal:clone(activeGoal),daysAfter,gapDays,relation:clone(relation),signals,
       maxSessions:effective.maxSessions,maxDurationMin:effective.maxDurationMin,specificMode:effective.specificMode,strengthMode:effective.strengthMode,
       exitCriteria:clone(effective.exitCriteria),sources:clone(sourceRefs),

@@ -22,7 +22,7 @@
   function outcomeObservedAt(session){const value=session?.outcome?.updatedAt||session?.outcome?.recordedAt||session?.updatedAt||null;if(!value)return null;const stamp=new Date(value);return Number.isNaN(stamp.getTime())?null:stamp.toISOString();}
   function pendingOutcomeReview(sessions,weekStart,options={}){
     const today=options.today||dateKey(new Date()),weekEnd=addDays(weekStart,6),items=Array.isArray(sessions)?sessions:[];
-    const remaining=items.filter(item=>item.date>=weekStart&&item.date<=weekEnd&&item.date>today&&!item.outcome&&item.adaptiveAdjustment?.status!=='paused');
+    const remaining=items.filter(item=>item.date>=weekStart&&item.date<=weekEnd&&item.date>=today&&!item.outcome&&item.adaptiveAdjustment?.status!=='paused');
     if(!remaining.length)return{required:false,trigger:null,remainingCount:0};
     const trigger=items.filter(item=>item.date>=weekStart&&item.date<=today&&isKeyOutcome(item)).map(item=>({sessionId:item.id,title:item.title||'Seduta chiave',date:item.date,status:item.outcome.status,rpe:item.outcome.rpe??null,pain:item.outcome.pain??null,execution:item.outcome.execution||null,observedAt:outcomeObservedAt(item)})).filter(item=>item.observedAt).sort((a,b)=>String(b.observedAt).localeCompare(String(a.observedAt)))[0]||null;
     return{required:Boolean(trigger),trigger:clone(trigger),remainingCount:remaining.length};

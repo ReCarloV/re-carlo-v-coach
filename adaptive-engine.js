@@ -18,7 +18,8 @@
   function average(values){const valid=values.map(Number).filter(Number.isFinite);return valid.length?sum(valid)/valid.length:null;}
   function timestampDate(value){const date=new Date(value);return Number.isNaN(date.getTime())?null:localIso(date);}
   function localIso(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
-  function relevant(session){return session.adaptiveAdjustment?.status!=='paused'&&session.category!=='recovery'&&session.priority!=='optional';}
+  function activeTraining(session){return session.adaptiveAdjustment?.status!=='paused'&&session.category!=='recovery'&&!isNeutralSkip(session);}
+  function relevant(session){return activeTraining(session)&&session.priority!=='optional';}
   function isNeutralSkip(session){return session.outcome?.status==='skipped'&&session.outcome?.skipReason==='program-change';}
   function skipGroup(reason){if(skipReasonModel)return skipReasonModel.group(reason);return {time:'organization',logistics:'organization',fatigue:'recovery',pain:'symptom',motivation:'planning','program-change':'planning'}[reason]||'unknown';}
   function executionCredit(session){
@@ -27,13 +28,16 @@
   }
   function periodStats(sessions,start,end,options={}){
     const openDate=options.openDate||null;
-    const due=sessions.filter(session=>session.date>=start&&session.date<=end&&relevant(session)&&!isNeutralSkip(session)&&!(session.date===openDate&&!session.outcome));
+    const inWindow=sessions.filter(session=>session.date>=start&&session.date<=end);
+    const due=inWindow.filter(session=>relevant(session)&&!(session.date===openDate&&!session.outcome));
     const recorded=due.filter(session=>session.outcome);
-    const performed=recorded.filter(session=>['completed','partial'].includes(session.outcome.status));
+    const optionalPerformed=inWindow.filter(session=>activeTraining(session)&&session.priority==='optional'&&['completed','partial'].includes(session.outcome?.status));
+    const performed=[...recorded.filter(session=>['completed','partial'].includes(session.outcome.status)),...optionalPerformed];
     const skipped=recorded.filter(session=>session.outcome.status==='skipped');
     const rpes=performed.map(session=>session.outcome.rpe).filter(value=>Number(value)>0);
-    const pains=performed.map(session=>session.outcome.pain).filter(value=>Number.isFinite(Number(value)));
-    const runningPains=performed.filter(session=>session.category==='running').map(session=>session.outcome.pain).filter(value=>Number.isFinite(Number(value)));
+    const knownPain=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value));
+    const pains=performed.map(session=>session.outcome.pain).filter(knownPain);
+    const runningPains=performed.filter(session=>session.category==='running').map(session=>session.outcome.pain).filter(knownPain);
     const eligibleAdherence=recorded.length;
     return {
       due:due.length,recorded:recorded.length,unrecorded:Math.max(0,due.length-recorded.length),
@@ -43,10 +47,11 @@
       coverage:due.length?recorded.length/due.length:null,
       adherence:eligibleAdherence?sum(recorded.map(executionCredit))/eligibleAdherence:null,
       load:sum(performed.map(session=>session.outcome.sessionLoad)),
-      meanRpe:average(rpes),maxPain:pains.length?Math.max(...pains):0,maxRunningPain:runningPains.length?Math.max(...runningPains):0,
+      meanRpe:average(rpes),painKnown:pains.length>0,runningPainKnown:runningPains.length>0,maxPain:pains.length?Math.max(...pains):0,maxRunningPain:runningPains.length?Math.max(...runningPains):0,
       harder:performed.filter(session=>session.outcome.execution==='harder').length,
       highRpe:performed.filter(session=>Number(session.outcome.rpe)>=8).length,
       hardSessions:performed.filter(session=>Number(session.outcome.rpe)>=8||session.outcome.execution==='harder').length,
+      optionalPerformed:optionalPerformed.length,
       fatigueSkips:skipped.filter(session=>session.outcome.skipReason==='fatigue').length,
       painSkips:skipped.filter(session=>session.outcome.skipReason==='pain').length,
       timeSkips:skipped.filter(session=>session.outcome.skipReason==='time').length,
@@ -157,7 +162,7 @@
       metric('Dati',recent.due?`${recent.recorded}/${recent.due}`:'—',recent.coverage!==null&&recent.coverage<.6?'warn':'neutral'),
       metric('Aderenza',recent.adherence!==null?`${Math.round(recent.adherence*100)}%`:'—',recent.adherence!==null&&recent.adherence<.65?'warn':'neutral'),
       metric('Carico 7 gg',recent.recorded?`${Math.round(recent.load)} AU`:'—'),
-      metric('Dolore max',body.staleCount&&combinedPain===0?'Da aggiornare':`${combinedPain}/10`,combinedPain>=5?'danger':combinedPain>=3||body.staleCount?'warn':'neutral'),
+      metric('Dolore max',body.staleCount&&combinedPain===0?'Da aggiornare':recent.painKnown||body.fresh.length?`${combinedPain}/10`:'—',combinedPain>=5?'danger':combinedPain>=3||body.staleCount?'warn':'neutral'),
       metric('Vincoli 14 gg',organization.total14?String(organization.total14):'0',organization.level==='adapt'?'warn':'neutral'),
       metric('WHOOP',recovery.label,recovery.tone)
     ];
