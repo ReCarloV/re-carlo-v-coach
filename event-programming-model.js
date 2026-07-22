@@ -6,7 +6,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(eventDemand){
   'use strict';
 
-  const VERSION='1.1.0';
+  const VERSION='1.2.0';
   const DAY_MS=86400000;
   const sources={
     distancePractice:{
@@ -78,6 +78,41 @@
       label:'Obstacle course racing · analisi longitudinale degli infortuni',
       url:'https://pubmed.ncbi.nlm.nih.gov/29977946/',
       appliesTo:['obstacle']
+    },
+    athxFormat:{
+      label:'ATHX Games · struttura ufficiale in sei zone',
+      url:'https://athxgames.com/',
+      appliesTo:['athx']
+    },
+    athxWorkouts2026:{
+      label:'ATHX Games · workout 2026: Strength, Endurance e MetCon X',
+      url:'https://athxgames.com/workouts/2026',
+      appliesTo:['athx']
+    },
+    athxStandards2026:{
+      label:'ATHX Games · movement standards 2026',
+      url:'https://athxgames.com/movement-standards/2026',
+      appliesTo:['athx']
+    },
+    hiftDeterminants:{
+      label:'Functional fitness · determinanti di forza, potenza e capacità aerobica',
+      url:'https://pubmed.ncbi.nlm.nih.gov/32456306/',
+      appliesTo:['athx']
+    },
+    hiftBenchmarks:{
+      label:'Functional fitness · forza e soglia nei benchmark ad alta intensità',
+      url:'https://pubmed.ncbi.nlm.nih.gov/26261428/',
+      appliesTo:['athx']
+    },
+    hiftResponses:{
+      label:'HIFT · risposta cardiaca, lattato e RPE in atleti allenati',
+      url:'https://pubmed.ncbi.nlm.nih.gov/39649788/',
+      appliesTo:['athx']
+    },
+    hiftTimeDomains:{
+      label:'HIFT · intervalli prescritti e rounds-for-time a volume equivalente',
+      url:'https://pubmed.ncbi.nlm.nih.gov/40007896/',
+      appliesTo:['athx']
     }
   };
 
@@ -386,6 +421,93 @@
     };
   }
 
+  const athxDefinitions={
+    'athx-lite-individual':{label:'ATHX Lite Individual',division:'Lite',mode:'individual',runSegmentM:500,formatCaution:'La pagina workout 2026 non esplicita il dettaglio Lite nella sezione Individual: carichi e volume esatti vanno verificati sulla scheda evento.'},
+    'athx-individual':{label:'ATHX Individual',division:'Standard',mode:'individual',runSegmentM:750},
+    'athx-pro-individual':{label:'ATHX Pro Individual',division:'Pro',mode:'individual',runSegmentM:1000},
+    'athx-lite-pairs':{label:'ATHX Lite Pairs',division:'Lite',mode:'pairs',runSegmentM:500},
+    'athx-pairs':{label:'ATHX Pairs',division:'Standard',mode:'pairs',runSegmentM:750},
+    'athx-pro-pairs':{label:'ATHX Pro Pairs',division:'Pro',mode:'pairs',runSegmentM:1000}
+  };
+  const athxPhases=[
+    phase(84,'base','Base ATHX','Costruire separatamente forza massima, capacità aerobica, tecnica run/row e competenza nei movimenti senza simulazioni premature.'),
+    phase(49,'build','Costruzione ATHX','Sviluppare i tre punteggi gara senza sovrapporre nella stessa seduta tutti gli stimoli ad alto costo.'),
+    phase(28,'specific-build','Sviluppo specifico ATHX','Integrare cambi run/row, movimenti MetCon e gestione delle finestre di forza in blocchi controllati.'),
+    phase(15,'specific','Specifico ATHX','Rendere stabili strategia, pacing e tecnica sotto fatica preservando la forza massimale.'),
+    phase(8,'taper','Taper ATHX','Ridurre il volume mantenendo richiami distinti di forza, endurance e MetCon.'),
+    phase(0,'race-week','Race week ATHX','Arrivare fresco ai tre workout: nessuna simulazione completa o test massimale tardivo.')
+  ];
+  const athxTolerance=[
+    'Forza, Endurance e MetCon X hanno controlli separati: il buon esito di una zona non autorizza a far crescere automaticamente le altre.',
+    'I lift di gara vengono preparati con tecnica stabile e riserva; 1RM/3RM/5RM non vengono ritestati ogni settimana.',
+    'La densità MetCon cresce soltanto con standard conservati, RPE compatibile, dolore basso e recupero sufficiente prima del successivo stimolo chiave.',
+    'I cambi run/row progrediscono su distanza, ritmo o durata, non su tutte e tre le variabili nella stessa decisione.',
+    'Una prova combinata tra zone richiede precedenti blocchi singoli tollerati e non diventa mai una simulazione automatica delle 2,5 ore.',
+    'Per i Pairs, strategia e cambi vengono allenati insieme quando possibile; il volume totale della coppia non diventa volume obbligatorio per ciascun atleta.'
+  ];
+  const athxLimits=[
+    'Non risultano studi di intervento specifici ATHX: il pack combina formato ufficiale e studi primari sul functional fitness, mantenendo la prescrizione contestuale.',
+    'Gli studi sul functional fitness hanno campioni piccoli e workout differenti; associazioni con forza, potenza o VO₂max non dimostrano una dose ottimale universale.',
+    'I workout ATHX cambiano tra stagioni: il riferimento 2026 deve essere ricontrollato per l’anno e la sede della gara selezionata.',
+    'Le pause ufficiali tra le zone non autorizzano a concentrare abitualmente tre test massimali nella stessa seduta.',
+    'Nessuna simulazione completa di Strength + Endurance + MetCon X viene generata automaticamente; eventuali rehearsal restano frazionati e confermati.'
+  ];
+  function athxOverlay(profile,definition){
+    const pairs=definition.mode==='pairs',pro=definition.division==='Pro',lite=definition.division==='Lite';
+    const divisionDetail=pro
+      ?'La divisione Pro usa i segmenti run/row da 1.000 m e i carichi, le altezze e le modalità MetCon più impegnativi.'
+      :lite
+        ?'La divisione Lite usa segmenti running da 500 m e movimenti o carichi scalati quando dichiarati dal workout ufficiale.'
+        :'La divisione ATHX usa segmenti run/row da 750 m e gli standard regular del workout ufficiale.';
+    return{
+      mode:definition.mode,division:definition.division,runSegmentM:definition.runSegmentM,label:definition.label,
+      detail:`${divisionDetail} ${pairs?'Nel Pairs i punteggi sono di coppia: endurance alternata e MetCon condiviso richiedono una strategia di cambi esplicita.':'Nell’Individual tutti i punteggi derivano dal lavoro del singolo atleta.'}`,
+      strengthProtocol:['1RM Strict Press','3RM Back Squat','5RM Deadlift'],
+      metconMovements:['SkiErg','DB Ground to Overhead','Sandbag Carry','Box Over','Walking Lunge','Burpee Broad Jump'],
+      formatCaution:definition.formatCaution||'',
+      season:'2026'
+    };
+  }
+  function athxSessions(definition,overlay){
+    return[
+      session('easy','Aerobico facile di supporto','easy',['base','build','specific-build','specific','taper','race-week'],'Sostiene recupero e capacità aerobica senza trasformarsi in una seconda prova Endurance.'),
+      session('strength-zone','Strict Press, Back Squat e Deadlift','strength',['base','build','specific-build','specific','taper'],'I lift ufficiali 2026 vengono allenati con tecnica e riserva; i test massimali sono pianificati, non settimanali.'),
+      session('endurance-zone',`Endurance run/row · cambi ogni ${definition.runSegmentM} m`,'athx',['base','build','specific-build','specific','taper'],'Pacing e transizioni sono specifici della divisione; durata, ritmo e densità progrediscono separatamente.'),
+      session('metcon-zone','MetCon X · tecnica e densità','athx',['base','build','specific-build','specific','taper'],'I movimenti ufficiali vengono preparati prima in qualità e poi in blocchi più densi, senza continui test for-time.'),
+      session('zone-strategy',overlay.mode==='pairs'?'Strategia Pairs e cambi':'Pacing, refuel e recovery tra zone','athx',['specific-build','specific','taper'],overlay.mode==='pairs'?'La distribuzione del lavoro viene provata senza attribuire a ogni atleta il volume totale della coppia.':'Le finestre ufficiali vengono usate per preparare routine ripetibili, non per giustificare tre test massimali abituali.'),
+      session('quality','Qualità running / row di supporto','quality',['build','specific-build','specific'],'Massimo un secondo stimolo metabolico principale, separato dal MetCon più costoso.')
+    ];
+  }
+  function athxConstraint(definition,phaseKey,overlay){
+    const raceWeek=phaseKey==='race-week',taper=phaseKey==='taper',late=['specific','taper','race-week'].includes(phaseKey);
+    const specificMode=raceWeek?'primer':taper?'primer':phaseKey==='specific'?'race-specific':phaseKey==='base'?'foundation':'specific';
+    const maxSpecific=raceWeek||taper?1:2,minStrengthRir=raceWeek?4:late?3:2;
+    return{
+      summary:{
+        base:'Forza, capacità aerobica e tecnica dei movimenti vengono costruite come qualità distinte, senza simulare l’intera giornata gara.',
+        build:'Strength, Endurance e MetCon X progrediscono senza concentrare nello stesso giorno tutti gli stimoli ad alto costo.',
+        'specific-build':`I cambi run/row da ${definition.runSegmentM} m e i movimenti MetCon entrano in blocchi specifici; la forza conserva priorità tecnica.`,
+        specific:`La strategia ${overlay.mode==='pairs'?'Pairs':'Individual'} e il pacing tra zone diventano prioritari, mantenendo separati test massimali e MetCon più duro.`,
+        taper:'Il volume cala; brevi richiami di lift, run/row e movimenti mantengono precisione senza fatica residua.',
+        'race-week':'Freschezza per Strength, Endurance e MetCon X: nessun massimale, for-time completo o recupero di lavoro perso.'
+      }[phaseKey]||`Vincoli specifici per ${definition.label}.`,
+      limits:{
+        longProgressionCap:1,aerobicProgressionCap:raceWeek||taper?1:1.05,maxQuality:1,maxAthxSpecific:maxSpecific,
+        minStrengthRir,minStrengthSetReduction:late?1:0,maxActiveSessions:raceWeek?4:taper?5:6,
+        hyroxMode:'optional',athxMode:specificMode
+      },
+      generated:{longFactor:1,qualityStyle:raceWeek||taper?'recall':'normal'},
+      guards:[
+        guard('athx-strength','Strength Zone',raceWeek?'Solo primer tecnico':late?`Mantenimento · RIR ${minStrengthRir}`:'Sviluppo dei lift','Strict Press, Back Squat e Deadlift restano tecnicamente precisi; i test 1/3/5RM non sono settimanali.',late?'warn':'good'),
+        guard('athx-endurance','Endurance run/row',raceWeek?'Attivazione breve':phaseKey==='specific'?'Specifico divisione':'Progressione controllata',`Cambi ogni ${definition.runSegmentM} m; aumenta una sola variabile tra durata, ritmo e densità.`),
+        guard('athx-metcon','MetCon X',raceWeek?'Tecnica facile':taper?'Primer':phaseKey==='specific'?'Priorità specifica':'Tecnica + capacità','EMOM e blocchi controllati precedono i for-time; nessuna simulazione completa automatica.',phaseKey==='specific'?'good':late?'warn':'neutral'),
+        guard('quality','Seconda qualità',raceWeek?'Esclusa':'Massimo 1 stimolo','Non viene sommata automaticamente al MetCon più costoso.'),
+        guard('recovery','Tra le zone',overlay.mode==='pairs'?'Routine + strategia partner':'Routine individuale','Refuel, recupero e pacing vengono provati in modo ripetibile senza replicare ogni settimana le 2,5 ore.')
+      ],
+      priorities:{race:130,athx:120,metcon:118,'strength-lower':110,'strength-upper':108,quality:90,easy:82,cycling:50,long:40,hyrox:32,obstacle:30,recovery:12,other:30}
+    };
+  }
+
   function packFor(goal={}){
     const profile=eventDemand?.profileFor?.(goal);
     if(!profile)return null;
@@ -426,6 +548,18 @@
         guardrail:'Il formato è ufficiale; la prescrizione resta contestuale perché l’evidenza OCR diretta è limitata e terreno, ostacoli e condizioni cambiano tra eventi.'
       };
     }
+    const athx=athxDefinitions[profile.key];
+    if(athx){
+      const overlay=athxOverlay(profile,athx);
+      return{
+        version:VERSION,key:profile.key,family:'athx',label:`Pack ${athx.label}`,status:'contextual',confidence:'contextual',
+        evidenceVersion:`athx-${VERSION}`,phases:clone(athxPhases),keySessions:athxSessions(athx,overlay),
+        toleranceChecks:clone(athxTolerance),limits:clone(athxLimits),
+        sources:sourceList(['athxFormat','athxWorkouts2026','athxStandards2026','hiftDeterminants','hiftBenchmarks','hiftResponses','hiftTimeDomains','concurrentRunning','enduranceTaper']),
+        overlay,definition:clone(athx),
+        guardrail:`Il formato 2026 è ufficiale; la prescrizione resta contestuale perché non esistono ancora studi di intervento specifici ATHX. ${overlay.formatCaution}`.trim()
+      };
+    }
     return{
       version:VERSION,key:profile.key,family:profile.variant?.family||profile.key,label:'Pack da revisionare',status:'pending',confidence:'pending',
       evidenceVersion:null,phases:[],keySessions:[],toleranceChecks:[],limits:['Il formato non possiede ancora un pack prescrittivo revisionato.'],sources:[],
@@ -444,6 +578,7 @@
     if(pack.family==='running'&&pack.definition)return{...runningConstraint(pack.definition,phaseKey),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence}};
     if(pack.family==='hyrox'&&pack.overlay)return{...hyroxConstraint(phaseKey,pack.overlay),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)}};
     if(pack.family==='obstacle'&&pack.definition)return{...obstacleConstraint(pack.definition,phaseKey),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)}};
+    if(pack.family==='athx'&&pack.definition)return{...athxConstraint(pack.definition,phaseKey,pack.overlay),pack:{key:pack.key,version:pack.version,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)}};
     return null;
   }
   function keySessionsFor(goal,phaseKey){

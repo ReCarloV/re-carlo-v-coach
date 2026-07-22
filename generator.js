@@ -76,6 +76,53 @@
     const title=gripOnly?'OCR grip, sospensioni e carry':preset.title,rationale=`${preset.reason} ${overlay.detail||''} Gli ostacoli reali e le condizioni della sede restano da verificare.`.trim();
     return session('metcon',title,duration,descriptor?.priority||'essential',{metconType:'Intervals conditioning',metconRpe:preset.rpe,metconStructuredBlocks:blocks,ocrVariant:contract?.pack?.key||null,ocrMode:mode},rationale);
   }
+  function athxStrengthForContract(minutes,phaseConstraints,contract){
+    const mode=phaseConstraints?.limits?.athxMode||'foundation',primer=mode==='primer',late=['race-specific','primer'].includes(mode),rir=primer?4:late?3:2;
+    const blocks=primer
+      ?[
+        {name:'Military Press',sets:'2',reps:'3',target:`RIR ${rir} · standard Strict Press`,rest:'2–3 min'},
+        {name:'Back Squat',sets:'2',reps:'3',target:`RIR ${rir}`,rest:'3 min'},
+        {name:'Deadlift',sets:'2',reps:'3',target:`RIR ${rir}`,rest:'3 min'}
+      ]
+      :[
+        {name:'Military Press',sets:'4',reps:'3',target:`RIR ${rir} · standard Strict Press`,rest:'2–3 min'},
+        {name:'Back Squat',sets:'4',reps:'4',target:`RIR ${rir}`,rest:'3 min'},
+        {name:'Deadlift',sets:'3',reps:'5',target:`RIR ${rir}`,rest:'3 min'}
+      ];
+    const overlay=contract?.pack?.overlay||{},rationale=`I lift del workout 2026 vengono preparati con tecnica e riserva: il protocollo gara 1RM Strict Press, 3RM Back Squat e 5RM Deadlift non viene ritestato ogni settimana. ${overlay.detail||''}`.trim();
+    return session('strength','ATHX Strength · press, squat, deadlift',Math.max(35,Math.min(roundFive(minutes),primer?45:70)),'essential',{strengthFocus:'Full body',targetRir:rir,strengthBlocks:blocks,strengthAccessories:'Nessun accessorio a cedimento prima delle sedute Endurance o MetCon chiave.',athxRole:'athx-strength',athxVariant:contract?.pack?.key||null,athxSeason:overlay.season||'2026'},rationale);
+  }
+  function athxSpecificForContract(minutes,phaseConstraints,contract,descriptor){
+    const mode=phaseConstraints?.limits?.athxMode||'foundation',overlay=contract?.pack?.overlay||{},segment=Number(overlay.runSegmentM)||750,subRole=descriptor?.athxRole||descriptor?.key||'athx-combined',pairs=overlay.mode==='pairs';
+    const effort=mode==='primer'?5:mode==='race-specific'?8:mode==='specific'?7:6;
+    let title,blocks,reason,cap=65;
+    if(subRole==='athx-endurance'){
+      title=`ATHX Endurance · run/row ${segment} m`;
+      blocks=mode==='primer'
+        ?[{name:'Run / Row alternati',volume:`4 × ${Math.min(segment,500)} m`,target:'RPE 5 · cambi puliti',rest:'90 s'}]
+        :[{name:'Run / Row alternati',volume:`${mode==='race-specific'?5:4} × (${segment} m run + ${segment} m row)`,target:`RPE ${effort} · split stabili`,rest:mode==='race-specific'?'60–90 s':'2 min'},{name:'Tecnica di cambio',volume:pairs?'6 cambi con partner':'6 transizioni run/row',target:'Procedura ripetibile',rest:'Incluso'}];
+      reason=`Pacing e cambi specifici della divisione ${overlay.division||'ATHX'}; distanza, ritmo e densità non aumentano insieme.`;cap=60;
+    }else if(subRole==='athx-metcon'){
+      title=`ATHX MetCon X · ${overlay.division||'Standard'}`;
+      blocks=mode==='primer'
+        ?[{name:'Tecnica movimenti 2026',volume:'3 × 4 min EMOM',target:'RPE 5 · standard puliti',rest:'2 min'}]
+        :mode==='foundation'
+          ?[{name:'SkiErg + GTOH',volume:'4 × 4 min EMOM',target:'RPE 6 · tecnica',rest:'2 min'},{name:'Carry + box + lunge',volume:'3 giri tecnici',target:'Stop prima del degrado',rest:'2 min'}]
+          :[{name:'MetCon X frazionato',volume:mode==='race-specific'?'3 × 7 min':'4 × 5 min',target:`RPE ${effort} · standard 2026`,rest:mode==='race-specific'?'3 min':'2 min'},{name:pairs?'Cambi e ripartizione Pairs':'Burpee broad jump + transizioni',volume:pairs?'6–8 cambi dichiarati':'3 blocchi brevi',target:'Tecnica stabile',rest:'Completo'}];
+      reason='La densità cresce dopo la tecnica: i blocchi for-time restano frazionati e non diventano una simulazione completa automatica.';cap=65;
+    }else{
+      title=pairs?'ATHX Pairs · blocchi e strategia':'ATHX · blocchi specifici';
+      blocks=[
+        {name:'Endurance run / row',volume:`3 × (${segment} m + ${segment} m)`,target:`RPE ${Math.min(effort,7)} · split stabili`,rest:'2 min'},
+        {name:'MetCon X tecnico',volume:mode==='primer'?'2 × 4 min':'3 × 6 min',target:`RPE ${effort} · standard puliti`,rest:'2–3 min'},
+        ...(pairs?[{name:'Strategia Pairs',volume:'6 cambi dichiarati',target:'Distribuzione sostenibile',rest:'Incluso'}]:[])
+      ];
+      reason='Le qualità vengono integrate in dose frazionata senza replicare Strength + Endurance + MetCon X nella stessa seduta.';cap=70;
+    }
+    const caution=overlay.formatCaution?` ${overlay.formatCaution}`:'';
+    const rationale=`${reason} ${overlay.detail||''}${caution}`.trim();
+    return session('metcon',title,Math.max(30,Math.min(roundFive(minutes),mode==='primer'?40:cap)),descriptor?.priority||'essential',{metconType:'ATHX specific',metconRpe:effort,metconStructuredBlocks:blocks,athxRole:subRole,athxVariant:contract?.pack?.key||null,athxDivision:overlay.division||null,athxMode:mode,athxSeason:overlay.season||'2026',athxPairs:pairs},rationale);
+  }
   function lowImpactReplacement(minutes){return recoveryRide(minutes,'La qualità running viene sostituita da lavoro aerobico facile e a basso impatto; interrompi se il fastidio aumenta.','essential');}
   function recoverySession(minutes){return session('recovery','Recupero e rivalutazione',Math.max(20,Math.min(roundFive(minutes),40)),'essential',{recoveryType:'Cardio rigenerante'},'Dolore elevato: nessuna progressione running automatica. Recupero, mobilità o cardio tollerato e nuova valutazione prima di correre.');}
   function isRace(item){return item?.details?.runType==='Race'||Boolean(item?.goalGenerated);}
@@ -88,6 +135,7 @@
     if(item.category==='running'){const type=String(item.details?.runType||'').toLowerCase();return /(interval|tempo|threshold|progress|race)/.test(type)?'quality':'easy';}
     if(item.category==='strength')return `strength-${String(item.details?.strengthFocus||'').toLowerCase().replaceAll(' ','-')}`;
     if(item.category==='cycling')return item.priority==='essential'?'quality-low-impact':'cycling';
+    if(item.details?.athxRole||/\bathx\b/i.test(`${item.title||''} ${item.details?.metconType||''}`))return'athx';
     if(item.category==='metcon'&&/\b(ocr|spartan|obstacle)\b/i.test(`${item.title||''} ${item.details?.metconType||''}`))return'obstacle';
     return item.category;
   }
@@ -107,9 +155,10 @@
     else if(descriptor.role==='long')item=settings.suspendRunning?recoverySession(adaptedLong):longRun(adaptedLong,analysis.level==='progress'&&Number(settings.longFactor||1)<=1?'steady':analysis.level);
     else if(descriptor.role==='strength-upper')item=upperStrength(adaptedMinutes);
     else if(descriptor.role==='strength-lower')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il lavoro lower lascia spazio a recupero low impact.'):settings.lowerBodyCaution?fullStrength(adaptedMinutes):lowerStrength(adaptedMinutes);
-    else if(descriptor.role==='strength')item=settings.lowerBodyProtection?upperStrength(adaptedMinutes):fullStrength(adaptedMinutes);
+    else if(descriptor.role==='strength')item=microcycle?.pack?.family==='athx'?(settings.lowerBodyProtection?upperStrength(adaptedMinutes):athxStrengthForContract(adaptedMinutes,phaseConstraints,microcycle)):(settings.lowerBodyProtection?upperStrength(adaptedMinutes):fullStrength(adaptedMinutes));
     else if(descriptor.role==='hyrox')item=hyroxSpecificForContract(adaptedMinutes,phaseConstraints,microcycle);
     else if(descriptor.role==='obstacle')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il lavoro OCR lascia spazio a cardio low impact finché il segnale lower body non viene rivalutato.','essential'):obstacleSpecificForContract(adaptedMinutes,phaseConstraints,microcycle,descriptor);
+    else if(descriptor.role==='athx')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il lavoro ATHX ad alto impatto lascia spazio a cardio low impact finché il segnale lower body non viene rivalutato.','essential'):athxSpecificForContract(adaptedMinutes,phaseConstraints,microcycle,descriptor);
     else if(descriptor.role==='cycling')item=recoveryRide(adaptedMinutes);
     else if(descriptor.role==='recovery')item=recoverySession(adaptedMinutes);
     if(!item)return null;

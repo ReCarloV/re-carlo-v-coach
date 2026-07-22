@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
 
-  const VERSION='2.2.0';
+  const VERSION='2.3.0';
   const dimensions=[
     {key:'aerobic',label:'Resistenza aerobica'},
     {key:'threshold',label:'Soglia / ritmo sostenuto'},
@@ -36,7 +36,11 @@
     ocrInjuries:{label:'Obstacle course racing · analisi longitudinale degli infortuni',url:'https://pubmed.ncbi.nlm.nih.gov/29977946/'},
     worldTriathlon:{label:'World Triathlon · Competition Rules 2026',url:'https://triathlon.org/agegroup'},
     ironmanFormat:{label:'IRONMAN · distanze 70.3 e full',url:'https://www.ironman.com/proseries/about-ironman'},
-    athxFormat:{label:'ATHX Games · struttura ufficiale',url:'https://athxgames.com/'}
+    athxFormat:{label:'ATHX Games · struttura ufficiale',url:'https://athxgames.com/'},
+    athxWorkouts2026:{label:'ATHX Games · workout ufficiali 2026',url:'https://athxgames.com/workouts/2026'},
+    athxStandards2026:{label:'ATHX Games · movement standards 2026',url:'https://athxgames.com/movement-standards/2026'},
+    hiftDeterminants:{label:'Functional fitness · determinanti di forza e capacità aerobica',url:'https://pubmed.ncbi.nlm.nih.gov/32456306/'},
+    hiftResponses:{label:'High-intensity functional training · risposta fisiologica acuta',url:'https://pubmed.ncbi.nlm.nih.gov/39649788/'}
   };
 
   function clone(value){return JSON.parse(JSON.stringify(value));}
@@ -99,7 +103,7 @@
       ['Forza','Endurance','MetCon','Recupero tra zone'],
       {aerobic:4,threshold:4,strength:4,power:4,strengthEndurance:5,skill:4,impact:4,transitions:5,terrain:1,pacing:4,fueling:3},
       ['Forza','Endurance','MetCon X','Pacing tra zone','Refuel e recovery'],
-      ['athxFormat','concurrent'],
+      ['athxFormat','athxWorkouts2026','athxStandards2026','hiftDeterminants','hiftResponses','concurrent'],
       'high',
       {
         formatSummary:'Sei zone consecutive in una finestra continua di circa 2,5 ore.',
@@ -266,11 +270,25 @@
       demands:{...families.triathlon.demands,aerobic:5,threshold:2,impact:5,pacing:5,fueling:5}
     }
   ];
+  const athxStrength2026=['1RM Strict Press','3RM Back Squat','5RM Deadlift'];
   function athxVariant(key,label,division,teamMode='Individual'){
+    const pairs=teamMode==='Pairs',lite=division==='Lite',pro=division==='Pro';
+    const runSegmentM=lite?500:pro?1000:750;
+    const formatDetails=[
+      ...families.athx.formatDetails,
+      `Strength 2026 · ${athxStrength2026.join(' + ')}`,
+      `Endurance 2026 · cambi run/row ogni ${runSegmentM} m · time cap 22 min`,
+      pairs?'Pairs · lavoro condiviso secondo gli standard della singola zona':'Individual · volume individuale previsto dalla divisione',
+      pro?'Pro · carichi, altezze e modalità MetCon più impegnativi':lite?'Lite · volumi, carichi e movimenti scalati':'ATHX · carichi e standard della divisione regular'
+    ];
     return{
-      key,family:'athx',label:`${label} · ${teamMode}`,confidence:'format-verified',programmingStatus:'pending',sessionDurationMin:150,
-      formatSummary:`${teamMode}; sei zone consecutive nella divisione ${division}. I workout esatti sono quelli pubblicati per il singolo evento.`,
-      formatDetails:families.athx.formatDetails,demands:families.athx.demands
+      key,family:'athx',label:`${label} · ${teamMode}`,confidence:'contextual',programmingStatus:'contextual',sessionDurationMin:150,
+      division,teamMode,runSegmentM,strengthProtocol:athxStrength2026,
+      formatSummary:`${teamMode}; circa 2,5 ore in sei zone consecutive. Nel 2026: Strength, Endurance run/row e MetCon X con standard ${division}.`,
+      formatDetails,
+      keyRoles:['Forza massimale sui lift di gara','Endurance run/row','MetCon X','Gestione dei recuperi tra zone',pairs?'Strategia e cambi Pairs':'Pacing individuale'],
+      sourceKeys:['athxFormat','athxWorkouts2026','athxStandards2026','hiftDeterminants','hiftResponses','concurrent'],
+      demands:{...families.athx.demands,strength:pro?5:lite?3:4,power:pro?5:lite?3:4,strengthEndurance:pro?5:lite?4:5,skill:pro?5:lite?3:4,impact:pro?5:lite?3:4}
     };
   }
   const athxVariants=[
@@ -327,6 +345,15 @@
       if(/\b70[,.]3\b|half\s*ironman/.test(name))return'ironman-70-3';
       if(/\b(olimpico|olympic|standard)\b/.test(name))return'triathlon-standard';
       if(/\bsprint\b/.test(name))return'triathlon-sprint';
+    }
+    if(goal.type==='athx'){
+      const pairs=/\b(pair|pairs|coppia|doppio)\b/.test(name),pro=/\bpro\b/.test(name),lite=/\blite\b/.test(name);
+      if(pairs&&pro)return'athx-pro-pairs';
+      if(pairs&&lite)return'athx-lite-pairs';
+      if(pairs)return'athx-pairs';
+      if(pro)return'athx-pro-individual';
+      if(lite)return'athx-lite-individual';
+      return'athx-individual';
     }
     return'';
   }

@@ -7,7 +7,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(programming,eventDemand){
   'use strict';
 
-  const VERSION='1.1.0';
+  const VERSION='1.2.0';
   const priorityRank={essential:3,important:2,optional:1};
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const sentence=value=>{const text=String(value||'');return text?`${text[0].toUpperCase()}${text.slice(1)}`:text;};
@@ -20,6 +20,7 @@
   const cycling=()=>role('cycling','Cardio low impact','optional','Volume aerobico opzionale a basso impatto, senza intensità nascosta.');
   const hyrox=(label='HYROX specifico')=>role('hyrox',label,'essential','Unica seduta ibrida chiave coordinata con corsa e forza.');
   const obstacle=(key='obstacle',label='OCR specifico',priority='essential',reason='Tecnica, grip, carry e transizioni vengono integrati in blocchi frazionati e verificabili.')=>role(key,label,priority,reason,{role:'obstacle'});
+  const athx=(key='athx-combined',label='ATHX specifico',priority='essential',reason='Le richieste ATHX vengono preparate in blocchi distinti e verificabili.')=>role(key,label,priority,reason,{role:'athx',athxRole:key});
 
   function sessionRole(item={}){
     if(item.details?.runType==='Race'||item.goalGenerated)return'race';
@@ -34,6 +35,7 @@
       if(focus==='lower body')return'strength-lower';
       return'strength';
     }
+    if(item.details?.athxRole||/\bathx\b/i.test(`${item.title||''} ${item.details?.metconType||''}`))return'athx';
     if(item.category==='metcon'&&/\b(ocr|spartan|obstacle)\b/i.test(`${item.title||''} ${item.details?.metconType||''}`))return'obstacle';
     if(item.category==='hyrox'||item.category==='metcon')return'hyrox';
     if(item.category==='cycling')return'cycling';
@@ -128,6 +130,21 @@
     ][count-1]||[];
   }
 
+  function athxRoles(pack,count){
+    const overlay=pack?.overlay||{},pairs=overlay.mode==='pairs',segment=Number(overlay.runSegmentM)||750;
+    const endurance=athx('athx-endurance',`ATHX Endurance · run/row ${segment} m`,'essential','Pacing e cambi specifici della divisione progrediscono senza aumentare insieme ritmo, durata e densità.');
+    const metcon=athx('athx-metcon',`ATHX MetCon X · ${overlay.division||'Standard'}`,'essential','Tecnica e densità dei movimenti ufficiali crescono senza trasformare ogni settimana in un test for-time.');
+    const combined=athx('athx-combined',pairs?'ATHX Pairs · blocchi e strategia':'ATHX · blocchi specifici','essential',pairs?'Endurance, MetCon e cambi partner vengono provati in dose frazionata; il volume della coppia non viene duplicato sul singolo atleta.':'Endurance e MetCon vengono integrati in dose frazionata senza simulare l’intera giornata gara.');
+    return[
+      [combined],
+      [strength(),combined],
+      [easy(),strength(),combined],
+      [easy(),strength(),endurance,metcon],
+      [easy(),quality('Qualità running / row ATHX'),strength(),endurance,metcon],
+      [easy(),quality('Qualità running / row ATHX'),strength(),endurance,metcon,cycling()]
+    ][count-1]||[];
+  }
+
   function genericRoles(count){
     const fallback=[
       [easy()],
@@ -179,8 +196,10 @@
       ?runningRoles(pack,count,phase?.key)
       :pack?.family==='hyrox'&&pack.status!=='pending'
         ?hyroxRoles(pack,count)
-        :pack?.family==='obstacle'&&pack.status!=='pending'
-          ?obstacleRoles(pack,count)
+      :pack?.family==='obstacle'&&pack.status!=='pending'
+        ?obstacleRoles(pack,count)
+        :pack?.family==='athx'&&pack.status!=='pending'
+          ?athxRoles(pack,count)
           :genericRoles(count);
     const primaryEvent=goal&&weekStart&&eventInWeek(goal,weekStart,weekEnd)?goal:null;
     const secondaryEvents=weekStart?goals.filter(item=>item.id!==goal?.id&&eventInWeek(item,weekStart,weekEnd)).map(item=>({goal:item,relation:eventDemand?.relationFor?.(goal,item,weekStart)||null})):[];

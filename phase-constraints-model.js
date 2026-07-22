@@ -8,7 +8,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(raceCoach,methodology,programming){
   'use strict';
 
-  const VERSION='2.0.0';
+  const VERSION='2.1.0';
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const guard=(key,label,state,detail,tone='neutral')=>({key,label,state,detail,tone});
 
@@ -51,6 +51,7 @@
       const text=`${session.details?.runType||''} ${session.title||''}`;return/interval|tempo|threshold|progress|quality|marathon pace|ripetut|soglia|medio/i.test(text)||session.priority==='essential'?'quality':'easy';
     }
     if(session?.category==='strength')return/lower|full/i.test(String(session.details?.strengthFocus||''))?'strength-lower':'strength-upper';
+    if(session?.details?.athxRole||/\bathx\b/i.test(`${session?.title||''} ${session?.details?.metconType||''}`))return'athx';
     if(session?.category==='metcon'&&/\b(ocr|spartan|obstacle)\b/i.test(`${session.title||''} ${session.details?.metconType||''}`))return'obstacle';
     if(['hyrox','metcon','cycling','recovery'].includes(session?.category))return session.category;
     return'other';
@@ -101,6 +102,16 @@
         const hard=active.filter(item=>roleFor(item)==='obstacle'&&(Number(item.details?.metconRpe||0)>=7||Number(item.durationMin||0)>40)).length;
         if(hard)warnings.push(`${context.phase.label}: ${hard} sedut${hard===1?'a OCR supera':'e OCR superano'} il primer previsto; mani, avambracci e arti inferiori devono arrivare freschi alla gara.`);
       }
+    }
+    if(context.goal?.type==='athx'){
+      const specific=counts.athx||0,maxSpecific=Number(limits.maxAthxSpecific||1);
+      if(specific>maxSpecific)warnings.push(`${context.phase.label}: risultano ${specific} sedute ATHX specifiche; il limite operativo è ${maxSpecific}. Endurance e MetCon possono essere distinti, ma la loro densità non cresce automaticamente.`);
+      if(context.phase.key==='race-week'){
+        const hard=active.filter(item=>roleFor(item)==='athx'&&(Number(item.details?.metconRpe||0)>=7||Number(item.durationMin||0)>40)).length;
+        if(hard)warnings.push(`${context.phase.label}: ${hard} sedut${hard===1?'a ATHX supera':'e ATHX superano'} il primer previsto; Strength, Endurance e MetCon X richiedono freschezza nella giornata gara.`);
+      }
+      const fullSimulations=active.filter(item=>roleFor(item)==='athx'&&/simulazione completa|full simulation|2[,\.]?5\s*ore/i.test(`${item.title||''} ${item.notes||''}`)).length;
+      if(fullSimulations)warnings.push(`${context.phase.label}: ${fullSimulations} simulazion${fullSimulations===1?'e completa ATHX non viene':'i complete ATHX non vengono'} trattata come seduta automatica obbligatoria.`);
     }
     return{counts,warnings};
   }
