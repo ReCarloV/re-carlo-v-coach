@@ -394,6 +394,17 @@ html[data-theme="light"] .calendar-event.outcome-planned::after{border-color:#8d
 html[data-theme="light"] .calendar-event-linked{color:#2469aa}
 html[data-theme="light"] .week-bars{border-color:#cfdbe8}
 html[data-theme="light"] .week-bars i{background:#b7c9dd}
+html[data-theme="light"] .week-bars i.empty,html[data-theme="light"] .week-bars .current i.empty{background:#dbe5ef}
+html[data-theme="light"] .week-bars i.planned,html[data-theme="light"] .week-bars .current i.planned{border-color:#728da9;background:transparent}
+html[data-theme="light"] .week-bars i.performed,html[data-theme="light"] .week-bars .current i.performed{border-color:#145fc7;background:#2878ff;box-shadow:0 0 0 1px rgba(20,95,199,.18)}
+html[data-theme="light"] .week-bars i.skipped,html[data-theme="light"] .week-bars .current i.skipped{background:#c66275}
+html[data-theme="light"] .week-bars i.mixed,html[data-theme="light"] .week-bars .current i.mixed{border-color:#728da9;background:linear-gradient(to top,#c66275 0 24%,transparent 24% 48%,#2878ff 48% 100%)}
+html[data-theme="light"] .week-bars .week-bar-label,html[data-theme="light"] .week-bars .current .week-bar-label{color:#526c88}
+html[data-theme="light"] .week-bars .current .week-bar-label{color:#14569e;font-weight:850}
+html[data-theme="light"] .week-legend i.performed{border-color:#145fc7;background:#2878ff;box-shadow:0 0 0 1px rgba(20,95,199,.18)}
+html[data-theme="light"] .week-legend i.planned{border-color:#728da9;background:transparent}
+html[data-theme="light"] .week-legend i.skipped{background:#c66275}
+html[data-theme="light"] .week-bar-tooltip{border-color:#3c668e;background:#173451;color:#fff!important;box-shadow:0 8px 20px rgba(25,54,82,.22)}
 
 html[data-theme="light"] .today-metrics article.metric-card-good{
   border-color:#8bcab4;

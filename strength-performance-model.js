@@ -10,7 +10,9 @@
     bench:{label:'Panca piana',externalLoad:false,aliases:['bench press','panca piana']},
     military:{label:'Military Press',externalLoad:false,aliases:['military press','overhead press','strict press']},
     squat:{label:'Squat',externalLoad:false,aliases:['back squat','squat']},
-    deadlift:{label:'Stacco',externalLoad:false,aliases:['deadlift','stacco','stacco da terra']}
+    frontsquat:{label:'Front Squat',externalLoad:false,aliases:['front squat','squat frontale']},
+    deadlift:{label:'Stacco',externalLoad:false,aliases:['deadlift','conventional deadlift','stacco','stacco convenzionale','stacco da terra']},
+    trapbar:{label:'Trap Bar Deadlift',externalLoad:false,aliases:['trap bar deadlift','trap-bar deadlift','trap bar dead lift','hex bar deadlift','hex-bar deadlift','stacco trap bar','stacco con trap bar']}
   };
   const FORMULAS=Object.freeze({
     epley:{label:'Epley',shortLabel:'EPLEY'},

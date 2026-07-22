@@ -17,7 +17,7 @@
     strengthFormula: 'epley',
     hrZoneMethod: 'hrr',
     ftpZoneMethod: 'coggan7',
-    strengthMaxes: { pullup:null, bench:null, military:null, squat:null, deadlift:null },
+    strengthMaxes: { pullup:null, bench:null, military:null, squat:null, frontsquat:null, deadlift:null, trapbar:null },
     personalBests: [],
     sports: [],
     equipment: {},
@@ -146,11 +146,11 @@
     const container=document.getElementById('strength-maxes'); container.replaceChildren();
     Object.entries(labels).forEach(([key,meta])=>{
       const estimate=estimates[key];const card=document.createElement('div');card.className=`strength-max-card${estimate?` ${estimate.source}`:''}`;
-      const name=document.createElement('small');name.textContent=meta.label;const value=document.createElement('strong');value.textContent=estimate?`${key==='pullup'?'+':''}${estimate.value.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`:'—';
+      const name=document.createElement('small');name.textContent=meta.label;const value=document.createElement('strong');value.textContent=estimate?`${meta.externalLoad?'+':''}${estimate.value.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`:'—';
       const source=document.createElement('em');source.className='strength-source';
       if(!estimate)source.textContent='Registra un set principale';
       else if(estimate.source==='manual')source.textContent='Riferimento manuale';
-      else{const date=new Date(`${estimate.date}T12:00:00`).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});source.textContent=`Da ${key==='pullup'?'+':''}${estimate.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${estimate.reps}${estimate.rpe!==undefined?` @ RPE ${estimate.rpe.toLocaleString('it-IT')}`:''} · ${date}`;}
+      else{const date=new Date(`${estimate.date}T12:00:00`).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});source.textContent=`Da ${meta.externalLoad?'+':''}${estimate.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${estimate.reps}${estimate.rpe!==undefined?` @ RPE ${estimate.rpe.toLocaleString('it-IT')}`:''} · ${date}`;}
       card.append(name,value,source);if(estimate?.source==='recorded'){const detail=document.createElement('em');detail.className='strength-set';detail.textContent=`${window.rcStrengthPerformanceModel.FORMULAS[formula].label}${estimate.rpe!==undefined?` · RIR ${estimate.rir.toLocaleString('it-IT')} inclusa`:' · RPE non disponibile'} · ${estimate.exercise}`;card.append(detail);}container.append(card);
     });
     document.getElementById('strength-formula').value=formula;
@@ -199,7 +199,7 @@
     const values = {
       firstName: setup?athlete.firstName:'', lastName: setup?athlete.lastName || '':'', nickname: athlete.nickname, birthDate: setup?athlete.birthDate:'', level: athlete.level,
       heightCm: setup?athlete.heightCm:'', weightKg: setup?athlete.weightKg:'', maxHr: setup&&Number(athlete.maxHr)>0?athlete.maxHr:'', restingHr: setup&&Number(athlete.restingHr)>0?athlete.restingHr:'', ftp: setup&&Number(athlete.ftp)>0?athlete.ftp:'',
-      maxPullup:athlete.strengthMaxes?.pullup || '',maxBench:athlete.strengthMaxes?.bench || '',maxMilitary:athlete.strengthMaxes?.military || '',maxSquat:athlete.strengthMaxes?.squat || '',maxDeadlift:athlete.strengthMaxes?.deadlift || ''
+      maxPullup:athlete.strengthMaxes?.pullup || '',maxBench:athlete.strengthMaxes?.bench || '',maxMilitary:athlete.strengthMaxes?.military || '',maxSquat:athlete.strengthMaxes?.squat || '',maxFrontSquat:athlete.strengthMaxes?.frontsquat || '',maxDeadlift:athlete.strengthMaxes?.deadlift || '',maxTrapBar:athlete.strengthMaxes?.trapbar || ''
     };
     Object.entries(values).forEach(([name, value]) => { form.elements.namedItem(name).value = value; });
     document.getElementById('profile-max-hr-source').textContent=athlete.heartRateSources?.maxHr?.provider==='whoop'?'Da WHOOP · modificando passi al valore manuale':'Valore manuale';
@@ -227,7 +227,7 @@
       firstName: data.get('firstName').trim(), lastName: data.get('lastName').trim(), nickname: data.get('nickname').trim(), birthDate: data.get('birthDate'), level: data.get('level'),
       heightCm, weightKg,
       maxHr, restingHr, ftp: Number(data.get('ftp')),
-      strengthMaxes:{pullup:Number(data.get('maxPullup'))||null,bench:Number(data.get('maxBench'))||null,military:Number(data.get('maxMilitary'))||null,squat:Number(data.get('maxSquat'))||null,deadlift:Number(data.get('maxDeadlift'))||null},
+      strengthMaxes:{pullup:Number(data.get('maxPullup'))||null,bench:Number(data.get('maxBench'))||null,military:Number(data.get('maxMilitary'))||null,squat:Number(data.get('maxSquat'))||null,frontsquat:Number(data.get('maxFrontSquat'))||null,deadlift:Number(data.get('maxDeadlift'))||null,trapbar:Number(data.get('maxTrapBar'))||null},
       personalBests: JSON.parse(data.get('personalBests') || '[]'),
       sports: JSON.parse(data.get('sports') || '[]'), equipment: JSON.parse(data.get('equipment') || '{}'), schemaVersion: 3, profileSetupComplete:true
     };

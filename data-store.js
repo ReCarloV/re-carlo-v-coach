@@ -29,7 +29,7 @@
   const goalTypes = new Set(['marathon','half-marathon','running','hyrox','obstacle','triathlon','athx','cycling','strength-test','test','other']);
   const goalPriorities = new Set(['A','B','C']);
   const goalStatuses = new Set(['planned','completed','cancelled']);
-  const strengthDefaults = { pullup:null, bench:null, military:null, squat:null, deadlift:null };
+  const strengthDefaults = { pullup:null, bench:null, military:null, squat:null, frontsquat:null, deadlift:null, trapbar:null };
   const datasets = Object.freeze({
     profile: { key:'rc-athlete-profile-v1', version:3, kind:'json', fallback:null },
     hrZones: { key:'rc-hr-zones', version:1, kind:'json', fallback:null },
