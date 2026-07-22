@@ -68,12 +68,12 @@
 
         <article class="panel today-whoop-overview" id="today-whoop-overview" hidden aria-live="polite"></article>
 
-        <article class="panel today-adaptive-panel" id="today-adaptive-panel" aria-live="polite"></article>
-
         <div class="grid">
           <article class="panel session" id="today-session-panel" aria-live="polite"></article>
           <article class="panel" id="today-week-panel" aria-live="polite"></article>
         </div>
+
+        <article class="panel today-adaptive-panel" id="today-adaptive-panel" aria-live="polite"></article>
       </section>
 
       <section class="view" id="goals">
@@ -502,8 +502,13 @@
             <div class="endurance-performance-rows" id="endurance-performance-rows"></div>
           </section>
           <section class="strength-performance" id="strength-performance-fields" hidden>
-            <div class="strength-performance-heading"><div><strong>Set principali effettivi per e1RM</strong><span>Inserisci il miglior set realmente svolto con RPE del set. I complementari restano nelle note.</span></div><small>1–10 RIPETIZIONI</small></div>
+            <div class="strength-performance-heading"><div><strong>Set principali effettivi per e1RM</strong><span>Parti dai fondamentali programmati e aggiungi quelli che hai svolto davvero. I complementari restano nelle note.</span></div><small>1–10 RIPETIZIONI</small></div>
+            <div class="strength-performance-add">
+              <label>Altro esercizio principale svolto<select id="strength-performance-exercise" aria-label="Altro esercizio principale svolto"></select></label>
+              <button class="ghost" id="add-strength-performance" type="button">+ Aggiungi esercizio</button>
+            </div>
             <div class="strength-performance-rows" id="strength-performance-rows"></div>
+            <p class="strength-performance-empty" id="strength-performance-empty" hidden>Nessun fondamentale e1RM selezionato. Aggiungilo qui sopra se ne hai svolto uno.</p>
             <p class="strength-estimate-note">L’RPE del set viene convertita in RIR (10 − RPE) e aggiunta alle ripetizioni svolte prima di applicare la formula e1RM selezionata. È una stima operativa, più prudente da leggere su carichi alti e set vicini al cedimento.</p>
           </section>
         </div>

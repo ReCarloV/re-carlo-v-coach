@@ -53,7 +53,7 @@
   }
   function editableLifts(session){
     const result=[],seen=new Set();
-    const add=(exercise,block=null)=>{const key=liftKey(exercise);if(!key||seen.has(key))return;seen.add(key);result.push({key,label:LIFTS[key].label,exercise:String(exercise).trim(),externalLoad:LIFTS[key].externalLoad,...plannedValues(block)});};
+    const add=(exercise,block=null)=>{const key=liftKey(exercise);if(!key||seen.has(key))return;seen.add(key);result.push({key,label:LIFTS[key].label,exercise:String(exercise).trim(),externalLoad:LIFTS[key].externalLoad,planned:Boolean(block),...plannedValues(block)});};
     (Array.isArray(session?.details?.strengthBlocks)?session.details.strengthBlocks:[]).forEach(item=>add(item?.name,item));
     (Array.isArray(session?.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[]).forEach(item=>add(item?.exercise));
     return result;

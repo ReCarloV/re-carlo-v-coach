@@ -119,6 +119,14 @@
       return[{label:'Durata',value:`${session.durationMin} min`},{label:'Potenza',value:watts},{label:'Cadenza',value:details.cadence?`${details.cadence} rpm`:'Da definire'}];
     }
     if(session.category==='strength') {
+      if(performed(session)){
+        const actual=Array.isArray(session.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[];
+        if(actual.length)return actual.map(item=>{
+          const load=Number(item.loadKg),reps=Number(item.reps),hasRpe=item.rpe!==null&&item.rpe!==undefined&&item.rpe!=='',rpe=Number(item.rpe),external=/trazioni|weighted (?:pull|chin)/i.test(String(item.exercise||''));
+          return {label:item.exercise||'Esercizio principale',value:[Number.isFinite(load)?`${external?'+':''}${load.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`:null,Number.isFinite(reps)?`× ${reps}`:null,hasRpe&&Number.isFinite(rpe)?`RPE ${rpe.toLocaleString('it-IT',{maximumFractionDigits:1})}`:null].filter(Boolean).join(' · '),actual:true};
+        });
+        return [{label:'Set principali effettivi',value:'Nessun set principale registrato',actual:true}];
+      }
       const blocks=Array.isArray(details.strengthBlocks)?details.strengthBlocks:[];
       if(blocks.length)return blocks.map(item=>({label:item.name||'Esercizio',value:[item.sets&&item.reps?`${item.sets}×${item.reps}`:'',item.target,item.rest?`rec. ${item.rest}`:''].filter(Boolean).join(' · ')}));
       const legacy=String(details.exercises||'').split('\n').map(item=>item.trim()).filter(Boolean);

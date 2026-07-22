@@ -307,6 +307,36 @@ html[data-theme="light"] .today-adaptive-panel.applied{border-color:#8fcab6;back
 html[data-theme="light"] .today-adaptive-status,html[data-theme="light"] .today-adaptive-signal{border-color:#d1deeb;background:#f5f8fc;color:#344a62}
 html[data-theme="light"] .today-adaptive-summary{color:#5f7289}
 html[data-theme="light"] .today-adaptive-signal p,html[data-theme="light"] .today-adaptive-reasons{color:#667b92}
+html[data-theme="light"] .outcome-dialog{border-color:#cbd7e5;background:#fff;color:var(--text)}
+html[data-theme="light"] .outcome-session-context{border-color:#b9cee3;background:linear-gradient(145deg,#eef6fe,#f7fafc)}
+html[data-theme="light"] .outcome-session-context strong{color:#20364f}
+html[data-theme="light"] .outcome-session-context span{color:#61768d}
+html[data-theme="light"] .outcome-status-group span{border-color:#cbd8e5;background:#f1f5f9;color:#5c6f84}
+html[data-theme="light"] .outcome-status-group input:checked+span{border-color:#7ca9d8;background:#e8f2fd;color:#245f99;box-shadow:inset 0 0 0 1px #7ca9d8}
+html[data-theme="light"] .outcome-status-group input[value="completed"]:checked+span{border-color:#7fbda7;background:#e7f6ef;color:#176e54;box-shadow:inset 0 0 0 1px #7fbda7}
+html[data-theme="light"] .outcome-status-group input[value="partial"]:checked+span{border-color:#d4b06c;background:#fff2d5;color:#805813;box-shadow:inset 0 0 0 1px #d4b06c}
+html[data-theme="light"] .outcome-status-group input[value="skipped"]:checked+span{border-color:#d49aa5;background:#ffecef;color:#9e3c4e;box-shadow:inset 0 0 0 1px #d49aa5}
+html[data-theme="light"] .outcome-load-preview{border-color:#bfd1e3;background:#edf5fd}
+html[data-theme="light"] .outcome-load-preview span,html[data-theme="light"] .outcome-load-preview small{color:#60758c}
+html[data-theme="light"] .outcome-load-preview strong{color:#1269c7}
+html[data-theme="light"] .strength-performance{border-color:#bfd3e7;background:#f4f8fc}
+html[data-theme="light"] .strength-performance-heading strong,html[data-theme="light"] .strength-performance-name strong{color:#20364f}
+html[data-theme="light"] .strength-performance-heading span,html[data-theme="light"] .strength-performance-name small,html[data-theme="light"] .strength-performance-row label,html[data-theme="light"] .strength-estimate-note{color:#60758d}
+html[data-theme="light"] .strength-performance-heading small{color:#2469ad}
+html[data-theme="light"] .strength-performance-add{border-color:#abc4dc;background:#fff}
+html[data-theme="light"] .strength-performance-add label{color:#60758d}
+html[data-theme="light"] .strength-performance-row{border-color:#c8d7e5;background:#fff}
+html[data-theme="light"] .strength-performance-preview{border-color:#b7cce1;background:#edf5fd}
+html[data-theme="light"] .strength-performance-preview small{color:#60758d}
+html[data-theme="light"] .strength-performance-preview strong{color:#1269c7}
+html[data-theme="light"] .strength-performance-empty{border-color:#c2d2e1;background:#fff;color:#60758d}
+html[data-theme="light"] .outcome-observed{border-color:#9ebfe0;background:linear-gradient(145deg,#edf6ff,#f8fafc)}
+html[data-theme="light"] .outcome-observed-head strong{color:#20364f}
+html[data-theme="light"] .outcome-observed-metrics>span{border-color:#cad8e6;background:#fff}
+html[data-theme="light"] .outcome-observed-metrics strong{color:#20364f}
+html[data-theme="light"] .outcome-observed-metrics small,html[data-theme="light"] .outcome-observed-metrics em,html[data-theme="light"] .outcome-observed>p{color:#60758d}
+html[data-theme="light"] .outcome-observed>p.warning{border-color:#d2a858;background:#fff4dc;color:#805813}
+html[data-theme="light"] .outcome-record-status>small,html[data-theme="light"] .outcome-record-strength>small,html[data-theme="light"] .outcome-record-endurance>small,html[data-theme="light"] .outcome-record-e1rm small{color:#60758d}
 html[data-theme="light"] .outcome-record-lift{background:linear-gradient(145deg,#f5f9fd,#edf4fb)}
 html[data-theme="light"] .outcome-plan-reference summary{color:#2465aa}
 html[data-theme="light"] .outcome-record-e1rm strong{color:#1269c7}
