@@ -47,6 +47,7 @@
     whoopJournal: { key:'rc-whoop-journal-v1', version:1, kind:'json', fallback:[] },
     whoopImportBatches: { key:'rc-whoop-import-batches-v1', version:1, kind:'json', fallback:[] },
     reconciliationDecisions: { key:'rc-reconciliation-decisions-v1', version:1, kind:'json', fallback:[] },
+    reconciliationCutoff: { key:'rc-reconciliation-cutoff-v1', version:1, kind:'raw', fallback:null },
     goals: { key:'rc-goals-v1', version:1, kind:'json', fallback:[] },
     planView: { key:'rc-plan-view-v1', version:1, kind:'raw', fallback:'list' },
     uiTheme: { key:'rc-ui-theme-v1', version:1, kind:'raw', fallback:'auto' },
@@ -501,6 +502,9 @@
         return validateWhoopImportBatches(value);
       case 'reconciliationDecisions':
         return validateReconciliationDecisions(value);
+      case 'reconciliationCutoff':
+        if(value!==null&&!isDateKey(value))throw new DataStoreError('INVALID_PREFERENCE','La finestra degli abbinamenti non è valida.');
+        break;
       case 'goals':
         return validateGoals(value);
       case 'planView':
@@ -567,6 +571,7 @@
     values.planView = preferences.planView || 'list';
     values.uiTheme = sourceVersion>=9 ? preferences.uiTheme : 'auto';
     values.cloudSyncCursor = Object.prototype.hasOwnProperty.call(preferences,'cloudSyncCursor') ? preferences.cloudSyncCursor : null;
+    values.reconciliationCutoff = sourceVersion>=9 && Object.prototype.hasOwnProperty.call(preferences,'reconciliationCutoff') ? preferences.reconciliationCutoff : null;
     Object.entries(values).forEach(([name,value]) => validate(name,value));
     validateImportConsistency(values.importedActivities,values.importBatches);
     validateWhoopConsistency(values,values.whoopImportBatches);
@@ -674,7 +679,7 @@
         result.warnings.push('sessions');
         result.migrated=result.migrated.filter(item=>item!=='sessions');
       }
-      ['hrZones','profilePhoto','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','goals','planView','uiTheme','cloudSyncCursor'].forEach(name=>{
+      ['hrZones','profilePhoto','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','reconciliationCutoff','goals','planView','uiTheme','cloudSyncCursor'].forEach(name=>{
         try {
           const definition=datasets[name];const raw=storage.getItem(definition.key);
           if(raw===null)return;
@@ -728,7 +733,7 @@
         whoopImportBatches:{version:datasets.whoopImportBatches.version,value:read('whoopImportBatches')},
         reconciliationDecisions:{version:datasets.reconciliationDecisions.version,value:read('reconciliationDecisions')},
         goals:{version:datasets.goals.version,value:read('goals')},
-        preferences:{version:datasets.planView.version,value:{planView:read('planView'),uiTheme:read('uiTheme'),cloudSyncCursor:read('cloudSyncCursor')}}
+        preferences:{version:datasets.planView.version,value:{planView:read('planView'),uiTheme:read('uiTheme'),cloudSyncCursor:read('cloudSyncCursor'),reconciliationCutoff:read('reconciliationCutoff')}}
       };
       prepareFullBackup({ backupVersion:BACKUP_VERSION, data });
       return { app:APP_NAME, backupVersion:BACKUP_VERSION, exportedAt:now().toISOString(), data };

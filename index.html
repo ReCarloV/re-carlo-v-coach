@@ -205,13 +205,13 @@
         </div>
 
         <div class="data-import-grid">
-          <article class="panel import-source-card strava-source">
+          <article class="panel import-source-card strava-source" id="strava-settings-panel" data-settings-disclosure>
             <div class="import-source-head"><div class="source-logo">S</div><div><small>FONTE ATTIVITÀ</small><h2>Strava</h2></div><span class="source-status waiting" id="strava-source-status">Non collegato</span></div>
             <p class="muted">Archivio ZIP oppure <code>activities.csv</code>.</p>
             <div class="import-safety"><span>✓ Anteprima obbligatoria</span><span>✓ Duplicati esclusi</span><span>✓ Importazione annullabile</span></div>
             <div class="import-source-actions"><label class="primary file-button" for="strava-import-input">Importa Strava</label><input id="strava-import-input" type="file" accept=".zip,.csv,application/zip,text/csv"><small id="strava-import-status" role="status" aria-live="polite">Nessun file selezionato.</small></div>
           </article>
-          <article class="panel import-source-card whoop-source">
+          <article class="panel import-source-card whoop-source" id="whoop-settings-panel" data-settings-disclosure>
             <div class="import-source-head"><div class="source-logo whoop">W</div><div><small>RECUPERO E SONNO</small><h2>WHOOP</h2></div><span class="source-status waiting" id="whoop-source-status">Non collegato</span></div>
             <div class="whoop-live-panel" id="whoop-live-panel">
               <div class="whoop-live-state"><i id="whoop-live-dot"></i><div><strong id="whoop-live-title">Controllo del servizio Mac…</strong><small id="whoop-live-detail">La prima configurazione richiede circa due minuti.</small></div></div>
@@ -219,7 +219,7 @@
             </div>
             <details class="whoop-manual-import"><summary>Importazione manuale da ZIP</summary><div class="import-safety"><span>✓ 4 tabelle controllate</span><span>✓ Duplicati esclusi</span><span>✓ Importazione annullabile</span></div><div class="import-source-actions"><label class="ghost file-button" for="whoop-import-input">Scegli ZIP WHOOP</label><input id="whoop-import-input" type="file" accept=".zip,application/zip"><small id="whoop-import-status" role="status" aria-live="polite">Nessun file selezionato.</small></div></details>
           </article>
-          <article class="panel import-source-card plan-source">
+          <article class="panel import-source-card plan-source" id="external-plan-settings-panel" data-settings-disclosure>
             <div class="import-source-head"><div class="source-logo plan">P</div><div><small>IMPORTAZIONE OPZIONALE</small><h2>Programmazione esterna</h2></div><span class="source-status optional">Opzionale</span></div>
             <p class="muted">Per piani <code>.xlsx</code> preparati altrove.</p>
             <div class="import-safety"><span>✓ Base esterna, non obbligatoria</span><span>✓ Anteprima prima del salvataggio</span><span>✓ Adattabile dal Coach</span></div>
@@ -265,7 +265,7 @@
         </article>
 
         <div class="data-analysis-grid">
-          <article class="panel baseline-panel">
+          <article class="panel baseline-panel" id="baseline-settings-panel" data-settings-disclosure>
             <div class="panel-head"><div><small>BASELINE OSSERVATA</small><h2>Carico recente</h2><p class="muted" id="baseline-period">Importa Strava per ricostruire la baseline.</p></div><label class="baseline-window-label">FINESTRA<select id="baseline-window"><option value="4">4 settimane</option><option value="8">8 settimane</option><option value="12">12 settimane</option></select></label></div>
             <div class="baseline-empty" id="baseline-empty">Nessuna attività importata.</div>
             <div id="baseline-content" hidden>
@@ -279,14 +279,14 @@
               <p class="baseline-disclaimer">La baseline descrive ciò che è stato registrato: non autorizza da sola aumenti di carico o diagnosi.</p>
             </div>
           </article>
-          <article class="panel import-history-panel">
+          <article class="panel import-history-panel" id="import-history-settings-panel" data-settings-disclosure>
             <div class="panel-head"><div><small>TRACCIABILITÀ</small><h2>Importazioni</h2></div></div>
             <div class="import-history" id="import-history"></div>
             <button class="ghost compact-more" id="import-history-more" type="button" hidden>Mostra altro</button>
           </article>
         </div>
 
-        <article class="panel whoop-summary-panel">
+        <article class="panel whoop-summary-panel" id="whoop-summary-settings-panel" data-settings-disclosure>
           <div class="panel-head"><div><small>WHOOP · DATI OSSERVATI</small><h2>Recupero e sonno recenti</h2><p class="muted" id="whoop-summary-period">Importa WHOOP per mostrare i dati fisiologici disponibili.</p></div><label class="baseline-window-label">FINESTRA<select id="whoop-summary-window"><option value="7">7 giorni</option><option value="28">28 giorni</option><option value="84">12 settimane</option></select></label></div>
           <div class="baseline-empty" id="whoop-summary-empty">Nessun dato WHOOP importato.</div>
           <div id="whoop-summary-content" hidden>
@@ -307,8 +307,9 @@
         <article class="panel reconciliation-panel" id="reconciliation-panel">
           <div class="panel-head reconciliation-head">
             <div><small>STRAVA · WHOOP · PIANO</small><h2>Abbina le sedute</h2><p class="muted" id="reconciliation-status">Importa almeno due fonti per confrontare le registrazioni.</p></div>
-            <button class="primary small" id="reconciliation-confirm-high" type="button" hidden>Conferma alta affidabilità</button>
+            <div class="reconciliation-head-actions"><button class="ghost small" id="reconciliation-ignore-old" type="button" hidden>Ignora storico &gt;30 gg</button><button class="primary small" id="reconciliation-confirm-high" type="button" hidden>Conferma alta affidabilità</button></div>
           </div>
+          <div class="reconciliation-cutoff-note" id="reconciliation-cutoff-note" hidden></div>
           <div class="reconciliation-safety"><strong>Revisione controllata</strong><span>Un abbinamento collega le registrazioni della stessa seduta, ma non la segna automaticamente come svolta nel piano.</span></div>
           <div class="reconciliation-stats">
             <span><small>DA VERIFICARE</small><strong id="reconciliation-pending">0</strong></span>

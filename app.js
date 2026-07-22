@@ -27,6 +27,17 @@ window.rcNavigation = {
   setTitle:(name,title)=>{views[name]=title;if(document.getElementById(name)?.classList.contains('active'))document.getElementById('page-title').textContent=title;},
   active:()=>document.querySelector('.view.active')?.id || 'today'
 };
+function setupSettingsPage(){
+  const cloud=document.getElementById('cloud-sync-panel'),reconciliation=document.getElementById('reconciliation-panel');if(cloud&&reconciliation)cloud.after(reconciliation);
+  document.querySelectorAll('[data-settings-disclosure]').forEach(panel=>{
+    const header=panel.querySelector(':scope > .panel-head, :scope > .import-source-head');if(!header)return;
+    const body=document.createElement('div');body.className='settings-disclosure-body';body.id=`${panel.id}-body`;while(header.nextSibling)body.append(header.nextSibling);panel.append(body);
+    const title=header.querySelector('h2')?.textContent?.trim()||'sezione';const toggle=document.createElement('button');toggle.type='button';toggle.className='settings-disclosure-toggle';toggle.setAttribute('aria-controls',body.id);
+    const setOpen=open=>{body.hidden=!open;panel.classList.toggle('is-open',open);toggle.setAttribute('aria-expanded',String(open));toggle.textContent=open?'Nascondi':'Apri';toggle.setAttribute('aria-label',`${open?'Nascondi':'Apri'} ${title}`);};
+    toggle.addEventListener('click',()=>setOpen(body.hidden));header.append(toggle);setOpen(panel.hasAttribute('data-disclosure-open'));
+  });
+}
+setupSettingsPage();
 const requestedView=window.location.hash.replace(/^#/,'');if(Object.prototype.hasOwnProperty.call(views,requestedView))showView(requestedView);
 function renderCurrentDate(){document.getElementById('header-date').textContent=new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();}
 renderCurrentDate();setInterval(renderCurrentDate,60000);
