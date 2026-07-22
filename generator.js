@@ -87,15 +87,17 @@
   function hyroxSpecific(minutes,mode='foundation'){
     const presets={foundation:{title:'HYROX tecnica + engine',format:'HYROX stations',rpe:6,cap:55,blocks:[{name:'Tecnica SkiErg / Row',volume:'3 × 4 min',target:'RPE 6',rest:'2 min'},{name:'Sled + wall ball skill',volume:'3 giri tecnici',target:'Qualità',rest:'2 min'}],rationale:'Tecnica e base ibrida a costo controllato, senza simulazione prematura.'},specific:{title:'HYROX strength endurance',format:'HYROX partial simulation',rpe:7,cap:65,blocks:[{name:'Run + stations',volume:'4 × (800 m + 1 stazione)',target:'RPE 7',rest:'2 min'},{name:'Transizioni',volume:'4 ingressi',target:'Fluide',rest:'Incluso'}],rationale:'Forza resistente e transizioni progrediscono senza trasformare ogni settimana in una gara.'},'race-specific':{title:'HYROX compromised running',format:'HYROX partial simulation',rpe:8,cap:65,blocks:[{name:'Compromised run',volume:'5 × (1 km + stazione)',target:'Ritmo gara controllato',rest:'90 s'},{name:'Wall ball finish',volume:'3 × 20',target:'Tecnica gara',rest:'90 s'}],rationale:'Stimolo specifico su corsa compromessa e stazioni, dosato come unica seduta ibrida chiave.'},primer:{title:'HYROX race primer',format:'HYROX stations',rpe:6,cap:40,blocks:[{name:'Stazioni gara',volume:'4 × 2 min',target:'Tecnica brillante',rest:'2 min'},{name:'Transizioni',volume:'4 passaggi',target:'Fluide',rest:'Completo'}],rationale:'Primer tecnico breve: conserva ritmo e coordinazione senza fatica residua.'}};const preset=presets[mode]||presets.foundation;return session('hyrox',preset.title,Math.max(30,Math.min(roundFive(minutes),preset.cap)),'essential',{hyroxFormat:preset.format,hyroxRpe:preset.rpe,hyroxStructuredBlocks:preset.blocks},preset.rationale);
   }
-  function hyroxSpecificForContract(minutes,phaseConstraints,contract){
-    const base=hyroxSpecific(minutes,phaseConstraints?.limits?.hyroxMode),overlay=contract?.pack?.overlay;
+  function hyroxSpecificForContract(minutes,phaseConstraints,contract,descriptor={}){
+    const transitionMode=descriptor.transitionMode==='technical'?'primer':descriptor.transitionMode||null;
+    const base=hyroxSpecific(minutes,transitionMode||phaseConstraints?.limits?.hyroxMode),overlay=contract?.pack?.overlay;
     if(!overlay)return base;
     const extra=[];
     if(overlay.mode==='doubles')extra.push({name:'Strategia partner YGIG',volume:'4–6 cambi',target:'Cambi dichiarati e ripetibili',rest:'Come da strategia'});
     if(overlay.mode==='relay')extra.push({name:'Frazioni assegnate Relay',volume:'2 coppie run/station',target:'Ritmo e cambi di squadra',rest:'Completo tra le frazioni'});
     const loads=overlay.pro&&overlay.stationLoads?.length?` Carichi Pro di riferimento: ${overlay.stationLoads.join('; ')}.`:'';
-    const rationale=`${base.rationale} ${overlay.detail||''}${loads}`.trim();
-    return{...base,title:overlay.mode==='doubles'?'HYROX Doubles · YGIG e transizioni':overlay.mode==='relay'?'HYROX Relay · frazioni e cambi':base.title,details:{...base.details,hyroxStructuredBlocks:[...(base.details?.hyroxStructuredBlocks||[]),...extra],hyroxVariantMode:overlay.mode,hyroxPro:Boolean(overlay.pro),hyroxStationLoads:overlay.stationLoads||[]},rationale,notes:rationale};
+    const transitionNote=descriptor.transitionMode?` Modalità di transizione post-gara: ${descriptor.transitionMode}; nessuna simulazione completa.`:'';
+    const rationale=`${base.rationale} ${overlay.detail||''}${loads}${transitionNote}`.trim();
+    return{...base,title:overlay.mode==='doubles'?'HYROX Doubles · YGIG e transizioni':overlay.mode==='relay'?'HYROX Relay · frazioni e cambi':base.title,details:{...base.details,hyroxStructuredBlocks:[...(base.details?.hyroxStructuredBlocks||[]),...extra],hyroxVariantMode:overlay.mode,hyroxPro:Boolean(overlay.pro),hyroxStationLoads:overlay.stationLoads||[],transitionMode:descriptor.transitionMode||null},rationale,notes:rationale};
   }
   function obstacleSpecificForContract(minutes,phaseConstraints,contract,descriptor){
     const mode=phaseConstraints?.limits?.obstacleMode||'foundation';
@@ -158,7 +160,7 @@
     return session('metcon',title,Math.max(30,Math.min(roundFive(minutes),mode==='primer'?40:cap)),descriptor?.priority||'essential',{metconType:'ATHX specific',metconRpe:effort,metconStructuredBlocks:blocks,athxRole:subRole,athxVariant:contract?.pack?.key||null,athxDivision:overlay.division||null,athxMode:mode,athxSeason:overlay.season||'2026',athxPairs:pairs},rationale);
   }
   function lowImpactReplacement(minutes){return recoveryRide(minutes,'La qualità running viene sostituita da lavoro aerobico facile e a basso impatto; interrompi se il fastidio aumenta.','essential');}
-  function recoverySession(minutes){return session('recovery','Recupero e rivalutazione',Math.max(20,Math.min(roundFive(minutes),40)),'essential',{recoveryType:'Cardio rigenerante'},'Dolore elevato: nessuna progressione running automatica. Recupero, mobilità o cardio tollerato e nuova valutazione prima di correre.');}
+  function recoverySession(minutes){return session('recovery','Recupero e rivalutazione',Math.max(20,Math.min(roundFive(minutes),40)),'essential',{recoveryType:'Cardio rigenerante'},'Recupero, mobilità o cardio facile ben tollerato; rivalutare i segnali prima di reintrodurre lavoro più costoso.');}
   function isRace(item){return item?.details?.runType==='Race'||Boolean(item?.goalGenerated);}
   function isLong(item){return item.category==='running'&&(item.details?.runType==='Long run'||/lungo/i.test(item.title||''));}
   function isQuality(item){return !isRace(item)&&!isLong(item)&&item.priority==='essential'&&['running','cycling'].includes(item.category);}
@@ -182,8 +184,19 @@
     const rationale=settings.strengthRir>2?`${item.rationale} Volume ridotto e target RIR ${settings.strengthRir} in base ai dati recenti.`:item.rationale;
     return {...item,details:{...item.details,targetRir:settings.strengthRir,strengthBlocks:blocks},rationale,notes:rationale};
   }
+  function adaptTransition(item,transition){
+    if(!item||!transition)return item;const cap=Number(transition.maxDurationMin)||Number(item.durationMin)||0;let next={...item,durationMin:Math.min(Number(item.durationMin)||cap,cap)};
+    const prefix=`${transition.label}: `;
+    if(next.category==='strength'){
+      const minimumRir=transition.stage==='restore'?4:3;
+      const blocks=(next.details?.strengthBlocks||[]).map(block=>({...block,sets:String(Math.max(2,(Number(block.sets)||3)-(transition.stage==='convert'?0:1))),target:`RIR ${Math.max(minimumRir,Number(next.details?.targetRir)||0)}`}));
+      next={...next,details:{...next.details,targetRir:Math.max(minimumRir,Number(next.details?.targetRir)||0),strengthBlocks:blocks}};
+    }
+    const rationale=`${prefix}${transition.summary} ${next.rationale||''}`.trim();
+    return{...next,rationale,notes:rationale};
+  }
   function templateForRole(descriptor,weekly,analysis,phaseConstraints,microcycle){
-    const settings=analysis.settings,normalMinutes=Number(weekly.sessionMinutes)||60,adaptedMinutes=roundFive(normalMinutes*settings.volumeFactor),easyMinutes=roundFive(normalMinutes*Number(settings.aerobicVolumeFactor??settings.volumeFactor??1));
+    const settings=analysis.settings,declaredMinutes=Number(weekly.sessionMinutes)||60,normalMinutes=microcycle?.transition?Math.min(declaredMinutes,Number(microcycle.transition.maxDurationMin)||declaredMinutes):declaredMinutes,adaptedMinutes=roundFive(normalMinutes*settings.volumeFactor),easyMinutes=roundFive(normalMinutes*Number(settings.aerobicVolumeFactor??settings.volumeFactor??1));
     const generated=phaseConstraints?.generated||{},maxLong=Number(weekly.longRunMinutes)||120,baseLong=Math.min(maxLong,Math.max(75,normalMinutes+30)),adaptedLong=Math.min(maxLong,roundFive(baseLong*settings.longFactor*Number(generated.longFactor||1)));
     let item=null;
     if(descriptor.role==='easy')item=easyRun(easyMinutes);
@@ -192,7 +205,7 @@
     else if(descriptor.role==='strength-upper')item=upperStrength(adaptedMinutes);
     else if(descriptor.role==='strength-lower')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il lavoro lower lascia spazio a recupero low impact.'):settings.lowerBodyCaution?fullStrength(adaptedMinutes):lowerStrength(adaptedMinutes);
     else if(descriptor.role==='strength')item=microcycle?.pack?.family==='athx'?(settings.lowerBodyProtection?upperStrength(adaptedMinutes):athxStrengthForContract(adaptedMinutes,phaseConstraints,microcycle)):(settings.lowerBodyProtection?upperStrength(adaptedMinutes):fullStrength(adaptedMinutes));
-    else if(descriptor.role==='hyrox')item=hyroxSpecificForContract(adaptedMinutes,phaseConstraints,microcycle);
+    else if(descriptor.role==='hyrox')item=hyroxSpecificForContract(adaptedMinutes,phaseConstraints,microcycle,descriptor);
     else if(descriptor.role==='obstacle')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il lavoro OCR lascia spazio a cardio low impact finché il segnale lower body non viene rivalutato.','essential'):obstacleSpecificForContract(adaptedMinutes,phaseConstraints,microcycle,descriptor);
     else if(descriptor.role==='athx')item=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il lavoro ATHX ad alto impatto lascia spazio a cardio low impact finché il segnale lower body non viene rivalutato.','essential'):athxSpecificForContract(adaptedMinutes,phaseConstraints,microcycle,descriptor);
     else if(descriptor.role==='tri-swim')item=triathlonSwimForContract(adaptedMinutes,phaseConstraints,microcycle,descriptor);
@@ -204,7 +217,7 @@
     if(!item)return null;
     if(descriptor.label&&descriptor.role==='long')item={...item,title:descriptor.label};
     if(settings.suspendRunning&&item.category==='running')item=recoverySession(adaptedMinutes);
-    return adaptStrength(item,analysis);
+    return adaptTransition(adaptStrength(item,analysis),microcycle?.transition);
   }
   function desiredTemplates(count,weekly,analysis,phaseConstraints,microcycle){
     if(count<=0)return [];
@@ -281,8 +294,8 @@
     const stored=parse(WEEKLY_KEY,null);if(!stored)return {missing:true};const weekly={...stored,weekStart:mondayFor(stored.weekStart)};
     const dayIndex={Lun:0,Mar:1,Mer:2,Gio:3,Ven:4,Sab:5,Dom:6};const allSessions=window.rcSessions.getAll();const phaseDecision=phaseFor(weekly,allSessions,adaptationFor(weekly,allSessions)),analysis=phaseDecision.analysis,phaseConstraints=phaseDecision.context;
     const selected=(weekly.days||[]).map(day=>({day,index:dayIndex[day],date:dateFor(weekly.weekStart,dayIndex[day])})).filter(item=>Number.isInteger(item.index)).sort((a,b)=>a.index-b.index);if(!selected.length)return {missingDays:true,weekly};
-    const requested=Number(weekly.sessions)||5;const readinessCount=Math.max(1,Math.min(6,requested+analysis.settings.sessionDelta)),phaseCap=Number(phaseConstraints?.limits?.maxActiveSessions)||6,adaptedCount=Math.min(readinessCount,phaseCap);const end=addDays(weekly.weekStart,6);const today=localDate();const weekSessions=allSessions.filter(item=>item.date>=weekly.weekStart&&item.date<=end);const locked=lockedSessions(allSessions,weekly.weekStart,end,today),activeLocked=locked.filter(item=>item.adaptiveAdjustment?.status!=='paused');const lockedIds=new Set(locked.map(item=>item.id)),lockedDates=new Set(locked.map(item=>item.date));const available=selected.filter(slot=>slot.date>=today&&!lockedDates.has(slot.date));const importedPlan=weekSessions.filter(item=>item.planImport&&!lockedIds.has(item.id));const hasAppliedAdjustments=weekSessions.some(item=>item.adaptiveAdjustment&&!item.outcome&&!item.goalSubstitution&&item.date>today);const microcycle=microcycleModel?.build({goal:phaseDecision.goal,goals:phaseDecision.goals,weekStart:weekly.weekStart,sessionCount:adaptedCount,sessionMinutes:Number(weekly.sessionMinutes)||60,longSessionMinutes:Number(weekly.longRunMinutes)||120,phaseConstraints,lockedSessions:activeLocked,analysis})||null;
-    let assigned,sourceMode='generated',adjustedPlan=null;
+    const requested=Number(weekly.sessions)||5;const readinessCount=Math.max(1,Math.min(6,requested+analysis.settings.sessionDelta)),phaseCap=Number(phaseConstraints?.limits?.maxActiveSessions)||6,adaptedCount=Math.min(readinessCount,phaseCap);const end=addDays(weekly.weekStart,6);const today=localDate();const weekSessions=allSessions.filter(item=>item.date>=weekly.weekStart&&item.date<=end);const locked=lockedSessions(allSessions,weekly.weekStart,end,today),activeLocked=locked.filter(item=>item.adaptiveAdjustment?.status!=='paused');const lockedIds=new Set(locked.map(item=>item.id)),lockedDates=new Set(locked.map(item=>item.date));const available=selected.filter(slot=>slot.date>=today&&!lockedDates.has(slot.date));const importedPlan=weekSessions.filter(item=>item.planImport&&!lockedIds.has(item.id));const hasAppliedAdjustments=weekSessions.some(item=>item.adaptiveAdjustment&&!item.outcome&&!item.goalSubstitution&&item.date>today);const microcycle=microcycleModel?.build({goal:phaseDecision.goal,goals:phaseDecision.goals,weekStart:weekly.weekStart,sessionCount:adaptedCount,sessionMinutes:Number(weekly.sessionMinutes)||60,longSessionMinutes:Number(weekly.longRunMinutes)||120,phaseConstraints,lockedSessions:activeLocked,sessions:allSessions,analysis})||null;
+    const contractCount=Number(microcycle?.count??adaptedCount);let assigned,sourceMode='generated',adjustedPlan=null;
     if(importedPlan.length&&adjustmentModel){
       sourceMode='excel';const targetCount=Math.min(importedPlan.length,Math.max(0,adaptedCount-activeLocked.length),available.length);adjustedPlan=adjustmentModel.buildAdjustment({sessions:importedPlan,analysis,phaseConstraints,targetCount,now:new Date()});const slots=chooseSlots(available,adjustedPlan.active.length,adjustedPlan.active.some(isLong));const scheduled=assignImportedPlan(adjustedPlan.active,slots,analysis);assigned={sessions:[...scheduled.sessions,...adjustedPlan.paused].sort((a,b)=>a.date.localeCompare(b.date)),warnings:scheduled.warnings};
     }else{
@@ -302,14 +315,22 @@
     if(sourceMode==='generated'&&analysis.settings.lowerBodyProtection&&assigned.sessions.some(item=>item.category==='cycling'))changes.push('Qualità running sostituita con lavoro low impact; nessun nuovo lower pesante viene aggiunto.');
     if(sourceMode==='generated'&&analysis.settings.suspendRunning)changes.push('Running sospeso nella proposta automatica fino a nuova valutazione.');
     if(sourceMode==='generated'&&microcycle?.eventDirective?.replacesLong)changes.push(`${microcycle.eventDirective.goal.name} assorbe il lungo specifico della settimana: non viene creato un secondo lungo né volume compensatorio.`);
+    if(sourceMode==='generated'&&microcycle?.transition)changes.push(`${microcycle.transition.label}: massimo ${microcycle.transition.maxSessions} sedute da ${microcycle.transition.maxDurationMin} minuti prima di riaprire il normale pack ${microcycle.pack?.label||'del nuovo obiettivo'}.`);
     if(sourceMode==='excel'){
       if(adjustedPlan.paused.length)changes.push(`${adjustedPlan.paused.length} sedut${adjustedPlan.paused.length===1?'a sospesa':'e sospese'} senza eliminar${adjustedPlan.paused.length===1?'la':'le'} dal piano: potr${adjustedPlan.paused.length===1?'à':'anno'} essere ripristinat${adjustedPlan.paused.length===1?'a':'e'}.`);
       const instructions=[...new Set(assigned.sessions.flatMap(item=>item.adaptiveAdjustment?.instructions||[]))];instructions.forEach(instruction=>{if(!changes.includes(instruction))changes.push(instruction);});
       if(!adjustedPlan.changed&&!assigned.sessions.some(item=>item.adaptiveAdjustment))changes.push('Il programma Excel resta invariato: i dati non giustificano correzioni.');
     }
     if(!changes.length)changes.push(analysis.level==='progress'?'Aumentano solo gli elementi autorizzati dai controlli di tolleranza; intensità e forza restano stabili.':'Struttura e carico della settimana restano invariati.');
-    const phaseAudit=phaseModel?.auditSessions([...activeLocked,...assigned.sessions],phaseConstraints)||{warnings:[]};const alerts=[...assigned.warnings,...phaseAudit.warnings,...(microcycle?.warnings||[])];const activeProposed=assigned.sessions.filter(item=>item.adaptiveAdjustment?.status!=='paused').length;if(available.length+activeLocked.length<adaptedCount)alerts.push(`Con i giorni disponibili la proposta contiene ${activeLocked.length+activeProposed} sedute attive invece di ${adaptedCount}.`);if(sourceMode==='excel'&&importedPlan.length<Math.max(0,adaptedCount-activeLocked.length))alerts.push('Il coach non aggiunge sedute generiche oltre a quelle previste dal programma Excel.');if(adaptedCount<requested)alerts.push(analysis.organization?.level==='adapt'&&analysis.settings.physiologySessionDelta===0?`Il coach propone temporaneamente ${adaptedCount} sedute invece di ${requested} per aumentare la fattibilità della settimana.`:adaptedCount<readinessCount?`La fase ${phaseConstraints.phase.label} limita temporaneamente il numero massimo da ${requested} a ${adaptedCount} sedute.`:`Il motore riduce temporaneamente il numero massimo da ${requested} a ${adaptedCount} sedute.`);if(locked.length)alerts.push(`${locked.length} voc${locked.length===1?'e protetta resta':'i protette restano'} intatt${locked.length===1?'a':'e'}: esiti, passato, sedute manuali, gare e sostituzioni dichiarate non vengono riscritti.`);
-    return {weekly,sessions:assigned.sessions,lockedSessions:locked.sort((a,b)=>a.date.localeCompare(b.date)),alerts,analysis,phaseConstraints,phaseAudit,microcycle,changes,requested,adaptedCount,sourceMode,hasAppliedAdjustments};
+    const phaseAudit=phaseModel?.auditSessions([...activeLocked,...assigned.sessions],phaseConstraints)||{warnings:[]};const alerts=[...assigned.warnings,...phaseAudit.warnings,...(microcycle?.warnings||[])];const activeProposed=assigned.sessions.filter(item=>item.adaptiveAdjustment?.status!=='paused').length;
+    const expectedCount=sourceMode==='generated'?contractCount:adaptedCount;
+    if(available.length+activeLocked.length<expectedCount)alerts.push(`Con i giorni disponibili la proposta contiene ${activeLocked.length+activeProposed} sedute attive invece di ${expectedCount}.`);
+    if(sourceMode==='excel'&&importedPlan.length<Math.max(0,adaptedCount-activeLocked.length))alerts.push('Il coach non aggiunge sedute generiche oltre a quelle previste dal programma Excel.');
+    if(sourceMode==='excel'&&microcycle?.transition)alerts.push(`${microcycle.transition.label}: il piano esterno resta autorevole e non viene riscritto, ma le sedute oltre i limiti post-maratona richiedono una revisione esplicita.`);
+    if(sourceMode==='generated'&&contractCount<adaptedCount&&microcycle?.transition)alerts.push(`${microcycle.transition.label}: il blocco post-maratona limita temporaneamente la proposta a ${contractCount} sedute.`);
+    else if(adaptedCount<requested)alerts.push(analysis.organization?.level==='adapt'&&analysis.settings.physiologySessionDelta===0?`Il coach propone temporaneamente ${adaptedCount} sedute invece di ${requested} per aumentare la fattibilità della settimana.`:adaptedCount<readinessCount?`La fase ${phaseConstraints.phase.label} limita temporaneamente il numero massimo da ${requested} a ${adaptedCount} sedute.`:`Il motore riduce temporaneamente il numero massimo da ${requested} a ${adaptedCount} sedute.`);
+    if(locked.length)alerts.push(`${locked.length} voc${locked.length===1?'e protetta resta':'i protette restano'} intatt${locked.length===1?'a':'e'}: esiti, passato, sedute manuali, gare e sostituzioni dichiarate non vengono riscritti.`);
+    return {weekly,sessions:assigned.sessions,lockedSessions:locked.sort((a,b)=>a.date.localeCompare(b.date)),alerts,analysis,phaseConstraints,phaseAudit,microcycle,changes,requested,adaptedCount:expectedCount,sourceMode,hasAppliedAdjustments};
   }
 
   function renderAdaptation(analysis){
@@ -327,7 +348,16 @@
     box.className=`generator-microcycle ${contract.confidence||'pending'}`;
     const head=document.createElement('div');head.className='generator-microcycle-head';const copy=document.createElement('div');const overline=document.createElement('small');overline.textContent='CONTRATTO DEL MICROCICLO';const title=document.createElement('strong');title.textContent=contract.label;const summary=document.createElement('p');summary.textContent=contract.summary;copy.append(overline,title,summary);const badge=document.createElement('span');badge.textContent=contract.confidence==='supported'?'PACK ATTIVO':contract.confidence==='contextual'?'PACK CONTESTUALE':'PACK DA REVISIONARE';head.append(copy,badge);
     const roles=document.createElement('div');roles.className='generator-microcycle-roles';contract.roles.filter(item=>item.status!=='omitted').forEach(item=>{const chip=document.createElement('article');chip.className=item.status;const state=document.createElement('small');state.textContent=item.status==='covered'?'GIÀ COPERTA':'DA PROGRAMMARE';const label=document.createElement('b');label.textContent=item.label;const reason=document.createElement('p');reason.textContent=item.status==='covered'?`${item.sessionDate} · ${item.sessionTitle}`:item.reason;chip.append(state,label,reason);roles.append(chip);});
-    box.append(head,roles);
+    box.append(head);
+    if(contract.transition){
+      const transition=document.createElement('article');transition.className=`generator-transition ${contract.transition.status}`;
+      const overlineTransition=document.createElement('small');overlineTransition.textContent=`TRANSIZIONE POST-MARATONA · GIORNO +${contract.transition.daysAfter}`;
+      const titleTransition=document.createElement('b');titleTransition.textContent=`${contract.transition.label} → ${contract.transition.activeGoal.name}`;
+      const summaryTransition=document.createElement('p');summaryTransition.textContent=contract.transition.summary;
+      const criteria=document.createElement('ul');contract.transition.exitCriteria.forEach(value=>{const item=document.createElement('li');item.textContent=value;criteria.append(item);});
+      transition.append(overlineTransition,titleTransition,summaryTransition,criteria);box.append(transition);
+    }
+    box.append(roles);
     if(contract.eventDirective){
       const event=document.createElement('article');event.className=`generator-microcycle-event ${contract.eventDirective.tone||'warn'}`;const overlineEvent=document.createElement('small');overlineEvent.textContent=contract.eventDirective.replacesLong?'GARA C · LUNGO SPECIFICO':'GARA SECONDARIA';const titleEvent=document.createElement('b');titleEvent.textContent=`${contract.eventDirective.goal.name} · ${contract.eventDirective.goal.date}`;const summaryEvent=document.createElement('p');summaryEvent.textContent=contract.eventDirective.summary;const actions=document.createElement('ul');contract.eventDirective.actions.forEach(value=>{const item=document.createElement('li');item.textContent=value;actions.append(item);});event.append(overlineEvent,titleEvent,summaryEvent,actions);box.append(event);
     }

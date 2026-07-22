@@ -1,13 +1,14 @@
 (function(root,factory){
   const programming=typeof module!=='undefined'&&module.exports?require('./event-programming-model.js'):root?.rcEventProgrammingModel;
   const eventDemand=typeof module!=='undefined'&&module.exports?require('./event-demand-model.js'):root?.rcEventDemandModel;
-  const api=factory(programming,eventDemand);
+  const transitionModel=typeof module!=='undefined'&&module.exports?require('./goal-transition-model.js'):root?.rcGoalTransitionModel;
+  const api=factory(programming,eventDemand,transitionModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcMicrocyclePrescriptionModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(programming,eventDemand){
+})(typeof globalThis!=='undefined'?globalThis:this,function(programming,eventDemand,transitionModel){
   'use strict';
 
-  const VERSION='1.3.0';
+  const VERSION='1.4.0';
   const priorityRank={essential:3,important:2,optional:1};
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const sentence=value=>{const text=String(value||'');return text?`${text[0].toUpperCase()}${text.slice(1)}`:text;};
@@ -18,6 +19,7 @@
   const long=(label='Lungo')=>role('long',sentence(label),'essential','Seduta chiave di durata; dose e progressione restano subordinate alla tolleranza osservata.');
   const strength=(kind='strength')=>role(kind,kind==='strength-upper'?'Forza upper':kind==='strength-lower'?'Forza lower':'Forza full body','important','Forza di supporto con costo compatibile con gli stimoli specifici.');
   const cycling=()=>role('cycling','Cardio low impact','optional','Volume aerobico opzionale a basso impatto, senza intensità nascosta.');
+  const recovery=(index=1)=>role(`recovery-${index}`,index>1?`Recupero / mobilità ${index}`:'Recupero / mobilità','important','Recupero attivo leggero e osservazione dei segnali, senza trasformarlo in una seduta allenante nascosta.');
   const hyrox=(label='HYROX specifico')=>role('hyrox',label,'essential','Unica seduta ibrida chiave coordinata con corsa e forza.');
   const obstacle=(key='obstacle',label='OCR specifico',priority='essential',reason='Tecnica, grip, carry e transizioni vengono integrati in blocchi frazionati e verificabili.')=>role(key,label,priority,reason,{role:'obstacle'});
   const athx=(key='athx-combined',label='ATHX specifico',priority='essential',reason='Le richieste ATHX vengono preparate in blocchi distinti e verificabili.')=>role(key,label,priority,reason,{role:'athx',athxRole:key});
@@ -166,6 +168,31 @@
     ][count-1]||[];
   }
 
+  function transitionRoles(transition,count){
+    const capped=Math.max(0,Math.min(Number(transition?.maxSessions)||count,count));
+    if(!capped)return[];
+    if(transition.stage==='restore')return[
+      [recovery()],
+      [recovery(),cycling()],
+      [recovery(),cycling(),recovery(2)]
+    ][capped-1]||[];
+    const technical=role('hyrox','HYROX · tecnica e transizioni','important','Tecnica di stazione e transizioni rientrano senza densità, cedimento o corsa compromessa intensa.',{transitionMode:'technical'});
+    if(transition.stage==='rebuild')return[
+      [easy()],
+      [easy(),strength('strength-upper')],
+      [easy(),strength('strength-upper'),cycling()],
+      [easy(),strength('strength-upper'),cycling(),technical]
+    ][capped-1]||[];
+    const foundation=role('hyrox','HYROX · rientro specifico controllato','essential','La specificità rientra come unico stimolo ibrido, con volume frazionato e nessuna simulazione completa.',{transitionMode:'foundation'});
+    return[
+      [foundation],
+      [easy(),foundation],
+      [easy(),strength(),foundation],
+      [easy(),strength(),foundation,cycling()],
+      [easy(),strength('strength-upper'),strength('strength-lower'),foundation,cycling()]
+    ][capped-1]||[];
+  }
+
   function genericRoles(count){
     const fallback=[
       [easy()],
@@ -216,7 +243,11 @@
     const goal=input.goal||null,weekStart=input.weekStart||null,count=Math.max(0,Math.min(6,Number(input.sessionCount)||0));
     const weekEnd=weekStart?addDays(weekStart,6):null,pack=programming?.packFor?.(goal)||null,phase=input.phaseConstraints?.phase||programming?.phaseFor?.(goal,weekStart)||null;
     const goals=(Array.isArray(input.goals)?input.goals:[]).filter(Boolean),locked=(Array.isArray(input.lockedSessions)?input.lockedSessions:[]).filter(Boolean);
-    let targetRoles=pack?.family==='running'
+    const transition=transitionModel?.assess?.({activeGoal:goal,goals,weekStart,sessions:input.sessions,analysis:input.analysis})||null;
+    const roleCount=transition?Math.min(count,Number(transition.maxSessions)||count):count;
+    let targetRoles=transition
+      ?transitionRoles(transition,roleCount)
+      :pack?.family==='running'
       ?runningRoles(pack,count,phase?.key)
       :pack?.family==='hyrox'&&pack.status!=='pending'
         ?hyroxRoles(pack,count)
@@ -235,7 +266,7 @@
       const compatibleLong=pack?.key==='road-marathon'&&eventDemand?.profileFor?.(preparatory.goal)?.key==='road-30k';
       targetRoles=insertEvent(targetRoles,eventRole(preparatory.goal,preparatory.relation,false),compatibleLong);
     }
-    targetRoles=targetRoles.slice(0,count);
+    targetRoles=targetRoles.slice(0,roleCount);
 
     const remaining=[...targetRoles],covered=[],extras=[];
     locked.forEach(item=>{
@@ -252,6 +283,7 @@
       return ai-bi;
     });
     const warnings=[];
+    if(transition)warnings.push(`${transition.label}: massimo ${transition.maxSessions} sedute da ${transition.maxDurationMin} minuti; ${transition.summary}`);
     if(pack?.status==='pending')warnings.push('Il formato non dispone ancora di un pack prescrittivo revisionato: il Coach usa soltanto ruoli generici e conservativi.');
     if(pack?.family==='triathlon'&&count<3)warnings.push('Con meno di tre sedute la settimana non copre stabilmente nuoto, bici e corsa: il Coach mostra il limite invece di fingere una preparazione completa.');
     const weeklyCapacity=count*Math.max(0,Number(input.sessionMinutes)||0);
@@ -269,12 +301,12 @@
       ?`${eventDirective.goal.name} assorbe il lungo della settimana: nessun secondo lungo e nessun volume compensatorio.`
       :`${planned.length} sedut${planned.length===1?'a da programmare':'e da programmare'}, ${covered.length} già copert${covered.length===1?'a':'e'} e ${extras.length} protett${extras.length===1?'a':'e'} fuori dal contratto.`;
     return{
-      version:VERSION,weekStart,weekEnd,count,pack:pack?{key:pack.key,label:pack.label,family:pack.family,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)||null}:null,
+      version:VERSION,weekStart,weekEnd,count:roleCount,requestedCount:count,pack:pack?{key:pack.key,label:pack.label,family:pack.family,status:pack.status,confidence:pack.confidence,overlay:clone(pack.overlay)||null}:null,
       phase:phase?clone(phase):null,targetRoles:clone(targetRoles),roles:allRoles,coveredRoles:covered,plannedRoles:planned,omittedRoles:omitted,
-      protectedExtras:extras,eventDirective,warnings,summary,label:`${packLabel} · ${phaseLabel}`,
+      protectedExtras:extras,eventDirective,transition:clone(transition),warnings,summary,label:`${packLabel} · ${phaseLabel}`,
       confidence:pack?.confidence||'pending'
     };
   }
 
-  return{VERSION,build,sessionRole};
+  return{VERSION,build,sessionRole,transitionRoles};
 });
