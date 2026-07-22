@@ -41,6 +41,7 @@
     const safety=coach.applied?`Applicato${coach.appliedAt?` il ${new Date(coach.appliedAt).toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`:''}. Una nuova variazione dei dati richiederà una nuova anteprima.`:'Nessuna modifica viene salvata finché non confermi la proposta.';const body=element('div','collapsible-panel-body');body.id='today-adaptive-body';const bodyInner=element('div','collapsible-panel-body-inner');bodyInner.append(summary,grid,reasons,actions,element('small','today-adaptive-safety',safety));body.append(bodyInner);adaptivePanel.append(head,body);
   }
   function formatDate(value){return new Date(`${value}T12:00:00`).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});}
+  function greeting(name){const hour=new Date().getHours(),lead=hour<12?'Buongiorno':hour<18?'Buon pomeriggio':'Buonasera';return name?`${lead}, ${name}.`:`${lead}.`;}
 
   function renderNoSession(model){
     const head=element('div','panel-head');const copy=element('div');copy.append(element('span','tag rest','OGGI'),element('h2','',model.nextSession?'Rest day':'Piano libero'));head.append(copy);
@@ -80,7 +81,7 @@
     else if(model.load7.partial)noteText=`Carico parziale: ${model.load7.knownSessions}/${model.load7.sessions} sedute con durata e RPE completi.`;
     if(noteText)weekPanel.append(element('p','today-week-note',noteText));
   }
-  function render(){const model=currentModel();renderMetrics(model);renderWhoopOverview(model);renderAdaptive(model);renderSession(model);renderWeek(model);const profile=safeDataset('profile',null);window.rcNavigation?.setTitle('today',profile?.firstName&&profile.profileSetupComplete!==false?`Oggi, ${profile.firstName}.`:'Oggi');}
+  function render(){const model=currentModel();renderMetrics(model);renderWhoopOverview(model);renderAdaptive(model);renderSession(model);renderWeek(model);const profile=safeDataset('profile',null),name=profile?.firstName&&profile.profileSetupComplete!==false?profile.firstName:'';window.rcNavigation?.setTitle('today',greeting(name));}
 
   ['rc:sessions-updated','rc:body-issues-updated','rc:pre-checkin-updated','rc:weekly-checkin-updated','rc:profile-updated','rc:whoop-updated','rc:whoop-sync-state','rc:data-restored'].forEach(name=>document.addEventListener(name,render));
   document.addEventListener('rc:view-changed',event=>{if(event.detail?.view==='today')render();});

@@ -1,4 +1,4 @@
-const views = { today: 'Oggi', goals:'Obiettivi e gare', plan: 'Piano adattivo', recap:'Recap settimanale', profile: 'Il tuo profilo atleta', data:'Impostazioni' };
+const views = { today: 'Ciao.', goals:'Obiettivi e gare', plan: 'Piano adattivo', recap:'Recap settimanale', profile: 'Il tuo profilo atleta', data:'Impostazioni' };
 const transientDialogIds = [
   '#weekly-checkin-modal','#pre-checkin-modal','#generator-modal','#session-modal','#outcome-modal',
   '#goal-modal','#profile-modal','#pb-modal','#selector-modal','#whoop-setup-modal','#cloud-sync-modal','#crop-modal'
