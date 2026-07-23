@@ -1,0 +1,3 @@
+.cloud-sync-panel.cloud-compact-hidden{display:none}
+.data-local-badge{font-family:inherit;cursor:pointer}
+.data-local-badge:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
