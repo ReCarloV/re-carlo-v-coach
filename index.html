@@ -38,6 +38,7 @@
   <link rel="stylesheet" href="mobile.css">
   <link rel="stylesheet" href="ui-polish.css">
   <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="cloud-v2.css">
 </head>
 <body>
   <div class="shell">
@@ -169,7 +170,7 @@
       </section>
 
       <section class="view" id="data">
-        <div class="section-head data-page-head settings-page-head"><div><small>PREFERENZE E ARCHIVIO</small></div><span class="data-local-badge" id="data-location-badge">Solo su questo dispositivo</span></div>
+        <div class="section-head data-page-head settings-page-head"><div><small>PREFERENZE E ARCHIVIO</small></div><button class="data-local-badge" id="data-location-badge" type="button" title="Gestisci l’account cloud">Solo su questo dispositivo</button></div>
         <div class="settings-grid">
           <article class="panel appearance-panel">
             <div><small>INTERFACCIA</small><h2>Aspetto dell’app</h2></div>
@@ -188,10 +189,10 @@
         <article class="panel cloud-sync-panel" id="cloud-sync-panel" aria-live="polite">
           <div class="cloud-sync-copy">
             <div class="cloud-sync-symbol"><span><img src="icons/brand-logo.png" alt=""></span><i id="cloud-sync-dot"></i></div>
-            <div><small>MAC + IPHONE</small><h2 id="cloud-sync-title">Sincronizzazione dispositivi</h2><p class="muted" id="cloud-sync-detail">La copia locale resta intatta. Il collegamento cloud verrà attivato soltanto dopo il controllo iniziale.</p><span class="cloud-sync-meta" id="cloud-sync-meta">Non configurato</span></div>
+            <div><small>CLOUD PERSONALE</small><h2 id="cloud-sync-title">Sincronizzazione automatica</h2><p class="muted" id="cloud-sync-detail">La copia locale resta intatta mentre il cloud mantiene allineati i dispositivi.</p><span class="cloud-sync-meta" id="cloud-sync-meta">Non configurato</span></div>
           </div>
           <div class="cloud-sync-actions">
-            <button class="primary" id="cloud-sync-primary" type="button">Collega i dispositivi</button>
+            <button class="primary" id="cloud-sync-primary" type="button">Accedi al cloud</button>
             <button class="ghost" id="cloud-sync-now" type="button" hidden>Sincronizza ora</button>
             <button class="ghost" id="pwa-install" type="button">Installa app</button>
             <button class="ghost danger-text" id="cloud-sync-signout" type="button" hidden>Esci</button>
@@ -214,7 +215,7 @@
           <article class="panel import-source-card whoop-source" id="whoop-settings-panel" data-settings-disclosure>
             <div class="import-source-head"><div class="source-logo whoop">W</div><div><small>RECUPERO E SONNO</small><h2>WHOOP</h2></div><span class="source-status waiting" id="whoop-source-status">Non collegato</span></div>
             <div class="whoop-live-panel" id="whoop-live-panel">
-              <div class="whoop-live-state"><i id="whoop-live-dot"></i><div><strong id="whoop-live-title">Controllo del servizio Mac…</strong><small id="whoop-live-detail">La prima configurazione richiede circa due minuti.</small></div></div>
+              <div class="whoop-live-state"><i id="whoop-live-dot"></i><div><strong id="whoop-live-title">Controllo WHOOP cloud…</strong><small id="whoop-live-detail">Il collegamento funziona da iPhone e computer.</small></div></div>
               <div class="whoop-live-actions"><button class="primary whoop-button" id="whoop-live-primary" type="button">Configura collegamento</button><button class="ghost" id="whoop-live-permissions" type="button" hidden>Autorizza FC max</button><button class="ghost" id="whoop-live-settings" type="button" hidden>Impostazioni</button><button class="ghost danger-text" id="whoop-live-disconnect" type="button" hidden>Scollega</button></div>
             </div>
             <details class="whoop-manual-import"><summary>Importazione manuale da ZIP</summary><div class="import-safety"><span>✓ 4 tabelle controllate</span><span>✓ Duplicati esclusi</span><span>✓ Importazione annullabile</span></div><div class="import-source-actions"><label class="ghost file-button" for="whoop-import-input">Scegli ZIP WHOOP</label><input id="whoop-import-input" type="file" accept=".zip,application/zip"><small id="whoop-import-status" role="status" aria-live="polite">Nessun file selezionato.</small></div></details>
@@ -581,28 +582,11 @@
       <div class="modal-actions"><button class="ghost" type="button" id="selector-cancel">Annulla</button><button class="primary" type="button" id="selector-confirm">Conferma selezione</button></div>
     </div>
   </div>
-  <div class="whoop-setup-modal" id="whoop-setup-modal" aria-hidden="true">
-    <div class="whoop-setup-dialog">
-      <div class="panel-head"><div><small>COLLEGAMENTO LOCALE · MAC</small><h2>Configura WHOOP</h2></div><button class="icon-button" type="button" id="whoop-setup-close" aria-label="Chiudi">×</button></div>
-      <p class="muted">Questa operazione si fa una sola volta. Il Client Secret e i token saranno salvati nel Portachiavi del Mac, non nel browser e non nel backup dell’app.</p>
-      <ol class="whoop-setup-steps">
-        <li><span>1</span><div><strong>Crea una app personale WHOOP</strong><small>Nome consigliato: “Re Carlo V Personal Coach”. Abilita lettura profilo, cicli, recovery, sonno e allenamenti; non serve alcun permesso di scrittura.</small><a class="ghost whoop-developer-link" href="https://developer.whoop.com/" target="_blank" rel="noopener noreferrer">Apri WHOOP Developer ↗</a></div></li>
-        <li><span>2</span><div><strong>Imposta questo Redirect URI</strong><small>Copialo esattamente nel campo Redirect URL della app WHOOP.</small><div class="whoop-callback-row"><code id="whoop-callback-uri">recarlo://whoop/callback</code><button class="ghost" id="whoop-copy-callback" type="button">Copia</button></div></div></li>
-        <li><span>3</span><div><strong>Inserisci le due credenziali</strong><small>Le trovi nella schermata della app appena creata.</small></div></li>
-      </ol>
-      <form id="whoop-config-form" class="whoop-config-form" autocomplete="off">
-        <label>Client ID<input name="clientId" required maxlength="500" autocomplete="off" placeholder="Incolla il Client ID"></label>
-        <label>Client Secret<input name="clientSecret" type="password" required maxlength="500" autocomplete="new-password" placeholder="Incolla il Client Secret"></label>
-        <p id="whoop-config-status" role="status" aria-live="polite"></p>
-        <div class="modal-actions"><button class="ghost" id="whoop-setup-cancel" type="button">Annulla</button><button class="primary whoop-button" type="submit">Salva e continua</button></div>
-      </form>
-    </div>
-  </div>
   <div class="cloud-sync-modal" id="cloud-sync-modal" role="dialog" aria-modal="true" aria-labelledby="cloud-sync-modal-title" aria-hidden="true">
     <div class="cloud-sync-dialog">
-      <div class="panel-head"><div><small>ACCESSO PERSONALE</small><h2 id="cloud-sync-modal-title">Collega Mac e iPhone</h2></div><button class="icon-button" type="button" id="cloud-sync-close" aria-label="Chiudi">×</button></div>
+      <div class="panel-head"><div><small>ACCESSO PERSONALE</small><h2 id="cloud-sync-modal-title">Accedi al cloud personale</h2></div><button class="icon-button" type="button" id="cloud-sync-close" aria-label="Chiudi">×</button></div>
       <div id="cloud-auth-view">
-        <p class="muted">Usa lo stesso account sui due dispositivi. Il codice dell’app è pubblico, ma dati e piano sono accessibili soltanto al tuo utente.</p>
+        <p class="muted">Usa lo stesso account ovunque. Il codice dell’app è pubblico, ma profilo, piano e dati osservati sono accessibili soltanto al tuo utente.</p>
         <form class="cloud-auth-form" id="cloud-auth-form">
           <label>Email<input name="email" type="email" autocomplete="email" required placeholder="La tua email"></label>
           <label>Password<input name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="Almeno 8 caratteri"></label>
@@ -685,10 +669,10 @@
   <script src="data-import.js"></script>
   <script src="plan-import.js"></script>
   <script src="whoop-import.js"></script>
-  <script src="whoop-live-sync.js"></script>
-  <script src="reconciliation.js"></script>
   <script src="vendor/supabase-2.110.5.min.js"></script>
   <script src="cloud-sync.js"></script>
+  <script src="whoop-live-sync.js"></script>
+  <script src="reconciliation.js"></script>
   <script src="pwa.js"></script>
 </body>
 </html>
