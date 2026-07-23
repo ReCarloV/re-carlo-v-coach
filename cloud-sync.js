@@ -6,7 +6,7 @@
   const modal=document.getElementById('cloud-sync-modal'),authView=document.getElementById('cloud-auth-view'),choiceView=document.getElementById('cloud-choice-view'),authForm=document.getElementById('cloud-auth-form'),authStatus=document.getElementById('cloud-auth-status');
   const configured=/^https:\/\/[^/]+\.supabase\.co\/?$/.test(String(config.supabaseUrl||''))&&String(config.supabasePublishableKey||'').length>20;
   const deviceName=model.safeDeviceName(/iphone|ipad|ipod/i.test(navigator.userAgent)?'iPhone personale':/macintosh/i.test(navigator.userAgent)?'Mac personale':'Dispositivo personale');
-  let client=null,user=null,remote=null,baseRevision=null,baseFingerprint=null,mode=configured?'signed-out':'not-configured',busy=false,lastSyncAt=null,timer=null,localSyncTimer=null,pendingLocalChange=false;
+  let client=null,user=null,remote=null,baseRevision=null,baseFingerprint=null,mode=configured?'signed-out':'not-configured',busy=false,lastSyncAt=null,timer=null,localSyncTimer=null,pendingLocalChange=false,manageOpen=false;
 
   function snapshot(){return store.createCloudSnapshot();}
   function fingerprint(value=snapshot()){return model.fingerprintSnapshot(value);}
@@ -17,16 +17,16 @@
   function setMode(next,message){mode=next;if(message)detail.textContent=message;render();document.dispatchEvent(new CustomEvent('rc:cloud-sync-state',{detail:publicState()}));}
   function publicState(){return{configured,user:Boolean(user),mode,busy,pendingLocalChange,revision:baseRevision,lastSyncAt,deviceName};}
   function render(){
-    panel.classList.remove('synced','pending','error','conflict');primary.hidden=false;primary.disabled=busy;syncNow.hidden=true;syncNow.disabled=busy;signout.hidden=!user;
+    panel.classList.remove('synced','pending','error','conflict','cloud-compact-hidden');primary.hidden=false;primary.disabled=busy;syncNow.hidden=true;syncNow.disabled=busy;signout.hidden=!user;
     if(!configured){panel.classList.add('pending');title.textContent='iPhone · struttura pronta';detail.textContent='Manca soltanto il progetto cloud gratuito. I dati attuali restano esclusivamente sul Mac.';meta.textContent='Nessun dato trasferito';primary.textContent='Configurazione cloud richiesta';setHeader('', 'Dati locali');locationBadge.textContent='Solo su questo dispositivo';return;}
-    if(!user){title.textContent='Sincronizzazione dispositivi';detail.textContent='Accedi con il tuo account personale per collegare Mac e iPhone.';meta.textContent='Disconnesso';primary.textContent='Accedi e collega';setHeader('', 'Dati locali');locationBadge.textContent='Solo su questo dispositivo';return;}
-    locationBadge.textContent='Locale + cloud protetto';
+    if(!user){title.textContent='Cloud personale';detail.textContent='Accedi con il tuo account personale per ritrovare piano e dati su ogni dispositivo.';meta.textContent='Disconnesso';primary.textContent='Accedi al cloud';setHeader('', 'Dati locali');locationBadge.textContent='Solo su questo dispositivo';return;}
+    locationBadge.textContent='Cloud attivo · offline protetto';
     if(mode==='first-upload'){panel.classList.add('pending');title.textContent='Pronto per il primo caricamento';detail.textContent='La copia cloud è vuota. Porta nel cloud tutti i dati attuali di questo dispositivo.';meta.textContent=`${user.email||'Account collegato'} · ${deviceName}`;primary.textContent='Porta i dati nel cloud';setHeader('pending','Da sincronizzare');return;}
     if(mode==='choose'||mode==='conflict'){panel.classList.add('conflict');title.textContent=mode==='conflict'?'Modifiche da confrontare':'Scegli la copia iniziale';detail.textContent=mode==='conflict'?'Mac e cloud sono cambiati separatamente. Nessun dato verrà sovrascritto automaticamente.':'Su questo dispositivo e nel cloud sono presenti copie diverse.';meta.textContent=`Revisione cloud ${remote?.revision||'—'} · controllo richiesto`;primary.textContent='Confronta le copie';setHeader('conflict','Scelta richiesta');return;}
     if(mode==='error'){panel.classList.add('error');title.textContent='Sincronizzazione non disponibile';meta.textContent=navigator.onLine?'Controlla configurazione e account':'Questo dispositivo è offline';primary.textContent='Riprova';syncNow.hidden=false;setHeader('error','Sync non disponibile');return;}
     if(mode==='offline'){panel.classList.add('pending');title.textContent='Offline · dati salvati sul dispositivo';detail.textContent='Puoi continuare a usare l’app. Le modifiche verranno sincronizzate quando torna la connessione.';meta.textContent=`Ultima sincronizzazione ${formatTime(lastSyncAt)}`;primary.hidden=true;syncNow.hidden=false;setHeader('pending','Offline');return;}
     if(mode==='local-pending'){panel.classList.add('pending');title.textContent='Salvataggio nel cloud…';detail.textContent='La modifica è già salvata su questo dispositivo e sta raggiungendo la copia condivisa.';meta.textContent=`${deviceName} · sincronizzazione automatica`;primary.hidden=true;syncNow.hidden=true;setHeader('pending','Salvo nel cloud…');return;}
-    panel.classList.add('synced');title.textContent=busy?'Sincronizzazione in corso…':'Mac e iPhone sincronizzati';detail.textContent='Piano, check-in, profilo e dati osservati usano una sola copia condivisa, mantenendo il funzionamento offline.';meta.textContent=`${user.email||'Account personale'} · rev. ${baseRevision||'—'} · ${formatTime(lastSyncAt||remote?.updated_at)}`;primary.hidden=true;syncNow.hidden=false;setHeader('synced',busy?'Sincronizzo…':'Cloud sincronizzato');
+    panel.classList.add('synced');if(!manageOpen)panel.classList.add('cloud-compact-hidden');title.textContent=busy?'Sincronizzazione in corso…':'Cloud personale attivo';detail.textContent='Ogni modifica raggiunge automaticamente la copia condivisa. Questo dispositivo mantiene anche una copia offline.';meta.textContent=`${user.email||'Account personale'} · rev. ${baseRevision||'—'} · ${formatTime(lastSyncAt||remote?.updated_at)}`;primary.hidden=true;syncNow.hidden=false;setHeader('synced',busy?'Sincronizzo…':'Cloud aggiornato');
   }
 
   function openModal(view='auth'){
@@ -111,6 +111,16 @@
     if(user){loadCursor();setMode('pending');await reconcile();}else setMode('signed-out');
   }
 
+  async function functionRequest(action,{method='GET',body=null,timeoutMs=45000}={}){
+    if(!client||!user)throw new Error('Accedi prima al cloud personale.');
+    const{data,error}=await client.auth.getSession();if(error)throw error;const accessToken=data.session?.access_token;if(!accessToken)throw new Error('La sessione cloud è scaduta. Accedi di nuovo.');
+    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),timeoutMs);
+    try{
+      const response=await fetch(`${String(config.supabaseUrl).replace(/\/$/,'')}/functions/v1/whoop-cloud?action=${encodeURIComponent(action)}`,{method,headers:{Authorization:`Bearer ${accessToken}`,apikey:config.supabasePublishableKey,'Content-Type':'application/json'},body:body===null?undefined:JSON.stringify(body),signal:controller.signal});
+      const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error||'Il servizio cloud non ha completato l’operazione.');return payload;
+    }finally{clearTimeout(timeout);}
+  }
+
   primary.addEventListener('click',async()=>{
     if(!configured){window.alert('La struttura iPhone è pronta. Ora devo collegarla al progetto cloud gratuito: nessun dato è ancora uscito dal Mac.');return;}
     if(!user){openModal('auth');return;}
@@ -122,6 +132,7 @@
     await reconcile();
   });
   syncNow.addEventListener('click',reconcile);
+  locationBadge.addEventListener('click',()=>{if(!user)return;manageOpen=!manageOpen;render();if(manageOpen)panel.scrollIntoView({behavior:'smooth',block:'center'});});
   signout.addEventListener('click',async()=>{if(!window.confirm('Disconnettere questo dispositivo? I dati locali e la copia cloud resteranno intatti.'))return;await client.auth.signOut();user=null;remote=null;baseRevision=null;baseFingerprint=null;lastSyncAt=null;setMode('signed-out');});
   document.getElementById('cloud-sync-close').addEventListener('click',closeModal);modal.addEventListener('click',event=>{if(event.target===modal)closeModal();});
   authForm.addEventListener('submit',async event=>{
@@ -147,7 +158,7 @@
 
   ['rc:sessions-updated','rc:goals-updated','rc:profile-updated','rc:body-issues-updated','rc:pre-checkin-updated','rc:weekly-checkin-updated','rc:weekly-availability-history-updated','rc:whoop-updated','rc:reconciliation-updated','rc:theme-updated'].forEach(name=>document.addEventListener(name,scheduleLocalSync));window.addEventListener('rc:data-restored',scheduleLocalSync);
   window.addEventListener('online',()=>pendingLocalChange?flushLocalSync():reconcile());window.addEventListener('offline',()=>{if(user)setMode('offline');});document.addEventListener('visibilitychange',()=>{if(!user)return;if(document.hidden&&pendingLocalChange)flushLocalSync();else if(!document.hidden)pendingLocalChange?flushLocalSync():reconcile();});
-  window.rcCloudSync={state:publicState,reconcile,flush:flushLocalSync,show:()=>user&&(mode==='choose'||mode==='conflict')?showChoice():openModal('auth')};
+  window.rcCloudSync={state:publicState,reconcile,flush:flushLocalSync,requestFunction:functionRequest,show:()=>user&&(mode==='choose'||mode==='conflict')?showChoice():openModal('auth')};
 
   if(configured&&window.supabase?.createClient){
     client=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
