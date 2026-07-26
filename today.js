@@ -3,7 +3,7 @@
   const weekPanel=document.getElementById('today-week-panel');
   const adaptivePanel=document.getElementById('today-adaptive-panel');
   const whoopOverview=document.getElementById('today-whoop-overview');
-  const toneClass={good:'proceed',warn:'reduce',danger:'replace',proceed:'proceed',reduce:'reduce',replace:'replace',neutral:''};
+  const toneClass={good:'proceed',warn:'reduce',danger:'replace',proceed:'proceed',reduce:'reduce',replace:'replace',stop:'stop',neutral:''};
   let adaptiveCollapsed=false;
 
   function element(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}
@@ -55,9 +55,9 @@
     const action=element('button','ghost',item.outcome?'Dettagli':'Check-in');action.type='button';action.addEventListener('click',()=>item.outcome?window.rcSessions.openOutcome(item.id):window.rcCheckins.openPre(item.id));row.append(copy,action);return row;
   }
   function renderPrimary(model){
-    const session=model.primary;const execution=model.execution;const head=element('div','panel-head');const copy=element('div');const tags=element('div','today-session-tags');tags.append(element('span',`tag ${model.primaryTag.css}`,model.primaryTag.label));if(execution?.adapted)tags.append(element('span',`tag adjustment ${execution.mode}`,execution.mode==='replace'?'SOSTITUZIONE ODIERNA':'VERSIONE ADATTATA'));copy.append(tags,element('h2','',execution?.title||session.title));
+    const session=model.primary;const execution=model.execution;const head=element('div','panel-head');const copy=element('div');const tags=element('div','today-session-tags');tags.append(element('span',`tag ${model.primaryTag.css}`,model.primaryTag.label));if(execution?.adapted)tags.append(element('span',`tag adjustment ${execution.mode}`,execution.mode==='stop'?'ALLENAMENTO SOSPESO':execution.mode==='replace'?'SOSTITUZIONE ODIERNA':'VERSIONE ADATTATA'));copy.append(tags,element('h2','',execution?.title||session.title));
     const edit=element('button','ghost','Modifica');edit.type='button';edit.addEventListener('click',()=>window.rcSessions.openEditor(session.id));head.append(copy,edit);
-    const summary=element('p','muted',execution?.adapted?`${execution.mode==='replace'?`In sostituzione di “${session.title}”`:`Adattata da ${session.durationMin} a ${execution.effectiveDurationMin} min`} · il piano originale resta nello storico`:model.primarySummary);
+    const summary=element('p','muted',execution?.adapted?`${execution.mode==='stop'?`“${session.title}” resta nel piano ma non viene prescritta oggi`:execution.mode==='replace'?`In sostituzione di “${session.title}”`:`Adattata da ${session.durationMin} a ${execution.effectiveDurationMin} min`} · il piano originale resta nello storico`:model.primarySummary);
     const prescription=element('div','prescription today-prescription');model.prescription.forEach(block=>{const card=element('div',block.intensity?`intensity-${block.intensity}`:'');card.append(element('small','',block.label.toUpperCase()),element('strong','',block.value||'Da definire'));prescription.append(card);});
     const note=element('div',`coach-note ${toneClass[model.coachNote.tone]||''}`.trim());note.id='today-coach-note';note.append(element('strong','',model.coachNote.title));if(model.coachNote.text)note.append(element('p','',model.coachNote.text));
     const actions=element('div','today-session-actions');const primaryAction=element('button','primary');primaryAction.type='button';

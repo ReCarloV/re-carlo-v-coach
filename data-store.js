@@ -22,6 +22,7 @@
   const sessionCategories = new Set(['running','swimming','cycling','strength','hyrox','metcon','test','recovery']);
   const sessionPriorities = new Set(['essential','important','optional']);
   const outcomeStatuses = new Set(['completed','partial','skipped']);
+  const cardiopulmonarySignals = new Set(['chest-discomfort','syncope','unusual-dyspnea','symptomatic-palpitations']);
   const weekDays = new Set(['Lun','Mar','Mer','Gio','Ven','Sab','Dom']);
   const strengthFormulas = new Set(['epley','brzycki','lombardi','average']);
   const hrZoneMethods = new Set(['hrr','hrmax','average','custom']);
@@ -76,6 +77,12 @@
   }
   function isTimestamp(value) { return typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Date.parse(value)); }
   function invalid(code, message) { throw new DataStoreError(code,message); }
+  function validateCardiopulmonaryScreen(value,code='INVALID_SAFETY_SCREEN'){
+    if(!isObject(value)||!['clear','red-flag'].includes(value.status)||!Array.isArray(value.symptoms)||value.symptoms.length>cardiopulmonarySignals.size||new Set(value.symptoms).size!==value.symptoms.length||value.symptoms.some(item=>!cardiopulmonarySignals.has(item)))invalid(code,'Il controllo di sicurezza cardiopolmonare non è valido.');
+    if(value.status==='clear'&&value.symptoms.length)invalid(code,'Un controllo senza segnali non può contenere sintomi selezionati.');
+    if(value.status==='red-flag'&&!value.symptoms.length)invalid(code,'Un controllo di sicurezza positivo deve indicare almeno un segnale.');
+    return value;
+  }
 
   function validateProfile(value) {
     if (value === null) return value;
@@ -185,6 +192,7 @@
         if(!Array.isArray(values)||values.length>20||values.some(item=>!isObject(item)||typeof item.exercise!=='string'||!item.exercise.trim()||!isFiniteValue(item.loadKg)||Number(item.loadKg)<=0||Number(item.loadKg)>700||!Number.isInteger(Number(item.reps))||Number(item.reps)<1||Number(item.reps)>10||(owns(item,'rpe')&&(!isFiniteValue(item.rpe)||Number(item.rpe)<6||Number(item.rpe)>10||!Number.isInteger(Number(item.rpe)*2)))||(owns(item,'bodyweightKg')&&(!isFiniteValue(item.bodyweightKg)||Number(item.bodyweightKg)<20||Number(item.bodyweightKg)>300))))invalid('INVALID_OUTCOME','I set principali registrati per il calcolo e1RM non sono validi.');
       }
       if(owns(session.outcome,'actualEnduranceBlocks')&&!validateEnduranceBlocks(session.outcome.actualEnduranceBlocks,{actual:true}))invalid('INVALID_OUTCOME','I blocchi realmente svolti non sono validi.');
+      if(owns(session.outcome,'cardiopulmonaryScreen'))validateCardiopulmonaryScreen(session.outcome.cardiopulmonaryScreen,'INVALID_OUTCOME');
       if(owns(session.outcome,'deviceEvidence')){
         const evidence=session.outcome.deviceEvidence;const allowedFields=new Set(['actualDurationMin','actualDistanceKm']);
         if(!isObject(evidence)||typeof evidence.reconciliationDecisionId!=='string'||!evidence.reconciliationDecisionId.trim()||!isTimestamp(evidence.reviewedAt)||!Array.isArray(evidence.usedFields)||new Set(evidence.usedFields).size!==evidence.usedFields.length||evidence.usedFields.some(field=>!allowedFields.has(field)))invalid('INVALID_OUTCOME','La provenienza dei dati dispositivo non è valida.');
@@ -233,9 +241,11 @@
       if (owns(item,'issueReadings')) {
         if (!Array.isArray(item.issueReadings) || item.issueReadings.some(reading => !isObject(reading) || typeof reading.id !== 'string' || !isFiniteValue(reading.pain))) invalid('INVALID_PRE_CHECKINS','Le letture dei fastidi in un check-in non sono valide.');
       }
+      if(owns(item,'cardiopulmonaryScreen'))validateCardiopulmonaryScreen(item.cardiopulmonaryScreen,'INVALID_PRE_CHECKINS');
       if (owns(item,'recommendation') && item.recommendation !== null) {
         const recommendation=item.recommendation;
-        if (!isObject(recommendation) || !['proceed','reduce','replace'].includes(recommendation.level) || typeof recommendation.title !== 'string' || typeof recommendation.text !== 'string') invalid('INVALID_PRE_CHECKINS','La raccomandazione di un check-in non è valida.');
+        if (!isObject(recommendation) || !['proceed','reduce','replace','stop'].includes(recommendation.level) || typeof recommendation.title !== 'string' || typeof recommendation.text !== 'string') invalid('INVALID_PRE_CHECKINS','La raccomandazione di un check-in non è valida.');
+        if(owns(recommendation,'stopTraining')&&typeof recommendation.stopTraining!=='boolean')invalid('INVALID_PRE_CHECKINS','Il blocco di sicurezza di un check-in non è valido.');
       }
     });
     return value;

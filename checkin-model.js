@@ -1,8 +1,9 @@
 (function (root, factory) {
-  const api = factory();
+  const safetyModel = typeof module !== 'undefined' && module.exports ? require('./safety-screen-model.js') : root.rcSafetyScreenModel;
+  const api = factory(safetyModel);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.rcCheckinModel = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (safetyModel) {
   'use strict';
 
   const LOWER_PATTERN = /^(hip|quad|knee|ankle|glute|hamstring|calf)(-|$)/;
@@ -127,6 +128,8 @@
     const available = Number(data.availableMinutes) || 0, plannedDuration = Number(session?.durationMin) || 0;
     const issues = contextualIssues(data,session); const relevant = issues.relevant, local = issues.local;
     const recoverySession = session?.category === 'recovery';
+    const safety=safetyModel?.assessment?.(data.cardiopulmonaryScreen);
+    if(safety?.stopTraining)return {level:'stop',reason:'cardiopulmonary-red-flag',stopTraining:true,title:safety.title,text:safety.text,symptoms:safety.symptoms};
     if (energy === 1 || fatigue === 5) {
       if (recoverySession) return {level:'reduce',reason:'recovery',title:'Solo recupero molto leggero o riposo',text:appendLocalCaution('I segnali soggettivi indicano recupero insufficiente: mantieni soltanto attività rigenerante tollerata oppure riposo.',local)};
       return {level:'replace',reason:'recovery',title:'Sostituisci la seduta intensa',text:appendLocalCaution('I segnali soggettivi indicano recupero insufficiente per lo stimolo previsto: scegli una seduta rigenerante o riposo.',local)};

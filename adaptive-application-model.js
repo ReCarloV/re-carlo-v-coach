@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
 
-  const settingFields=['volumeFactor','longFactor','sessionDelta','qualityMode','strengthRir','strengthSetReduction','lowerBodyProtection','lowerBodyCaution','suspendRunning'];
+  const settingFields=['volumeFactor','longFactor','sessionDelta','qualityMode','strengthRir','strengthSetReduction','lowerBodyProtection','lowerBodyCaution','suspendRunning','suspendAllTraining'];
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   function dateAtNoon(value){return new Date(`${value}T12:00:00`);}
   function dateKey(date){return`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}

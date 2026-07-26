@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="plan-calendar.css">
   <link rel="stylesheet" href="bodymap.css">
   <link rel="stylesheet" href="checkins.css">
+  <link rel="stylesheet" href="safety-screen.css">
   <link rel="stylesheet" href="generator.css">
   <link rel="stylesheet" href="today.css">
   <link rel="stylesheet" href="recap.css">
@@ -371,6 +372,20 @@
         <div class="full active-issue-checkins" id="active-issue-checkins"></div>
         <label>Motivazione<select name="motivation"><option value="1">1 · Molto bassa</option><option value="2">2 · Bassa</option><option value="3" selected>3 · Normale</option><option value="4">4 · Buona</option><option value="5">5 · Alta</option></select></label>
         <label>Tempo disponibile oggi<input name="availableMinutes" type="number" min="15" max="240" step="5" value="75" required></label>
+        <fieldset class="full safety-screen">
+          <legend>Controllo sicurezza</legend>
+          <label>Oggi, a riposo o durante il riscaldamento, hai un segnale cardiopolmonare nuovo o anomalo?
+            <select name="cardiopulmonaryStatus" required><option value="" selected disabled>Seleziona</option><option value="clear">No · nessuno di questi segnali</option><option value="red-flag">Sì · uno o più segnali presenti</option></select>
+          </label>
+          <div class="safety-symptoms" id="pre-cardiopulmonary-symptoms" hidden>
+            <span>Seleziona ciò che hai avvertito</span>
+            <label><input type="checkbox" name="cardiopulmonarySymptoms" value="chest-discomfort">Dolore, pressione, costrizione o peso al torace</label>
+            <label><input type="checkbox" name="cardiopulmonarySymptoms" value="syncope">Svenimento, quasi svenimento, capogiro marcato o confusione</label>
+            <label><input type="checkbox" name="cardiopulmonarySymptoms" value="unusual-dyspnea">Fiato corto nuovo, estremo o sproporzionato allo sforzo</label>
+            <label><input type="checkbox" name="cardiopulmonarySymptoms" value="symptomatic-palpitations">Battito molto rapido o irregolare associato a dolore toracico, fiato corto o capogiro</label>
+          </div>
+          <small>Questo controllo non formula diagnosi e non usa WHOOP per escludere un problema clinico.</small>
+        </fieldset>
         <label class="full">Note facoltative<textarea name="notes" rows="3" placeholder="Sensazioni, sonno, dolore o altri fattori rilevanti"></textarea></label>
       </div>
       <div class="checkin-result" id="pre-checkin-result" role="status" aria-live="polite" hidden></div>
@@ -505,6 +520,20 @@
             <label>RPE della seduta<input name="rpe" type="number" inputmode="decimal" min="1" max="10" step="0.5" placeholder="Da compilare" required></label>
             <label>Rispetto al previsto<select name="execution" required><option value="" selected disabled>Seleziona confronto</option><option value="easier">Più facile</option><option value="as-planned">Come previsto</option><option value="harder">Più impegnativa</option></select></label>
             <label>Dolore massimo durante (0–10)<input name="pain" type="number" inputmode="numeric" min="0" max="10" step="1" placeholder="0 se assente" required></label>
+            <fieldset class="full safety-screen outcome-safety-screen">
+              <legend>Sicurezza durante o dopo la seduta</legend>
+              <label>Hai avvertito un segnale cardiopolmonare nuovo o anomalo?
+                <select name="outcomeCardiopulmonaryStatus" required><option value="" selected disabled>Seleziona</option><option value="clear">No · nessuno di questi segnali</option><option value="red-flag">Sì · uno o più segnali presenti</option></select>
+              </label>
+              <div class="safety-symptoms" id="outcome-cardiopulmonary-symptoms" hidden>
+                <span>Seleziona ciò che hai avvertito</span>
+                <label><input type="checkbox" name="outcomeCardiopulmonarySymptoms" value="chest-discomfort">Dolore, pressione, costrizione o peso al torace</label>
+                <label><input type="checkbox" name="outcomeCardiopulmonarySymptoms" value="syncope">Svenimento, quasi svenimento, capogiro marcato o confusione</label>
+                <label><input type="checkbox" name="outcomeCardiopulmonarySymptoms" value="unusual-dyspnea">Fiato corto nuovo, estremo o sproporzionato allo sforzo</label>
+                <label><input type="checkbox" name="outcomeCardiopulmonarySymptoms" value="symptomatic-palpitations">Battito molto rapido o irregolare associato a dolore toracico, fiato corto o capogiro</label>
+              </div>
+              <small>Se presente, il Coach sospende la normale prescrizione e conserva il segnale nello storico senza interpretarne la causa.</small>
+            </fieldset>
           </div>
           <div class="outcome-load-preview"><span>CARICO INTERNO (sRPE)</span><strong id="outcome-load-value">0 AU</strong><small>durata reale × RPE</small></div>
           <section class="endurance-performance" id="endurance-performance-fields" hidden>
@@ -630,6 +659,7 @@
   <script src="training-zones-model.js"></script>
   <script src="session-prescription-model.js"></script>
   <script src="symptom-recency-model.js"></script>
+  <script src="safety-screen-model.js"></script>
   <script src="skip-reason-model.js"></script>
   <script src="recovery-trend-model.js"></script>
   <script src="device-freshness-model.js"></script>

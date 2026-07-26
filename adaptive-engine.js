@@ -4,6 +4,7 @@
   const skipReasonModel=root.rcSkipReasonModel;
   const recoveryModel=typeof module!=='undefined'&&module.exports?require('./recovery-trend-model.js'):root.rcRecoveryTrendModel;
   const toleranceModel=typeof module!=='undefined'&&module.exports?require('./progression-tolerance-model.js'):root.rcProgressionToleranceModel;
+  const safetyModel=typeof module!=='undefined'&&module.exports?require('./safety-screen-model.js'):root.rcSafetyScreenModel;
   const levelMeta={
     protect:{label:'Protezione del recupero',summary:'I segnali recenti richiedono una settimana conservativa: volume ridotto e niente qualità aggressiva.'},
     reduce:{label:'Carico ridotto',summary:'Mantengo gli stimoli principali, ma riduco volume e densità per assorbire fatica o fastidi.'},
@@ -71,11 +72,11 @@
     recent.forEach(item=>{
       const key=item.sessionId?`session:${item.sessionId}`:`day:${item._date}`;if(seen.has(key))return;seen.add(key);
       const level=item.recommendation?.level,reason=item.recommendation?.reason;
-      if(reason==='time'||!['reduce','replace'].includes(level))return;
+      if(reason==='time'||!['reduce','replace','stop'].includes(level))return;
       episodes.push({sessionId:item.sessionId||null,date:item._date,level});
     });
-    const replaceCount=episodes.filter(item=>item.level==='replace').length;const reduceCount=episodes.filter(item=>item.level==='reduce').length;
-    return {negativeCount:episodes.length,replaceCount,reduceCount,episodes,weeklyLevel:null,contextOnly:episodes.length===1};
+    const stopCount=episodes.filter(item=>item.level==='stop').length,replaceCount=episodes.filter(item=>['replace','stop'].includes(item.level)).length;const reduceCount=episodes.filter(item=>item.level==='reduce').length;
+    return {negativeCount:episodes.length,replaceCount,reduceCount,stopCount,episodes,weeklyLevel:null,contextOnly:episodes.length===1};
   }
   function corroboratingOutcomes(sessions,start,end,preSummary){
     const candidates=(Array.isArray(sessions)?sessions:[]).filter(session=>session.date>=start&&session.date<=end&&relevant(session)&&(
@@ -103,7 +104,7 @@
   function analyze(input={}){
     const today=input.today||localDate();const sessions=Array.isArray(input.sessions)?input.sessions:[];
     const recentStart=addDays(today,-6);const recent=periodStats(sessions,recentStart,today,{openDate:input.closedThrough?null:today});const previous=periodStats(sessions,addDays(today,-13),addDays(today,-7));
-    const organization=organizationSignals(recent,previous);const body=bodySignals(input.bodyIssues,today);const preSummary=summarizeRecentPreCheckins(input.preCheckins,today);const corroboration=corroboratingOutcomes(sessions,recentStart,today,preSummary);
+    const organization=organizationSignals(recent,previous);const body=bodySignals(input.bodyIssues,today);const preSummary=summarizeRecentPreCheckins(input.preCheckins,today);const safety=safetyModel?.summarizeRecent?.({today,preCheckins:input.preCheckins,sessions})||{active:false,count:0,events:[],symptoms:[]};const corroboration=corroboratingOutcomes(sessions,recentStart,today,preSummary);
     const recovery=recoveryModel?recoveryModel.analyzeRecoveryTrend({today,cycles:input.whoopCycles,sleeps:input.whoopSleeps}):{level:'unavailable',label:'Non disponibile',tone:'neutral',usable:false,confidence:'low',reasons:[]};
     if(preSummary.replaceCount>=2||(preSummary.replaceCount>=1&&corroboration.fatigueSkip))preSummary.weeklyLevel='protect';
     else if(preSummary.negativeCount>=2||(preSummary.negativeCount>=1&&(corroboration.hard||corroboration.fatigueSkip)))preSummary.weeklyLevel='reduce';
@@ -114,7 +115,7 @@
     const combinedPain=Math.max(recent.maxPain,body.max);
     const tolerance=toleranceModel?toleranceModel.assess({today,sessions,recent,previous,loadRatio,body,recovery,preSummary}):{status:'blocked',summary:'Controlli di tolleranza non disponibili.',checks:[],volume:{allowed:false,factor:1},long:{allowed:false,factor:1}};
     let level='steady';
-    if(combinedPain>=5||recent.painSkips>0||recent.fatigueSkips>=2||preSummary.weeklyLevel==='protect'||(loadRatio!==null&&loadRatio>1.5))level='protect';
+    if(safety.active||combinedPain>=5||recent.painSkips>0||recent.fatigueSkips>=2||preSummary.weeklyLevel==='protect'||(loadRatio!==null&&loadRatio>1.5))level='protect';
     else if(combinedPain>=3||fatigueSignals>=2||(loadRatio!==null&&loadRatio>1.2)||preSummary.weeklyLevel==='reduce')level='reduce';
     else if(tolerance.volume.allowed||tolerance.long.allowed)level='progress';
     if(recovery.usable&&recovery.level==='protect')level=(fatigueSignals||preSummary.weeklyLevel||combinedPain>=3)?'protect':level==='protect'?'protect':'reduce';
@@ -124,6 +125,7 @@
     }
 
     const reasons=[];
+    if(safety.active)reasons.push(`Controllo sicurezza: ${safety.count} segnal${safety.count===1?'e cardiopolmonare recente':'i cardiopolmonari recenti'}. La prescrizione ordinaria resta sospesa senza interpretarne la causa.`);
     if(body.worst&&body.worst.latestPain>=3)reasons.push(`${body.worst.zoneLabel||'Fastidio monitorato'} a ${body.worst.latestPain}/10.`);
     if(body.stalest)reasons.push(`${body.stalest.zoneLabel||'Fastidio monitorato'}: ultima valutazione ${body.stalest.ageLabel}. Aggiornala prima di aumentare il carico.`);
     if(recent.maxPain>=3)reasons.push(`Dolore massimo registrato negli ultimi 7 giorni: ${recent.maxPain}/10.`);
@@ -154,6 +156,7 @@
       progress:{volumeFactor:1,aerobicVolumeFactor:tolerance.volume.factor,longFactor:tolerance.long.factor,qualityMode:'normal',strengthRir:2,strengthSetReduction:0,sessionDelta:0}
     }[level];
     settings.physiologySessionDelta=settings.sessionDelta;settings.organizationSessionDelta=organization.sessionDelta;settings.sessionDelta=Math.min(settings.physiologySessionDelta,settings.organizationSessionDelta);
+    settings.suspendAllTraining=Boolean(safety.active);
     const runningRelevantPain=Math.max(body.lowerMax,recent.maxRunningPain);
     settings.lowerBodyCaution=runningRelevantPain>=3;settings.lowerBodyProtection=runningRelevantPain>=5;settings.suspendRunning=runningRelevantPain>=7;
     const meta={...levelMeta[level]};
@@ -164,10 +167,12 @@
       metric('Carico 7 gg',recent.recorded?`${Math.round(recent.load)} AU`:'—'),
       metric('Dolore max',body.staleCount&&combinedPain===0?'Da aggiornare':recent.painKnown||body.fresh.length?`${combinedPain}/10`:'—',combinedPain>=5?'danger':combinedPain>=3||body.staleCount?'warn':'neutral'),
       metric('Vincoli 14 gg',organization.total14?String(organization.total14):'0',organization.level==='adapt'?'warn':'neutral'),
-      metric('WHOOP',recovery.label,recovery.tone)
+      metric('WHOOP',recovery.label,recovery.tone),
+      ...(safety.active?[metric('Sicurezza','STOP','danger')]:[])
     ];
-    const confidence=baselineValid?'high':recent.recorded>=3||recovery.usable?'medium':'low';
-    return {level,label:meta.label,summary:meta.summary,reasons,metrics,settings,recent,previous,loadRatio,preSummary,body,organization,recovery,tolerance,confidence};
+    const confidence=safety.active?'high':baselineValid?'high':recent.recorded>=3||recovery.usable?'medium':'low';
+    if(safety.active){meta.label='Allenamento sospeso';meta.summary='Un segnale cardiopolmonare riferito sospende la normale prescrizione. Il Coach non formula diagnosi e richiede una valutazione sanitaria prima della ripresa.';}
+    return {level,label:meta.label,summary:meta.summary,reasons,metrics,settings,recent,previous,loadRatio,preSummary,body,organization,recovery,safety,tolerance,confidence};
   }
 
   root.rcAdaptiveEngine={analyze,periodStats,summarizeRecentPreCheckins,organizationSignals};

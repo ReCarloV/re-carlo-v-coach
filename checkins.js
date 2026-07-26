@@ -7,6 +7,7 @@
   const weeklyForm=document.getElementById('weekly-checkin-form');
   const preForm=document.getElementById('pre-checkin-form');
   const checkinModel=window.rcCheckinModel;
+  const safetyModel=window.rcSafetyScreenModel;
   const returnFocus=new WeakMap();
   let activeSession=null;
   let activeCheckin=null;
@@ -70,6 +71,11 @@
     if(!activeSession){context.hidden=true;context.replaceChildren();return;}
     context.hidden=false;const title=document.createElement('strong');title.textContent=activeSession.title;const detail=document.createElement('span');detail.textContent=`${activeSession.durationMin} min previsti · ${checkinModel.formatItalianDate(activeSession.date)}`;context.replaceChildren(title,detail);
   }
+  function renderSafetyScreen(values={}){
+    const screen=safetyModel?.normalize?.(values.cardiopulmonaryScreen)||{status:'unknown',symptoms:[]};const status=preForm.elements.cardiopulmonaryStatus,holder=document.getElementById('pre-cardiopulmonary-symptoms'),selected=new Set(screen.symptoms);
+    status.value=screen.status==='unknown'?'':screen.status;preForm.querySelectorAll('[name="cardiopulmonarySymptoms"]').forEach(input=>{input.checked=selected.has(input.value);});holder.hidden=status.value!=='red-flag';
+  }
+  function updateSafetyScreen(){document.getElementById('pre-cardiopulmonary-symptoms').hidden=preForm.elements.cardiopulmonaryStatus.value!=='red-flag';}
   function fillPre(){
     preForm.reset();
     const values=activeCheckin||{};
@@ -77,7 +83,7 @@
     const available=values.availableMinutes??activeSession?.durationMin??75;
     preForm.elements.availableMinutes.value=checkinModel.clampDuration(available);
     preForm.elements.notes.value=values.notes||'';
-    renderIssueInputs(values.issueReadings||[]);renderPreContext();
+    renderIssueInputs(values.issueReadings||[]);renderPreContext();renderSafetyScreen(values);
     const result=document.getElementById('pre-checkin-result');result.hidden=true;result.replaceChildren();
     document.getElementById('pre-checkin-submit').textContent=activeCheckin?'Aggiorna valutazione':'Valuta la seduta';
   }
@@ -93,6 +99,7 @@
   }
 
   document.getElementById('open-weekly-checkin').addEventListener('click',()=>openWeekly());
+  preForm.elements.cardiopulmonaryStatus.addEventListener('change',updateSafetyScreen);
   document.querySelectorAll('[data-close-checkin]').forEach(button=>button.addEventListener('click',()=>close(button.dataset.closeCheckin==='weekly'?weeklyModal:preModal)));
   [weeklyModal,preModal].forEach(modal=>modal.addEventListener('keydown',handleModalKeys));
   weeklyForm.addEventListener('submit',event=>{
@@ -105,8 +112,9 @@
   });
   preForm.addEventListener('submit',event=>{
     event.preventDefault();const data=new FormData(preForm);const current=window.rcBodyIssues?.active?.()||[];
+    const cardiopulmonaryStatus=data.get('cardiopulmonaryStatus'),cardiopulmonarySymptoms=data.getAll('cardiopulmonarySymptoms');if(cardiopulmonaryStatus==='red-flag'&&!cardiopulmonarySymptoms.length){window.alert('Seleziona almeno il segnale cardiopolmonare che hai avvertito.');return;}
     const issueReadings=current.map(issue=>({id:issue.id,zone:issue.zone,zoneLabel:issue.zoneLabel,region:checkinModel.regionForIssue(issue),pain:Number(data.get(`issue-${issue.id}`))}));const worst=issueReadings.slice().sort((a,b)=>b.pain-a.pain)[0];
-    const draft={id:activeCheckin?.id,createdAt:activeCheckin?.createdAt,sessionId:activeSession?.id||null,sessionDate:activeSession?.date||localDate(),energy:Number(data.get('energy')),fatigue:Number(data.get('fatigue')),soreness:Number(data.get('soreness')),motivation:Number(data.get('motivation')),availableMinutes:Number(data.get('availableMinutes')),notes:data.get('notes').trim(),issueReadings,maxIssuePain:worst?.pain||0,worstIssue:worst?.zoneLabel||''};
+    const draft={id:activeCheckin?.id,createdAt:activeCheckin?.createdAt,sessionId:activeSession?.id||null,sessionDate:activeSession?.date||localDate(),energy:Number(data.get('energy')),fatigue:Number(data.get('fatigue')),soreness:Number(data.get('soreness')),motivation:Number(data.get('motivation')),availableMinutes:Number(data.get('availableMinutes')),notes:data.get('notes').trim(),issueReadings,maxIssuePain:worst?.pain||0,worstIssue:worst?.zoneLabel||'',cardiopulmonaryScreen:{status:cardiopulmonaryStatus,symptoms:cardiopulmonaryStatus==='red-flag'?cardiopulmonarySymptoms:[]}};
     draft.recommendation=checkinModel.recommendation(draft,activeSession);
     const previous=activeCheckin;const now=new Date().toISOString();const saved=checkinModel.upsertCheckin(parse(PRE_KEY,[]),draft,{now,idFactory:()=>globalThis.crypto?.randomUUID?.()||`pre-${Date.now()}`});
     localStorage.setItem(PRE_KEY,JSON.stringify(saved.history));activeCheckin=saved.value;

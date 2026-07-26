@@ -21,6 +21,7 @@
   const planViewModel=window.rcPlanViewModel;
   const goalsModel=window.rcGoalsModel;
   const prescriptionModel=window.rcSessionPrescriptionModel;
+  const safetyModel=window.rcSafetyScreenModel;
   let sessions = load();
   let planView = localStorage.getItem(VIEW_KEY) === 'calendar' ? 'calendar' : 'list';
   let calendarCursor = relevantCalendarMonth();
@@ -475,7 +476,14 @@
     const strengthFields=document.getElementById('strength-performance-fields');strengthFields.hidden=skipped||outcomeForm.dataset.category!=='strength'||strengthFields.dataset.hasRows!=='true';
     const enduranceFields=document.getElementById('endurance-performance-fields');enduranceFields.hidden=skipped||!['running','cycling'].includes(outcomeForm.dataset.category)||enduranceFields.dataset.hasRows!=='true';
     document.getElementById('skip-reason-impact').textContent=skipReasonModel.impact(outcomeForm.elements.skipReason.value);
+    updateOutcomeSafetyScreen();
     updateOutcomeLoad();
+  }
+  function fillOutcomeSafetyScreen(outcome){
+    const screen=safetyModel?.normalize?.(outcome?.cardiopulmonaryScreen)||{status:'unknown',symptoms:[]},selected=new Set(screen.symptoms);outcomeForm.elements.outcomeCardiopulmonaryStatus.value=screen.status==='unknown'?'':screen.status;outcomeForm.querySelectorAll('[name="outcomeCardiopulmonarySymptoms"]').forEach(input=>{input.checked=selected.has(input.value);});updateOutcomeSafetyScreen();
+  }
+  function updateOutcomeSafetyScreen(){
+    const holder=document.getElementById('outcome-cardiopulmonary-symptoms'),skipped=outcomeForm.elements.status.value==='skipped',flagged=outcomeForm.elements.outcomeCardiopulmonaryStatus.value==='red-flag';holder.hidden=skipped||!flagged;
   }
   function updateOutcomeLoad() {
     const duration=Number(outcomeForm.elements.actualDurationMin.value)||0,rpe=Number(outcomeForm.elements.rpe.value)||0;
@@ -510,6 +518,7 @@
       addMetric('DOLORE MASSIMO',metricValue(outcome.pain,' / 10'));
     }
     const evidenceLabel=evidenceSourceLabel(outcome.deviceEvidence);if(evidenceLabel)addMetric('DATI COLLEGATI',evidenceLabel);holder.append(metrics);
+    const safety=safetyModel?.assessment?.(outcome.cardiopulmonaryScreen);if(safety?.stopTraining){const warning=outcomeRecordElement('section','outcome-safety-alert');warning.append(outcomeRecordElement('small','','CONTROLLO SICUREZZA'),outcomeRecordElement('strong','',safety.title),outcomeRecordElement('p','',safety.text));const list=outcomeRecordElement('ul');safety.symptoms.forEach(label=>list.append(outcomeRecordElement('li','',label)));warning.append(list);holder.append(warning);}
     if(session.category==='strength'&&outcome.status!=='skipped'){
       const entries=(Array.isArray(outcome.strengthPerformance)?outcome.strengthPerformance:[]).map(item=>strengthModel.normalizedEntry(item)).filter(Boolean);
       const section=outcomeRecordElement('section','outcome-record-strength');section.append(outcomeRecordElement('small','','ESERCIZI PRINCIPALI REALMENTE SVOLTI'));
@@ -556,6 +565,7 @@
     outcomeForm.elements.rpe.value=outcome?.rpe??'';
     outcomeForm.elements.execution.value=outcome?.execution||'';outcomeForm.elements.pain.value=outcome?.pain??'';
     outcomeForm.elements.skipReason.value=outcome?.skipReason||'time';outcomeForm.elements.outcomeNotes.value=outcome?.notes||'';
+    fillOutcomeSafetyScreen(outcome);
     renderEndurancePerformance(session,outcome);
     renderStrengthPerformance(session,outcome);
     const context=document.getElementById('outcome-session-context');const strong=document.createElement('strong');strong.textContent=session.title;const span=document.createElement('span');const date=new Date(`${session.date}T12:00:00`);span.textContent=`${date.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})} · ${categoryMeta[session.category].label} · ${session.durationMin} min previsti`;context.replaceChildren(strong,span);
@@ -601,17 +611,19 @@
   document.getElementById('outcome-cancel').addEventListener('click',closeOutcome);
   outcomeForm.querySelectorAll('input[name="status"]').forEach(input=>input.addEventListener('change',toggleOutcomeFields));
   outcomeForm.elements.skipReason.addEventListener('change',toggleOutcomeFields);
+  outcomeForm.elements.outcomeCardiopulmonaryStatus.addEventListener('change',updateOutcomeSafetyScreen);
   outcomeForm.elements.actualDurationMin.addEventListener('input',updateOutcomeLoad);outcomeForm.elements.rpe.addEventListener('input',updateOutcomeLoad);
   outcomeForm.addEventListener('submit',event=>{
     event.preventDefault();const data=new FormData(outcomeForm),id=data.get('sessionId'),existing=sessions.find(item=>item.id===id);if(!existing)return;
     if(!canRecordOutcome(existing)){closeOutcome();window.alert(outcomeLockedMessage(existing));return;}
     const actualDate=String(data.get('actualDate')||existing.date);if(!planViewModel.validDateKey(actualDate)||actualDate>localDate()){window.alert('La data effettiva deve essere un giorno valido, non successivo a oggi.');return;}if(actualDate!==existing.date&&goalsModel?.isRaceSession?.(existing)){window.alert('Per cambiare la data di una gara usa la pagina Obiettivi, così resta allineato anche il countdown.');return;}
     const status=data.get('status'),skipped=status==='skipped',duration=skipped?null:Number(data.get('actualDurationMin')),rpe=skipped?null:Number(data.get('rpe'));
+    const cardiopulmonaryStatus=skipped?null:data.get('outcomeCardiopulmonaryStatus'),cardiopulmonarySymptoms=skipped?[]:data.getAll('outcomeCardiopulmonarySymptoms');if(cardiopulmonaryStatus==='red-flag'&&!cardiopulmonarySymptoms.length){window.alert('Seleziona almeno il segnale cardiopolmonare che hai avvertito.');return;}
     const actualDistanceKm=!skipped&&['running','swimming'].includes(existing.category)&&data.get('actualDistanceKm')?Number(data.get('actualDistanceKm')):null;let deviceEvidence=null;
     if(!skipped&&activeOutcomeEvidence?.sessionId===id&&executionModel)deviceEvidence=executionModel.createDeviceEvidenceSnapshot(activeOutcomeEvidence,{actualDurationMin:duration,actualDistanceKm},new Date());
     else if(!skipped&&existing.outcome?.deviceEvidence)deviceEvidence=existing.outcome.deviceEvidence;
-    const outcome={status,actualDurationMin:duration,actualDistanceKm,rpe,sessionLoad:skipped?0:Math.round(duration*rpe),execution:skipped?null:data.get('execution'),pain:skipped?null:Number(data.get('pain')),skipReason:skipped?data.get('skipReason'):null,notes:data.get('outcomeNotes').trim(),...(existing.category==='strength'?{strengthPerformance:skipped?[]:strengthPerformanceFromForm()}:{}),...(['running','cycling'].includes(existing.category)&&!skipped&&activeActualEnduranceBlocks.length?{actualEnduranceBlocks:endurancePerformanceFromForm()}:{}),...(deviceEvidence?{deviceEvidence}:{}),recordedAt:existing.outcome?.recordedAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
-    const previousDate=existing.date,stamp=new Date().toISOString();sessions=sessions.map(item=>item.id===id?{...item,date:actualDate,outcome,updatedAt:stamp}:item);if(actualDate!==previousDate){const date=new Date(`${actualDate}T12:00:00`);calendarCursor=new Date(date.getFullYear(),date.getMonth(),1);listWeekStart=planViewModel.mondayFor(actualDate);}const savedSession=sessions.find(item=>item.id===id),hasRemaining=sessions.some(item=>item.date>localDate()&&!item.outcome&&!isPaused(item));save();render();closeOutcome();toast(actualDate!==previousDate?'Registrazione spostata alla data effettiva':window.rcAdaptiveApplicationModel?.isKeyOutcome?.(savedSession)&&hasRemaining?'Registrato · microciclo da rivedere':undefined);document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:actualDate!==previousDate?'outcome-date-corrected':'outcome-saved',sessionId:id,previousDate,date:actualDate}}));
+    const outcome={status,actualDurationMin:duration,actualDistanceKm,rpe,sessionLoad:skipped?0:Math.round(duration*rpe),execution:skipped?null:data.get('execution'),pain:skipped?null:Number(data.get('pain')),skipReason:skipped?data.get('skipReason'):null,notes:data.get('outcomeNotes').trim(),...(!skipped?{cardiopulmonaryScreen:{status:cardiopulmonaryStatus,symptoms:cardiopulmonaryStatus==='red-flag'?cardiopulmonarySymptoms:[]}}:{}),...(existing.category==='strength'?{strengthPerformance:skipped?[]:strengthPerformanceFromForm()}:{}),...(['running','cycling'].includes(existing.category)&&!skipped&&activeActualEnduranceBlocks.length?{actualEnduranceBlocks:endurancePerformanceFromForm()}:{}),...(deviceEvidence?{deviceEvidence}:{}),recordedAt:existing.outcome?.recordedAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+    const previousDate=existing.date,stamp=new Date().toISOString();sessions=sessions.map(item=>item.id===id?{...item,date:actualDate,outcome,updatedAt:stamp}:item);if(actualDate!==previousDate){const date=new Date(`${actualDate}T12:00:00`);calendarCursor=new Date(date.getFullYear(),date.getMonth(),1);listWeekStart=planViewModel.mondayFor(actualDate);}const savedSession=sessions.find(item=>item.id===id),hasRemaining=sessions.some(item=>item.date>localDate()&&!item.outcome&&!isPaused(item)),safety=safetyModel?.assessment?.(outcome.cardiopulmonaryScreen);save();render();closeOutcome();toast(actualDate!==previousDate?'Registrazione spostata alla data effettiva':window.rcAdaptiveApplicationModel?.isKeyOutcome?.(savedSession)&&hasRemaining?'Registrato · microciclo da rivedere':undefined);document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:actualDate!==previousDate?'outcome-date-corrected':'outcome-saved',sessionId:id,previousDate,date:actualDate}}));if(safety?.stopTraining)window.alert(`${safety.title}\n\n${safety.text}`);
   });
   document.getElementById('outcome-delete').addEventListener('click',()=>{const id=outcomeForm.elements.sessionId.value;if(!id||!window.confirm('Eliminare la registrazione e riportare la seduta a “programmata”?'))return;sessions=sessions.map(item=>item.id===id?{...item,outcome:null,updatedAt:new Date().toISOString()}:item);save();render();closeOutcome();toast();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'outcome-deleted',sessionId:id}}));});
   form.addEventListener('submit', event => {

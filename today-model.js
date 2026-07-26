@@ -18,7 +18,7 @@
   const priorityLabel = {essential:'Essenziale',important:'Importante',optional:'Opzionale'};
   const outcomeLabel = {completed:'Svolta',partial:'Parziale',skipped:'Non svolta'};
   const recommendationMeta = {
-    proceed:{value:'Confermata',tone:'good'},reduce:{value:'Da adattare',tone:'warn'},replace:{value:'Da sostituire',tone:'danger'}
+    proceed:{value:'Confermata',tone:'good'},reduce:{value:'Da adattare',tone:'warn'},replace:{value:'Da sostituire',tone:'danger'},stop:{value:'STOP',tone:'danger'}
   };
   const adaptiveMeta = {
     protect:{title:'Protezione del recupero',tone:'danger'},
@@ -203,6 +203,11 @@
     const base=prescriptionFor(session);const recommendation=checkin?.recommendation;
     if(!recommendation||recommendation.level==='proceed'||session.outcome)return {adapted:false,mode:'planned',title:session.title,effectiveDurationMin:number(session.durationMin),prescription:base};
     const planned=number(session.durationMin);const reason=recommendation.reason||'recovery';
+    if(recommendation.level==='stop'||recommendation.stopTraining)return{adapted:true,mode:'stop',title:'Allenamento sospeso',effectiveDurationMin:0,prescription:[
+      {label:'Decisione',value:'Non iniziare o interrompi la seduta ordinaria'},
+      {label:'Passaggio successivo',value:'Valutazione sanitaria prima di riprendere la normale prescrizione'},
+      {label:'Se il segnale è attuale o severo',value:'Chiama il 112 se è presente ora, intenso, improvviso o in peggioramento'}
+    ]};
     if(recommendation.level==='replace') {
       const available=number(checkin.availableMinutes);const effective=Math.max(5,Math.min(planned||40,available||40,40));
       return {adapted:true,mode:'replace',title:'Recupero e rivalutazione',effectiveDurationMin:effective,prescription:[
