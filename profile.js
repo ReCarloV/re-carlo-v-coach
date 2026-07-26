@@ -145,7 +145,7 @@
     const labels=window.rcStrengthPerformanceModel.LIFTS;
     const container=document.getElementById('strength-maxes'); container.replaceChildren();
     Object.entries(labels).forEach(([key,meta])=>{
-      const estimate=estimates[key];const card=document.createElement('div');card.className=`strength-max-card${estimate?` ${estimate.source}`:''}`;
+      const estimate=estimates[key];const card=document.createElement('div');card.className=`strength-max-card${estimate?` ${estimate.source}`:''}${estimate?.e1rmConfirmed?' confirmed-outlier':''}`;
       const name=document.createElement('small');name.textContent=meta.label;const value=document.createElement('strong');value.textContent=estimate?`${meta.externalLoad?'+':''}${estimate.value.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`:'—';
       const source=document.createElement('em');source.className='strength-source';
       if(!estimate)source.textContent='Registra un set principale';
@@ -154,7 +154,7 @@
       card.append(name,value,source);if(estimate?.source==='recorded'){const detail=document.createElement('em');detail.className='strength-set';detail.textContent=`${window.rcStrengthPerformanceModel.FORMULAS[formula].label}${estimate.rpe!==undefined?` · RIR ${estimate.rir.toLocaleString('it-IT')} inclusa`:' · RPE non disponibile'} · ${estimate.exercise}`;card.append(detail);}container.append(card);
     });
     document.getElementById('strength-formula').value=formula;
-    document.getElementById('strength-method-summary').textContent=`${window.rcStrengthPerformanceModel.FORMULAS[formula].label} sui migliori set da 1–10 ripetizioni. Quando presente, l’RPE del set aggiunge la RIR stimata (10 − RPE) prima del calcolo; i dati storici senza RPE restano validi. Un riferimento manuale ha priorità.`;
+    document.getElementById('strength-method-summary').textContent=`${window.rcStrengthPerformanceModel.FORMULAS[formula].label} sui migliori set da 1–10 ripetizioni. Quando presente, l’RPE del set aggiunge la RIR stimata (10 − RPE) prima del calcolo; i dati storici senza RPE restano validi. Un riferimento manuale ha priorità. I salti molto ampi rispetto ad almeno due osservazioni richiedono la conferma dei dati.`;
   }
 
   function renderEquipmentSummary(expanded = false) {

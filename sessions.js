@@ -16,6 +16,7 @@
   const defaults = [];
   const selectionModel=window.rcSessionSelectionModel;
   const strengthModel=window.rcStrengthPerformanceModel;
+  const strengthReliabilityModel=window.rcStrengthReliabilityModel;
   const executionModel=window.rcExecutionEvidenceModel;
   const adjustmentModel=window.rcWeeklyPlanAdjustmentModel;
   const planViewModel=window.rcPlanViewModel;
@@ -180,6 +181,13 @@
     document.getElementById('month-bonus-count').textContent=periodSessions.filter(session=>session.priority==='optional').length;
     document.getElementById('calendar-prev').setAttribute('aria-label',planView==='calendar'?'Mese precedente':'Settimana precedente');document.getElementById('calendar-next').setAttribute('aria-label',planView==='calendar'?'Mese successivo':'Settimana successiva');
   }
+  function renderConcurrentAudit(){
+    const panel=document.getElementById('plan-concurrent-audit');if(!panel||!strengthReliabilityModel)return;
+    const start=planView==='calendar'?`${calendarCursor.getFullYear()}-${String(calendarCursor.getMonth()+1).padStart(2,'0')}-01`:listWeekStart;
+    const end=planView==='calendar'?dateKey(new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()+1,0)):planViewModel.addDays(listWeekStart,6);
+    const audit=strengthReliabilityModel.auditConcurrentProximity(sessions,{startDate:start,endDate:end});panel.hidden=!audit.conflicts.length;panel.replaceChildren();if(panel.hidden)return;
+    const mark=document.createElement('div');mark.className='plan-concurrent-mark';mark.textContent='↔';const copy=document.createElement('div');copy.className='plan-concurrent-copy';const kicker=document.createElement('small');kicker.textContent='COACH CONCORRENTE';const title=document.createElement('h2');title.textContent='Forza lower ed endurance ravvicinate';const summary=document.createElement('p');summary.textContent=audit.summary;copy.append(kicker,title,summary);const list=document.createElement('div');list.className='plan-concurrent-list';audit.conflicts.slice(0,3).forEach(conflict=>{const item=document.createElement('div');item.className=`plan-concurrent-item ${conflict.severity}`;const message=document.createElement('strong');message.textContent=conflict.message;const guidance=document.createElement('span');guidance.textContent=conflict.guidance;item.append(message,guidance);list.append(item);});panel.append(mark,copy,list);
+  }
   function outcomeSummary(session) {
     const outcome=session.outcome;if(!outcome)return '';
     if(outcome.status==='skipped')return `Non svolta · ${outcome.skipReason?skipReasonModel.label(outcome.skipReason):'Motivo non specificato'}`;
@@ -259,6 +267,7 @@
     currentEvidenceIndex=readEvidenceIndex();
     const schedule = document.getElementById('schedule'); schedule.replaceChildren();
     const periodSessions=sessionsInVisiblePeriod();
+    renderConcurrentAudit();
     const ordered = [...periodSessions].sort((a,b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title,'it'));
     ordered.forEach(session => {
       const date = new Date(`${session.date}T12:00:00`); const meta = categoryMeta[session.category];
@@ -645,7 +654,15 @@
     const actualDistanceKm=!skipped&&['running','swimming'].includes(existing.category)&&data.get('actualDistanceKm')?Number(data.get('actualDistanceKm')):null;let deviceEvidence=null;
     if(!skipped&&activeOutcomeEvidence?.sessionId===id&&executionModel)deviceEvidence=executionModel.createDeviceEvidenceSnapshot(activeOutcomeEvidence,{actualDurationMin:duration,actualDistanceKm},new Date());
     else if(!skipped&&existing.outcome?.deviceEvidence)deviceEvidence=existing.outcome.deviceEvidence;
-    const outcome={status,actualDurationMin:duration,actualDistanceKm,rpe,sessionLoad:skipped?0:Math.round(duration*rpe),execution:skipped?null:data.get('execution'),pain:skipped?null:Number(data.get('pain')),skipReason:skipped?data.get('skipReason'):null,notes:data.get('outcomeNotes').trim(),...(!skipped?{cardiopulmonaryScreen:{status:cardiopulmonaryStatus,symptoms:cardiopulmonaryStatus==='red-flag'?cardiopulmonarySymptoms:[]}}:{}),...(existing.category==='strength'?{strengthPerformance:skipped?[]:strengthPerformanceFromForm()}:{}),...(['running','cycling'].includes(existing.category)&&!skipped&&activeActualEnduranceBlocks.length?{actualEnduranceBlocks:endurancePerformanceFromForm()}:{}),...(deviceEvidence?{deviceEvidence}:{}),recordedAt:existing.outcome?.recordedAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+    let strengthPerformance=existing.category==='strength'&&!skipped?strengthPerformanceFromForm():[];
+    if(strengthPerformance.length&&strengthReliabilityModel){
+      strengthPerformance=strengthReliabilityModel.preserveConfirmations(strengthPerformance,existing.outcome?.strengthPerformance||[]);const profile=athleteProfile();let review=strengthReliabilityModel.reviewE1rmEntries({entries:strengthPerformance,sessions,excludeSessionId:id,bodyweightKg:profile.weightKg,formula:profile.strengthFormula});
+      for(const issue of review.issues.filter(item=>!item.confirmed)){
+        const confirmed=window.confirm(`Controllo qualità e1RM\n\n${issue.label}: la nuova stima è ${issue.candidateValue.toLocaleString('it-IT',{maximumFractionDigits:1})} kg, circa +${issue.increasePct}% rispetto al miglior riferimento precedente (${issue.referenceValue.toLocaleString('it-IT',{maximumFractionDigits:1})} kg su ${issue.baselineCount} osservazioni).\n\nConfermi che carico, ripetizioni e RPE sono corretti?`);
+        if(!confirmed)return;strengthPerformance=strengthReliabilityModel.confirmIssue(strengthPerformance,issue);
+      }
+    }
+    const outcome={status,actualDurationMin:duration,actualDistanceKm,rpe,sessionLoad:skipped?0:Math.round(duration*rpe),execution:skipped?null:data.get('execution'),pain:skipped?null:Number(data.get('pain')),skipReason:skipped?data.get('skipReason'):null,notes:data.get('outcomeNotes').trim(),...(!skipped?{cardiopulmonaryScreen:{status:cardiopulmonaryStatus,symptoms:cardiopulmonaryStatus==='red-flag'?cardiopulmonarySymptoms:[]}}:{}),...(existing.category==='strength'?{strengthPerformance:skipped?[]:strengthPerformance}:{}),...(['running','cycling'].includes(existing.category)&&!skipped&&activeActualEnduranceBlocks.length?{actualEnduranceBlocks:endurancePerformanceFromForm()}:{}),...(deviceEvidence?{deviceEvidence}:{}),recordedAt:existing.outcome?.recordedAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
     const previousDate=existing.date,stamp=new Date().toISOString();sessions=sessions.map(item=>item.id===id?{...item,date:actualDate,outcome,updatedAt:stamp}:item);if(actualDate!==previousDate){const date=new Date(`${actualDate}T12:00:00`);calendarCursor=new Date(date.getFullYear(),date.getMonth(),1);listWeekStart=planViewModel.mondayFor(actualDate);}const savedSession=sessions.find(item=>item.id===id),hasRemaining=sessions.some(item=>item.date>localDate()&&!item.outcome&&!isPaused(item)),safety=safetyModel?.assessment?.(outcome.cardiopulmonaryScreen);save();render();closeOutcome();toast(actualDate!==previousDate?'Registrazione spostata alla data effettiva':window.rcAdaptiveApplicationModel?.isKeyOutcome?.(savedSession)&&hasRemaining?'Registrato · microciclo da rivedere':undefined);document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:actualDate!==previousDate?'outcome-date-corrected':'outcome-saved',sessionId:id,previousDate,date:actualDate}}));if(safety?.stopTraining)window.alert(`${safety.title}\n\n${safety.text}`);
   });
   document.getElementById('outcome-delete').addEventListener('click',()=>{const id=outcomeForm.elements.sessionId.value;if(!id||!window.confirm('Eliminare la registrazione e riportare la seduta a “programmata”?'))return;sessions=sessions.map(item=>item.id===id?{...item,outcome:null,updatedAt:new Date().toISOString()}:item);save();render();closeOutcome();toast();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'outcome-deleted',sessionId:id}}));});

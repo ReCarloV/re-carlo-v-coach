@@ -32,6 +32,7 @@
   <link rel="stylesheet" href="demo-data.css">
   <link rel="stylesheet" href="session-selection.css">
   <link rel="stylesheet" href="strength-performance.css">
+  <link rel="stylesheet" href="strength-reliability.css">
   <link rel="stylesheet" href="data-import.css">
   <link rel="stylesheet" href="adaptive-coaching.css">
   <link rel="stylesheet" href="goals.css">
@@ -139,6 +140,7 @@
         <div class="section-head"><div><small>PROGRAMMAZIONE</small></div><div class="plan-actions"><button class="primary small" id="generate-week">Genera settimana</button><button class="ghost small" id="open-weekly-checkin">Check-in settimana</button><button class="ghost small" id="add-session">+ Seduta manuale</button><button class="ghost small" id="select-sessions" type="button">Seleziona</button></div></div>
         <p class="muted intro plan-availability-line" id="plan-intro">Disponibilità non impostata</p>
         <div id="weekly-checkin-summary" class="weekly-checkin-summary" hidden></div>
+        <article class="plan-concurrent-audit" id="plan-concurrent-audit" hidden aria-live="polite"></article>
         <div class="plan-view-toolbar">
           <div class="plan-view-switch" role="group" aria-label="Modalità di visualizzazione del piano">
             <button type="button" class="plan-view-button active" data-plan-view="list" aria-pressed="true">☷ <span>Lista</span></button>
@@ -716,6 +718,7 @@
   <script src="selectors.js"></script>
   <script src="pbs.js"></script>
   <script src="strength-performance-model.js"></script>
+  <script src="strength-reliability-model.js"></script>
   <script src="profile.js"></script>
   <script src="session-selection-model.js"></script>
   <script src="plan-view-model.js"></script>

@@ -9,6 +9,7 @@
   const applicationModel=window.rcAdaptiveApplicationModel;
   const phaseModel=window.rcPhaseConstraintsModel;
   const microcycleModel=window.rcMicrocyclePrescriptionModel;
+  const strengthReliabilityModel=window.rcStrengthReliabilityModel;
   let proposal=null;
 
   function parse(key,fallback){try{return JSON.parse(localStorage.getItem(key))||fallback;}catch(_){return fallback;}}
@@ -322,7 +323,7 @@
       if(!adjustedPlan.changed&&!assigned.sessions.some(item=>item.adaptiveAdjustment))changes.push('Il programma Excel resta invariato: i dati non giustificano correzioni.');
     }
     if(!changes.length)changes.push(analysis.level==='progress'?'Aumentano solo gli elementi autorizzati dai controlli di tolleranza; intensità e forza restano stabili.':'Struttura e carico della settimana restano invariati.');
-    const phaseAudit=phaseModel?.auditSessions([...activeLocked,...assigned.sessions],phaseConstraints)||{warnings:[]};const alerts=[...assigned.warnings,...phaseAudit.warnings,...(microcycle?.warnings||[])];const activeProposed=assigned.sessions.filter(item=>item.adaptiveAdjustment?.status!=='paused').length;
+    const phaseAudit=phaseModel?.auditSessions([...activeLocked,...assigned.sessions],phaseConstraints)||{warnings:[]};const concurrentAudit=strengthReliabilityModel?.auditConcurrentProximity([...activeLocked,...assigned.sessions],{startDate:weekly.weekStart,endDate:end})||{conflicts:[]};const alerts=[...assigned.warnings,...phaseAudit.warnings,...(microcycle?.warnings||[])];concurrentAudit.conflicts.forEach(conflict=>alerts.push(`${conflict.message} ${conflict.guidance}`));const activeProposed=assigned.sessions.filter(item=>item.adaptiveAdjustment?.status!=='paused').length;
     const expectedCount=sourceMode==='generated'?contractCount:adaptedCount;
     if(available.length+activeLocked.length<expectedCount)alerts.push(`Con i giorni disponibili la proposta contiene ${activeLocked.length+activeProposed} sedute attive invece di ${expectedCount}.`);
     if(sourceMode==='excel'&&importedPlan.length<Math.max(0,adaptedCount-activeLocked.length))alerts.push('Il coach non aggiunge sedute generiche oltre a quelle previste dal programma Excel.');
@@ -330,7 +331,7 @@
     if(sourceMode==='generated'&&contractCount<adaptedCount&&microcycle?.transition)alerts.push(`${microcycle.transition.label}: il blocco post-maratona limita temporaneamente la proposta a ${contractCount} sedute.`);
     else if(adaptedCount<requested)alerts.push(analysis.organization?.level==='adapt'&&analysis.settings.physiologySessionDelta===0?`Il coach propone temporaneamente ${adaptedCount} sedute invece di ${requested} per aumentare la fattibilità della settimana.`:adaptedCount<readinessCount?`La fase ${phaseConstraints.phase.label} limita temporaneamente il numero massimo da ${requested} a ${adaptedCount} sedute.`:`Il motore riduce temporaneamente il numero massimo da ${requested} a ${adaptedCount} sedute.`);
     if(locked.length)alerts.push(`${locked.length} voc${locked.length===1?'e protetta resta':'i protette restano'} intatt${locked.length===1?'a':'e'}: esiti, passato, sedute manuali, gare e sostituzioni dichiarate non vengono riscritti.`);
-    return {weekly,sessions:assigned.sessions,lockedSessions:locked.sort((a,b)=>a.date.localeCompare(b.date)),alerts,analysis,phaseConstraints,phaseAudit,microcycle,changes,requested,adaptedCount:expectedCount,sourceMode,hasAppliedAdjustments};
+    return {weekly,sessions:assigned.sessions,lockedSessions:locked.sort((a,b)=>a.date.localeCompare(b.date)),alerts,analysis,phaseConstraints,phaseAudit,concurrentAudit,microcycle,changes,requested,adaptedCount:expectedCount,sourceMode,hasAppliedAdjustments};
   }
 
   function renderAdaptation(analysis){

@@ -48,7 +48,7 @@
   function normalizedEntry(entry){
     const key=liftKey(entry?.exercise),loadKg=Number(entry?.loadKg),reps=Number(entry?.reps);if(!key||!Number.isFinite(loadKg)||loadKg<=0||!Number.isInteger(reps)||reps<1||reps>10)return null;
     const hasRpe=entry?.rpe!==null&&entry?.rpe!==undefined&&entry?.rpe!=='',rpe=normalizedRpe(entry?.rpe);if(hasRpe&&rpe===null)return null;
-    const bodyweightKg=Number(entry?.bodyweightKg);return {key,exercise:String(entry.exercise).trim(),loadKg:roundHalf(loadKg),reps,...(rpe!==null?{rpe}:{}),...(key==='pullup'&&Number.isFinite(bodyweightKg)&&bodyweightKg>0?{bodyweightKg:roundHalf(bodyweightKg)}:{})};
+    const bodyweightKg=Number(entry?.bodyweightKg);return {key,exercise:String(entry.exercise).trim(),loadKg:roundHalf(loadKg),reps,...(rpe!==null?{rpe}:{}),...(key==='pullup'&&Number.isFinite(bodyweightKg)&&bodyweightKg>0?{bodyweightKg:roundHalf(bodyweightKg)}:{}),...(entry?.e1rmConfirmed===true?{e1rmConfirmed:true}:{})};
   }
   function plannedValues(block){
     const hasLoad=block?.loadKg!==''&&block?.loadKg!==null&&block?.loadKg!==undefined,load=Number(block?.loadKg),reps=Number(block?.reps);return{...(hasLoad&&Number.isFinite(load)&&load>=0?{plannedLoadKg:roundHalf(load)}:{}),...(Number.isInteger(reps)&&reps>0?{plannedReps:reps}:{})};
@@ -67,7 +67,7 @@
       if(session?.category!=='strength'||!['completed','partial'].includes(session?.outcome?.status))return;
       (Array.isArray(session.outcome.strengthPerformance)?session.outcome.strengthPerformance:[]).forEach(raw=>{
         const entry=normalizedEntry(raw);if(!entry)return;const lift=LIFTS[entry.key];const observationBodyweight=entry.bodyweightKg||bodyweightKg;const value=estimateE1rm(entry.loadKg,entry.reps,{externalLoad:lift.externalLoad,bodyweightKg:observationBodyweight,formula:selectedFormula,rpe:entry.rpe});if(value===null)return;
-        const candidate={key:entry.key,label:lift.label,value,source:'recorded',formula:selectedFormula,exercise:entry.exercise,loadKg:entry.loadKg,reps:entry.reps,...(entry.rpe!==undefined?{rpe:entry.rpe,rir:rirFromRpe(entry.rpe),effectiveReps:effectiveReps(entry.reps,entry.rpe)}:{}),...(entry.bodyweightKg?{bodyweightKg:entry.bodyweightKg}:{}),date:session.date||'',sessionId:session.id||''};const current=result[entry.key];
+        const candidate={key:entry.key,label:lift.label,value,source:'recorded',formula:selectedFormula,exercise:entry.exercise,loadKg:entry.loadKg,reps:entry.reps,...(entry.rpe!==undefined?{rpe:entry.rpe,rir:rirFromRpe(entry.rpe),effectiveReps:effectiveReps(entry.reps,entry.rpe)}:{}),...(entry.bodyweightKg?{bodyweightKg:entry.bodyweightKg}:{}),...(entry.e1rmConfirmed?{e1rmConfirmed:true}:{}),date:session.date||'',sessionId:session.id||''};const current=result[entry.key];
         if(!current||candidate.value>current.value||(candidate.value===current.value&&candidate.date>current.date))result[entry.key]=candidate;
       });
     });
