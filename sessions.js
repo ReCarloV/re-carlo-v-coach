@@ -187,7 +187,7 @@
   function onCalendarTouchEnd(event){finishCalendarDrag(event);}
   function calendarMoveOptions(session,evidence=currentEvidenceIndex.get(session?.id)){return{hasEvidence:Boolean(evidence),isRace:Boolean(goalsModel?.isRaceSession?.(session))};}
   function moveCalendarSession(sessionId,targetDate,{restoreFocus=false}={}){
-    const session=sessions.find(item=>String(item.id)===String(sessionId));const options=calendarMoveOptions(session);const result=planViewModel.moveSessionDate(sessions,sessionId,targetDate,{...options,now:new Date().toISOString()});
+    const session=sessions.find(item=>String(item.id)===String(sessionId));const options=calendarMoveOptions(session);const result=planViewModel.moveSessionDate(sessions,sessionId,targetDate,{...options,today:localDate(),now:new Date().toISOString()});
     if(!result.changed){if(result.policy?.code!=='same-date')showCalendarMessage(result.policy?.message||'La seduta non può essere spostata.');return false;}
     sessions=result.sessions;const date=new Date(`${targetDate}T12:00:00`);if(date.getMonth()!==calendarCursor.getMonth()||date.getFullYear()!==calendarCursor.getFullYear())calendarCursor=new Date(date.getFullYear(),date.getMonth(),1);save();render();const message=`${result.session.title} spostata a ${date.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})}.`;showCalendarMessage(message);document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'session-date-moved',sessionId:result.session.id,previousDate:result.previousDate,date:targetDate}}));if(restoreFocus)setTimeout(()=>[...document.querySelectorAll('.calendar-event')].find(node=>node.dataset.sessionId===String(sessionId))?.focus(),0);return true;
   }
@@ -235,7 +235,7 @@
     document.getElementById('plan-calendar').hidden=!isCalendar;
     document.getElementById('calendar-status-legend').hidden=!isCalendar;
     document.getElementById('calendar-navigation').hidden=false;
-    const dragHelp=document.querySelector('.calendar-drag-help');if(dragHelp)dragHelp.textContent=window.matchMedia?.('(max-width: 620px) and (orientation: portrait)').matches?'Tocca un indicatore per aprire la seduta':'↔ Trascina le sedute programmate per cambiare giorno';
+    const dragHelp=document.querySelector('.calendar-drag-help');if(dragHelp)dragHelp.textContent=window.matchMedia?.('(max-width: 620px) and (orientation: portrait)').matches?'Tocca un indicatore per aprire la seduta':'↔ Trascina una seduta per cambiarne il giorno';
     document.querySelectorAll('[data-plan-view]').forEach(button=>{const active=button.dataset.planView===planView;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
     if(isCalendar)renderCalendar();
   }
@@ -499,7 +499,7 @@
   function renderOutcomeRecord(session){
     const holder=document.getElementById('outcome-record-view'),outcome=session.outcome;holder.replaceChildren();if(!outcome)return;
     const statusRow=outcomeRecordElement('div','outcome-record-status'),status=outcomeRecordElement('span',`outcome-status ${outcome.status}`,`${outcomeMeta[outcome.status]?.symbol||'•'} ${outcomeMeta[outcome.status]?.label||'Registrata'}`),recorded=outcomeRecordElement('small','',outcome.updatedAt?`Aggiornata ${new Date(outcome.updatedAt).toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`:'Registrazione salvata');statusRow.append(status,recorded);holder.append(statusRow);
-    const metrics=outcomeRecordElement('div','outcome-record-metrics');const addMetric=(label,value)=>{const item=outcomeRecordElement('div','outcome-record-metric');item.append(outcomeRecordElement('small','',label),outcomeRecordElement('strong','',value));metrics.append(item);};
+    const metrics=outcomeRecordElement('div','outcome-record-metrics');const addMetric=(label,value)=>{const item=outcomeRecordElement('div','outcome-record-metric');item.append(outcomeRecordElement('small','',label),outcomeRecordElement('strong','',value));metrics.append(item);};const effectiveDate=new Date(`${session.date}T12:00:00`);addMetric('DATA EFFETTIVA',effectiveDate.toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'}));
     if(outcome.status==='skipped')addMetric('MOTIVO',outcome.skipReason?skipReasonModel.label(outcome.skipReason):'Non specificato');
     else{
       addMetric('DURATA REALE',metricValue(outcome.actualDurationMin,' min'));
@@ -550,7 +550,7 @@
   function openOutcome(session,options={}) {
     if(!session.outcome&&!canRecordOutcome(session)){window.alert(outcomeLockedMessage(session));return;}
     const outcome=session.outcome||null,evidence=currentEvidenceIndex.get(session.id)||null;outcomeForm.reset();outcomeForm.dataset.category=session.category;
-    outcomeForm.elements.sessionId.value=session.id;outcomeForm.elements.status.value=outcome?.status||'completed';
+    outcomeForm.elements.sessionId.value=session.id;outcomeForm.elements.status.value=outcome?.status||'completed';outcomeForm.elements.actualDate.value=session.date;outcomeForm.elements.actualDate.max=localDate();const raceSession=Boolean(goalsModel?.isRaceSession?.(session));outcomeForm.elements.actualDate.disabled=raceSession;outcomeForm.elements.actualDate.title=raceSession?'Sposta la gara dalla pagina Obiettivi per mantenere allineato il countdown.':'Data in cui hai realmente svolto la seduta.';
     outcomeForm.elements.actualDurationMin.value=outcome?(outcome.actualDurationMin??''):(evidence?.prefill.actualDurationMin??'');
     outcomeForm.elements.actualDistanceKm.value=outcome?(outcome.actualDistanceKm??''):(evidence?.prefill.actualDistanceKm??'');
     outcomeForm.elements.rpe.value=outcome?.rpe??'';
@@ -605,12 +605,13 @@
   outcomeForm.addEventListener('submit',event=>{
     event.preventDefault();const data=new FormData(outcomeForm),id=data.get('sessionId'),existing=sessions.find(item=>item.id===id);if(!existing)return;
     if(!canRecordOutcome(existing)){closeOutcome();window.alert(outcomeLockedMessage(existing));return;}
+    const actualDate=String(data.get('actualDate')||existing.date);if(!planViewModel.validDateKey(actualDate)||actualDate>localDate()){window.alert('La data effettiva deve essere un giorno valido, non successivo a oggi.');return;}if(actualDate!==existing.date&&goalsModel?.isRaceSession?.(existing)){window.alert('Per cambiare la data di una gara usa la pagina Obiettivi, così resta allineato anche il countdown.');return;}
     const status=data.get('status'),skipped=status==='skipped',duration=skipped?null:Number(data.get('actualDurationMin')),rpe=skipped?null:Number(data.get('rpe'));
     const actualDistanceKm=!skipped&&['running','swimming'].includes(existing.category)&&data.get('actualDistanceKm')?Number(data.get('actualDistanceKm')):null;let deviceEvidence=null;
     if(!skipped&&activeOutcomeEvidence?.sessionId===id&&executionModel)deviceEvidence=executionModel.createDeviceEvidenceSnapshot(activeOutcomeEvidence,{actualDurationMin:duration,actualDistanceKm},new Date());
     else if(!skipped&&existing.outcome?.deviceEvidence)deviceEvidence=existing.outcome.deviceEvidence;
     const outcome={status,actualDurationMin:duration,actualDistanceKm,rpe,sessionLoad:skipped?0:Math.round(duration*rpe),execution:skipped?null:data.get('execution'),pain:skipped?null:Number(data.get('pain')),skipReason:skipped?data.get('skipReason'):null,notes:data.get('outcomeNotes').trim(),...(existing.category==='strength'?{strengthPerformance:skipped?[]:strengthPerformanceFromForm()}:{}),...(['running','cycling'].includes(existing.category)&&!skipped&&activeActualEnduranceBlocks.length?{actualEnduranceBlocks:endurancePerformanceFromForm()}:{}),...(deviceEvidence?{deviceEvidence}:{}),recordedAt:existing.outcome?.recordedAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
-    sessions=sessions.map(item=>item.id===id?{...item,outcome,updatedAt:new Date().toISOString()}:item);const savedSession=sessions.find(item=>item.id===id),hasRemaining=sessions.some(item=>item.date>localDate()&&!item.outcome&&!isPaused(item));save();render();closeOutcome();toast(window.rcAdaptiveApplicationModel?.isKeyOutcome?.(savedSession)&&hasRemaining?'Registrato · microciclo da rivedere':undefined);document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'outcome-saved',sessionId:id}}));
+    const previousDate=existing.date,stamp=new Date().toISOString();sessions=sessions.map(item=>item.id===id?{...item,date:actualDate,outcome,updatedAt:stamp}:item);if(actualDate!==previousDate){const date=new Date(`${actualDate}T12:00:00`);calendarCursor=new Date(date.getFullYear(),date.getMonth(),1);listWeekStart=planViewModel.mondayFor(actualDate);}const savedSession=sessions.find(item=>item.id===id),hasRemaining=sessions.some(item=>item.date>localDate()&&!item.outcome&&!isPaused(item));save();render();closeOutcome();toast(actualDate!==previousDate?'Registrazione spostata alla data effettiva':window.rcAdaptiveApplicationModel?.isKeyOutcome?.(savedSession)&&hasRemaining?'Registrato · microciclo da rivedere':undefined);document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:actualDate!==previousDate?'outcome-date-corrected':'outcome-saved',sessionId:id,previousDate,date:actualDate}}));
   });
   document.getElementById('outcome-delete').addEventListener('click',()=>{const id=outcomeForm.elements.sessionId.value;if(!id||!window.confirm('Eliminare la registrazione e riportare la seduta a “programmata”?'))return;sessions=sessions.map(item=>item.id===id?{...item,outcome:null,updatedAt:new Date().toISOString()}:item);save();render();closeOutcome();toast();document.dispatchEvent(new CustomEvent('rc:sessions-updated',{detail:{reason:'outcome-deleted',sessionId:id}}));});
   form.addEventListener('submit', event => {

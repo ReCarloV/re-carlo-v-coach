@@ -14,9 +14,9 @@
   function validDateKey(value){if(!/^\d{4}-\d{2}-\d{2}$/.test(String(value||'')))return false;const date=dateAtNoon(value);return!Number.isNaN(date.getTime())&&iso(date)===value;}
   function calendarMovePolicy(session,options={}){
     if(!session)return{allowed:false,code:'missing',message:'Seduta non trovata.'};
-    if(session.outcome)return{allowed:false,code:'recorded',message:'Le sedute già registrate restano nella loro data storica.'};
-    if(options.hasEvidence)return{allowed:false,code:'observed',message:'Questa seduta ha dati Strava o WHOOP collegati: rivedi prima l’abbinamento.'};
     if(options.isRace)return{allowed:false,code:'race',message:'Le gare si spostano dalla pagina Obiettivi, così data e countdown restano allineati.'};
+    if(session.outcome)return{allowed:true,code:'recorded-movable',message:'Sposta la data effettiva: registrazione e dati collegati resteranno associati.'};
+    if(options.hasEvidence)return{allowed:false,code:'observed',message:'Questa seduta ha dati Strava o WHOOP collegati: rivedi prima l’abbinamento.'};
     return{allowed:true,code:'movable',message:'Trascina la seduta sul nuovo giorno.'};
   }
   function moveSessionDate(sessions=[],sessionId,targetDate,options={}){
@@ -24,6 +24,8 @@
     if(!policy.allowed)return{sessions:list,changed:false,policy};
     if(!validDateKey(targetDate))return{sessions:list,changed:false,policy:{allowed:false,code:'invalid-date',message:'Il giorno di destinazione non è valido.'}};
     if(session.date===targetDate)return{sessions:list,changed:false,policy:{allowed:true,code:'same-date',message:'La seduta è già in questo giorno.'}};
+    const today=validDateKey(options.today)?options.today:iso(new Date(options.now||Date.now()));
+    if(session.outcome&&targetDate>today)return{sessions:list,changed:false,policy:{allowed:false,code:'recorded-future',message:'Una seduta già registrata può essere spostata solo a oggi o nel passato.'}};
     const moved={...session,date:targetDate,updatedAt:options.now||new Date().toISOString()};const next=list.map((item,itemIndex)=>itemIndex===index?moved:item);
     return{sessions:next,changed:true,session:moved,previousDate:session.date,policy};
   }
