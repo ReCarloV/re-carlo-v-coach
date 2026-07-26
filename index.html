@@ -428,8 +428,8 @@
         <label>Categoria<select name="category" id="session-category"><option value="running">Corsa</option><option value="swimming">Nuoto</option><option value="cycling">Ciclismo</option><option value="strength">Forza</option><option value="hyrox">HYROX Spec</option><option value="metcon">Metcon</option><option value="test">Test</option><option value="recovery">Recupero</option></select></label>
         <label>Data<input name="date" type="date" required></label>
         <label class="full">Titolo della seduta<input name="title" id="session-title" required maxlength="80" placeholder="Es. Easy run"><span class="field-hint compact-mode-hint" id="title-hint">AUTO</span></label>
-        <label>Durata prevista (min)<input name="durationMin" type="number" inputmode="numeric" min="5" max="600" step="5" required></label>
-        <label>Ora di inizio<input name="startTime" id="session-start-time" type="time" step="300" value="09:00" required><small class="field-hint" id="session-end-time">Fine calcolata automaticamente</small></label>
+        <label>Durata prevista (min)<input name="durationMin" type="number" inputmode="numeric" min="5" max="600" step="1" required></label>
+        <label>Ora di inizio<input name="startTime" id="session-start-time" type="time" step="60" value="09:00" required><small class="field-hint" id="session-end-time">Fine calcolata automaticamente</small></label>
         <label>Priorità<select name="priority"><option value="essential">Essenziale</option><option value="important">Importante</option><option value="optional">Opzionale</option></select></label>
       </div>
 
@@ -504,6 +504,7 @@
       </section>
 
       <label class="session-notes">Note e indicazioni<textarea name="notes" rows="3" placeholder="Indicazioni tecniche, vincoli o obiettivo della seduta"></textarea></label>
+      <p class="session-save-feedback" id="session-save-feedback" role="alert" hidden></p>
       <div class="modal-actions session-actions"><button class="danger" id="delete-session" type="button">Elimina</button><button class="ghost" id="session-outcome" type="button" hidden>Registra</button><span></span><button class="ghost" type="button" id="session-cancel">Annulla</button><button class="primary" type="submit">Salva seduta</button></div>
     </form>
   </div>

@@ -2,3 +2,4 @@
 .schedule-empty>span{display:block}.schedule-empty-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px}@media(max-width:520px){.schedule-empty-actions{display:grid}.schedule-empty-actions button{width:100%}}
 .session-actions{grid-template-columns:auto auto 1fr auto auto}.day-actions{justify-content:flex-end}@media(max-width:1050px){.day-actions{flex-wrap:wrap}}@media(max-width:650px){.session-actions{grid-template-columns:1fr 1fr}}
 .session-dialog input[type="number"]{color-scheme:dark}.session-dialog input[type="number"]::-webkit-inner-spin-button,.session-dialog input[type="number"]::-webkit-outer-spin-button{opacity:1;cursor:pointer}
+.session-save-feedback{margin:14px 0 0;padding:10px 12px;border:1px solid #7a3441;border-radius:8px;background:#301821;color:#ffb0bb;font-size:12px;line-height:1.4}

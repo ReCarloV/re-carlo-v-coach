@@ -233,6 +233,7 @@ html[data-theme="light"] .generator-tolerance-checks span{border-color:#bdcbd9;b
 html[data-theme="light"] .generator-tolerance-checks .passed{border-color:#91c7b3;background:#eaf8f2;color:#176e54}
 html[data-theme="light"] .generator-tolerance-checks .failed{border-color:#d8bd82;background:#fff6e2;color:#805713}
 html[data-theme="light"] .generator-alert{border-color:#d9bb7d;background:#fff3d9;color:#805713}
+html[data-theme="light"] .session-save-feedback{border-color:#e5a7ae;background:#fff0f2;color:#8d2330}
 html[data-theme="light"] .generator-session{border-color:#cbd8e5;background:#fff;color:var(--text)}
 html[data-theme="light"] .generator-session p{color:#60758c}
 html[data-theme="light"] .generator-session.adjusted{border-color:#8eb7df;background:#edf5fd}
