@@ -7,6 +7,7 @@
   const configured=/^https:\/\/[^/]+\.supabase\.co\/?$/.test(String(config.supabaseUrl||''))&&String(config.supabasePublishableKey||'').length>20;
   const deviceName=model.safeDeviceName(/iphone|ipad|ipod/i.test(navigator.userAgent)?'iPhone personale':/macintosh/i.test(navigator.userAgent)?'Mac personale':'Dispositivo personale');
   let client=null,user=null,remote=null,baseRevision=null,baseFingerprint=null,mode=configured?'signed-out':'not-configured',busy=false,lastSyncAt=null,timer=null,localSyncTimer=null,pendingLocalChange=false,manageOpen=false;
+  function tabStale(){return Boolean(window.rcTabCoordination?.isStale?.());}
 
   function snapshot(){return store.createCloudSnapshot();}
   function fingerprint(value=snapshot()){return model.fingerprintSnapshot(value);}
@@ -58,7 +59,7 @@
   }
 
   async function pushCurrent(expectedRevision){
-    if(busy)return false;busy=true;render();
+    if(tabStale()||busy)return false;busy=true;render();
     try{
       const saved=await persistSnapshot(snapshot(),expectedRevision);if(saved)setMode('synced');return saved;
     }catch(error){detail.textContent=error?.message||'Non è stato possibile salvare la copia cloud.';setMode(navigator.onLine?'error':'offline');return false;}
@@ -66,7 +67,7 @@
   }
 
   async function applyRemote(){
-    if(!remote?.payload)return false;
+    if(tabStale()||!remote?.payload)return false;
     const accepted={...remote};store.inspectBackup(accepted.payload);store.restoreCloudSnapshot(accepted.payload);
     const restored=snapshot(),plan=model.planRemoteAcceptance({remoteSnapshot:accepted.payload,restoredSnapshot:restored,remoteRevision:accepted.revision});
     if(plan.requiresCloudRewrite){
@@ -78,7 +79,7 @@
   }
 
   async function reconcile(){
-    if(!user||busy)return;
+    if(tabStale()||!user||busy)return;
     if(!navigator.onLine){setMode('offline');return;}
     busy=true;render();
     try{
@@ -95,13 +96,13 @@
   }
 
   function scheduleLocalSync(event){
-    if(!model.shouldQueueLocalSync(event?.type,event?.detail)||!user||['choose','conflict','first-upload','signed-out'].includes(mode))return;
+    if(tabStale()||!model.shouldQueueLocalSync(event?.type,event?.detail)||!user||['choose','conflict','first-upload','signed-out'].includes(mode))return;
     pendingLocalChange=true;clearTimeout(localSyncTimer);
     if(!navigator.onLine){setMode('offline');return;}
     setMode('local-pending');localSyncTimer=setTimeout(flushLocalSync,180);
   }
   async function flushLocalSync(){
-    clearTimeout(localSyncTimer);localSyncTimer=null;if(!pendingLocalChange||!user)return;
+    clearTimeout(localSyncTimer);localSyncTimer=null;if(tabStale()||!pendingLocalChange||!user)return;
     if(busy){localSyncTimer=setTimeout(flushLocalSync,250);return;}
     pendingLocalChange=false;await reconcile();
   }

@@ -9,7 +9,8 @@
         if (typeof root.dispatchEvent === 'function' && typeof root.CustomEvent === 'function') {
           root.dispatchEvent(new root.CustomEvent('rc:data-restored', { detail }));
         }
-      }
+      },
+      isWriteBlocked: () => Boolean(root.rcTabCoordination?.isStale?.())
     });
     root.rcDataStore.bootstrap();
   }
@@ -614,6 +615,7 @@
     if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function' || typeof storage.removeItem !== 'function') throw new TypeError('Serve un archivio compatibile con localStorage.');
     const now = environment.now || (() => new Date());
     const dispatch = environment.dispatch || (() => {});
+    const isWriteBlocked = environment.isWriteBlocked || (() => false);
     let health = { migrated:[], warnings:[], rollbackIncomplete:[] };
 
     function read(name) {
@@ -629,6 +631,7 @@
     function write(name, value) {
       const definition = datasets[name];
       if (!definition) throw new DataStoreError('UNKNOWN_DATASET', `Dataset sconosciuto: ${name}`);
+      if (isWriteBlocked()) throw new DataStoreError('STALE_TAB','Questa scheda contiene una copia precedente dei dati. Aggiornala prima di salvare.');
       validate(name,value);
       if (value === null) { storage.removeItem(definition.key); return; }
       storage.setItem(definition.key, definition.kind === 'json' ? JSON.stringify(value) : String(value));

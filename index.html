@@ -36,6 +36,7 @@
   <link rel="stylesheet" href="goals.css">
   <link rel="stylesheet" href="refinements.css">
   <link rel="stylesheet" href="cloud-sync.css">
+  <link rel="stylesheet" href="tab-coordination.css">
   <link rel="stylesheet" href="mobile.css">
   <link rel="stylesheet" href="ui-polish.css">
   <link rel="stylesheet" href="theme.css">
@@ -649,8 +650,20 @@
       <div class="modal-actions"><button class="ghost" id="crop-cancel">Annulla</button><button class="primary" id="crop-save">Usa questa foto</button></div>
     </div>
   </div>
+  <div class="tab-stale-guard" id="tab-stale-guard" role="alertdialog" aria-modal="true" aria-labelledby="tab-stale-title" aria-describedby="tab-stale-detail" aria-hidden="true">
+    <div class="tab-stale-dialog">
+      <div class="tab-stale-symbol" aria-hidden="true">↻</div>
+      <small>PROTEZIONE DATI</small>
+      <h2 id="tab-stale-title">Dati aggiornati in un’altra scheda</h2>
+      <p id="tab-stale-detail">Questa scheda è stata messa in pausa per non sovrascrivere modifiche più recenti.</p>
+      <p class="tab-stale-note">Aggiornala prima di continuare. Eventuali campi non ancora salvati in questa scheda non verranno applicati.</p>
+      <button class="primary" id="tab-stale-refresh" type="button">Aggiorna questa scheda</button>
+    </div>
+  </div>
   <div id="toast">Salvato sul dispositivo</div>
   <script src="data-store.js"></script>
+  <script src="tab-coordination-model.js"></script>
+  <script src="tab-coordination.js"></script>
   <script src="activity-import-model.js"></script>
   <script src="plan-import-model.js"></script>
   <script src="whoop-import-model.js"></script>
