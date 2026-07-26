@@ -354,7 +354,7 @@
       const overlineTransition=document.createElement('small');overlineTransition.textContent=`TRANSIZIONE POST-MARATONA · GIORNO +${contract.transition.daysAfter}`;
       const titleTransition=document.createElement('b');titleTransition.textContent=`${contract.transition.label} → ${contract.transition.activeGoal.name}`;
       const summaryTransition=document.createElement('p');summaryTransition.textContent=contract.transition.summary;
-      const criteria=document.createElement('ul');contract.transition.exitCriteria.forEach(value=>{const item=document.createElement('li');item.textContent=value;criteria.append(item);});
+      const criteria=document.createElement('ul');const coverage=contract.transition.signals?.phaseCoverage;if(coverage?.required){const item=document.createElement('li');item.textContent=`${coverage.passed?'✓':'Da completare'} · ${coverage.label}: ${coverage.recorded}/${coverage.due} registrati${coverage.performed?` · ${coverage.performed} svolti/parziali`:''}`;criteria.append(item);}contract.transition.exitCriteria.forEach(value=>{const item=document.createElement('li');item.textContent=value;criteria.append(item);});
       transition.append(overlineTransition,titleTransition,summaryTransition,criteria);box.append(transition);
     }
     box.append(roles);
