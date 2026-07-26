@@ -12,9 +12,7 @@
   const deviceValue=(value,source)=>value===null?null:{value,source};
 
   function chooseDuration(session,strava,whoop){
-    const stravaMin=stravaDuration(strava),whoopMin=whoopDuration(whoop);const endurance=['running','swimming','cycling'].includes(session?.category);let selected=null;
-    if(endurance)selected=deviceValue(stravaMin,'strava')||deviceValue(whoopMin,'whoop');
-    else selected=deviceValue(whoopMin,'whoop')||deviceValue(stravaMin,'strava');
+    const stravaMin=stravaDuration(strava),whoopMin=whoopDuration(whoop);const selected=deviceValue(whoopMin,'whoop')||deviceValue(stravaMin,'strava');
     const difference=stravaMin!==null&&whoopMin!==null?Math.abs(stravaMin-whoopMin):null;const reference=Math.max(stravaMin||0,whoopMin||0);const conflict=difference!==null&&difference>Math.max(10,reference*.25);
     return{selected,stravaMin:round(stravaMin),whoopMin:round(whoopMin),differenceMin:round(difference),conflict};
   }

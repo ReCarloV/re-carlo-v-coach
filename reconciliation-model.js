@@ -81,5 +81,18 @@
     if(!candidate||!['confirmed','dismissed'].includes(status))throw new TypeError('Decisione di riconciliazione non valida.');const timestamp=now instanceof Date?now.toISOString():new Date(now).toISOString();
     return{id:`reconciliation-${hash(candidate.key)}`,key:candidate.key,status,date:candidate.date,stravaActivityId:candidate.stravaActivityId||null,whoopWorkoutId:candidate.whoopWorkoutId||null,sessionId:candidate.sessionId||null,replacesDecisionId:candidate.replacesDecisionId||null,confidence:candidate.confidence,reasons:[...candidate.reasons],createdAt:timestamp,updatedAt:timestamp};
   }
-  return{buildReconciliationState,createReconciliationDecision,scoreSourcePair,scorePlan,candidateKey,confidenceLabel};
+  function applyWhoopDurations(sessions,candidates,now=new Date()){
+    const timestamp=now instanceof Date?now.toISOString():new Date(now).toISOString(),bySession=new Map();
+    (Array.isArray(candidates)?candidates:[]).forEach(candidate=>{const duration=durationWhoop(candidate?.whoop);if(candidate?.sessionId&&candidate?.whoopWorkoutId&&duration!==null)bySession.set(candidate.sessionId,{candidate,duration:Math.max(1,Math.round(duration))});});
+    const updatedSessionIds=[];const next=(Array.isArray(sessions)?sessions:[]).map(session=>{
+      const match=bySession.get(session?.id),outcome=session?.outcome;if(!match||!['completed','partial'].includes(outcome?.status))return session;
+      const {candidate,duration}=match,previousEvidence=outcome.deviceEvidence&&typeof outcome.deviceEvidence==='object'?outcome.deviceEvidence:null,decisionId=`reconciliation-${hash(candidate.key)}`;
+      const usedFields=[...new Set([...(Array.isArray(previousEvidence?.usedFields)?previousEvidence.usedFields:[]),'actualDurationMin'])];
+      const deviceEvidence={reconciliationDecisionId:decisionId,stravaActivityId:candidate.stravaActivityId||previousEvidence?.stravaActivityId||null,whoopWorkoutId:candidate.whoopWorkoutId,observedDurationMin:duration,observedDistanceKm:previousEvidence?.observedDistanceKm??null,usedFields,reviewedAt:timestamp};
+      const rpe=Number(outcome.rpe),sessionLoad=Number.isFinite(rpe)?Math.round(duration*rpe):outcome.sessionLoad;updatedSessionIds.push(session.id);
+      return{...session,outcome:{...outcome,actualDurationMin:duration,sessionLoad,deviceEvidence,updatedAt:timestamp},updatedAt:timestamp};
+    });
+    return{sessions:next,updatedSessionIds};
+  }
+  return{buildReconciliationState,createReconciliationDecision,applyWhoopDurations,scoreSourcePair,scorePlan,candidateKey,confidenceLabel};
 });

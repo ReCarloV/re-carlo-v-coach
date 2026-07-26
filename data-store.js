@@ -896,10 +896,14 @@
       }
       next.push(decision);next.sort((a,b)=>a.updatedAt.localeCompare(b.updatedAt));validateReconciliationDecisions(next);return next;
     }
-    function saveReconciliationDecisions(decisions){
-      if(!Array.isArray(decisions)||!decisions.length)throw new DataStoreError('INVALID_RECONCILIATION','Non ci sono decisioni di abbinamento da salvare.');let next=read('reconciliationDecisions');validateReconciliationDecisions(next);decisions.forEach(decision=>{next=mergeReconciliationDecision(next,decision);});write('reconciliationDecisions',next);const detail={type:'reconciliation-updated',saved:decisions.length,updatedAt:now().toISOString()};dispatch(detail);return detail;
+    function saveReconciliationDecisions(decisions,options={}){
+      if(!Array.isArray(decisions)||!decisions.length)throw new DataStoreError('INVALID_RECONCILIATION','Non ci sono decisioni di abbinamento da salvare.');let next=read('reconciliationDecisions');validateReconciliationDecisions(next);decisions.forEach(decision=>{next=mergeReconciliationDecision(next,decision);});
+      const hasSessions=Object.prototype.hasOwnProperty.call(options,'sessions');if(hasSessions)validate('sessions',options.sessions);const touched=new Map();remember(touched,datasets.reconciliationDecisions.key);if(hasSessions)remember(touched,datasets.sessions.key);
+      try{write('reconciliationDecisions',next);if(hasSessions)write('sessions',options.sessions);}
+      catch(error){const rollback=rollbackTouched(touched);if(!rollback.complete){const failure=new DataStoreError('ROLLBACK_INCOMPLETE',`L’abbinamento è stato interrotto e alcune chiavi devono essere verificate: ${rollback.failedKeys.join(', ')}.`);failure.failedKeys=rollback.failedKeys;throw failure;}throw error;}
+      const detail={type:'reconciliation-updated',saved:decisions.length,updatedSessions:Array.isArray(options.updatedSessionIds)?options.updatedSessionIds.length:0,updatedAt:now().toISOString()};dispatch(detail);return detail;
     }
-    function saveReconciliationDecision(decision){return saveReconciliationDecisions([decision]);}
+    function saveReconciliationDecision(decision,options){return saveReconciliationDecisions([decision],options);}
     function removeReconciliationDecision(decisionId){
       const current=read('reconciliationDecisions');validateReconciliationDecisions(current);const next=current.filter(item=>item.id!==decisionId);if(next.length===current.length)throw new DataStoreError('UNKNOWN_RECONCILIATION','L’abbinamento selezionato non esiste più.');write('reconciliationDecisions',next);const detail={type:'reconciliation-removed',decisionId,removedAt:now().toISOString()};dispatch(detail);return detail;
     }

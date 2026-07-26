@@ -520,7 +520,7 @@
     add('DISTANZA',evidence.observed.distanceKm===null?null:`${evidence.observed.distanceKm} km`,'Strava');add('PASSO MEDIO',formatPace(evidence.observed.averagePaceSecPerKm),'da tempo in movimento');
     add('FC STRAVA',evidence.observed.stravaAverageHr===null?null:`${evidence.observed.stravaAverageHr} bpm`,evidence.observed.stravaMaxHr===null?'media':`max ${evidence.observed.stravaMaxHr}`);add('FC WHOOP',evidence.observed.whoopAverageHr===null?null:`${evidence.observed.whoopAverageHr} bpm`,evidence.observed.whoopMaxHr===null?'media':`max ${evidence.observed.whoopMaxHr}`);
     add('POTENZA',evidence.observed.averageWatts===null?null:`${Math.round(evidence.observed.averageWatts)} W`,evidence.observed.weightedWatts===null?'media':`ponderata ${Math.round(evidence.observed.weightedWatts)} W`);add('WHOOP STRAIN',evidence.observed.whoopStrain,'osservato');
-    const note=document.getElementById('outcome-observed-note');if(evidence.warnings.length){note.className='warning';note.textContent=evidence.warnings.join(' ');}else{note.className='';note.textContent=hasManualOutcome?'La registrazione manuale resta invariata. Questi valori dispositivo vengono affiancati come evidenza osservata.':'Durata e distanza sono precompilate dai dispositivi. RPE, confronto col previsto e dolore richiedono sempre la tua valutazione.';}
+    const note=document.getElementById('outcome-observed-note');if(evidence.warnings.length){note.className='warning';note.textContent=evidence.warnings.join(' ');}else{note.className='';note.textContent=hasManualOutcome?'La durata reale usa WHOOP quando disponibile; RPE, dolore, note e dettagli restano quelli registrati manualmente.':'La durata usa WHOOP quando disponibile e la distanza usa Strava. RPE, confronto col previsto e dolore richiedono sempre la tua valutazione.';}
   }
   function outcomeRecordElement(tag,className,text){
     const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;
@@ -705,7 +705,7 @@
   };
   window.addEventListener('rc:data-restored',()=>{sessions=load();selectedIds=selectionModel.prune(selectedIds,sessions);render();});
   document.addEventListener('rc:goals-updated',render);
-  document.addEventListener('rc:reconciliation-updated',render);
+  document.addEventListener('rc:reconciliation-updated',()=>{sessions=load();render();});
   document.addEventListener('rc:whoop-updated',render);
   if(!(window.rcDataStore?.health?.().warnings||[]).includes('sessions'))save();
   render();
