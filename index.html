@@ -36,6 +36,7 @@
   <link rel="stylesheet" href="goals.css">
   <link rel="stylesheet" href="refinements.css">
   <link rel="stylesheet" href="cloud-sync.css">
+  <link rel="stylesheet" href="calendar-integration.css">
   <link rel="stylesheet" href="tab-coordination.css">
   <link rel="stylesheet" href="mobile.css">
   <link rel="stylesheet" href="ui-polish.css">
@@ -198,6 +199,18 @@
             <button class="ghost" id="cloud-sync-now" type="button" hidden>Sincronizza ora</button>
             <button class="ghost" id="pwa-install" type="button">Installa app</button>
             <button class="ghost danger-text" id="cloud-sync-signout" type="button" hidden>Esci</button>
+          </div>
+        </article>
+        <article class="panel calendar-integration-panel" id="calendar-integration-panel" aria-live="polite">
+          <div class="calendar-integration-copy">
+            <span class="calendar-integration-icon" aria-hidden="true"><b>9</b></span>
+            <div><small>APPLE CALENDAR</small><h2 id="calendar-integration-title">Piano nel calendario</h2><p class="muted" id="calendar-integration-detail">Le sedute partono alle 09:00 salvo un orario diverso impostato nel Piano.</p><span class="calendar-integration-meta" id="calendar-integration-meta">Richiede il cloud personale</span></div>
+          </div>
+          <div class="calendar-integration-actions">
+            <button class="primary calendar-yellow-button" id="calendar-integration-primary" type="button">Attiva calendario</button>
+            <button class="ghost" id="calendar-integration-copy" type="button" hidden>Copia link</button>
+            <button class="ghost" id="calendar-integration-rotate" type="button" hidden>Rigenera link</button>
+            <button class="ghost danger-text" id="calendar-integration-disable" type="button" hidden>Disattiva</button>
           </div>
         </article>
         <div class="metrics data-overview-metrics">
@@ -416,6 +429,7 @@
         <label>Data<input name="date" type="date" required></label>
         <label class="full">Titolo della seduta<input name="title" id="session-title" required maxlength="80" placeholder="Es. Easy run"><span class="field-hint compact-mode-hint" id="title-hint">AUTO</span></label>
         <label>Durata prevista (min)<input name="durationMin" type="number" inputmode="numeric" min="5" max="600" step="5" required></label>
+        <label>Ora di inizio<input name="startTime" id="session-start-time" type="time" step="300" value="09:00" required><small class="field-hint" id="session-end-time">Fine calcolata automaticamente</small></label>
         <label>Priorità<select name="priority"><option value="essential">Essenziale</option><option value="important">Importante</option><option value="optional">Opzionale</option></select></label>
       </div>
 
@@ -689,6 +703,7 @@
   <script src="adaptive-application-model.js"></script>
   <script src="athlete-metrics-model.js"></script>
   <script src="cloud-sync-model.js"></script>
+  <script src="calendar-feed-model.js"></script>
   <script src="cloud-config.js"></script>
   <script src="app.js"></script>
   <script src="selectors.js"></script>
@@ -717,6 +732,7 @@
   <script src="whoop-import.js"></script>
   <script src="vendor/supabase-2.110.5.min.js"></script>
   <script src="cloud-sync.js"></script>
+  <script src="calendar-integration.js"></script>
   <script src="whoop-live-sync.js"></script>
   <script src="reconciliation.js"></script>
   <script src="pwa.js"></script>

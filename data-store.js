@@ -77,6 +77,7 @@
     return !Number.isNaN(date.getTime()) && date.toISOString().slice(0,10) === value;
   }
   function isTimestamp(value) { return typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Date.parse(value)); }
+  function isClockTime(value) { return typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value); }
   function invalid(code, message) { throw new DataStoreError(code,message); }
   function validateCardiopulmonaryScreen(value,code='INVALID_SAFETY_SCREEN'){
     if(!isObject(value)||!['clear','red-flag'].includes(value.status)||!Array.isArray(value.symptoms)||value.symptoms.length>cardiopulmonarySignals.size||new Set(value.symptoms).size!==value.symptoms.length||value.symptoms.some(item=>!cardiopulmonarySignals.has(item)))invalid(code,'Il controllo di sicurezza cardiopolmonare non è valido.');
@@ -157,6 +158,7 @@
     if (!isObject(session)) invalid('INVALID_SESSIONS','Una seduta del backup non è valida.');
     if (typeof session.id !== 'string' || !session.id.trim() || !isDateKey(session.date) || !sessionCategories.has(session.category) || typeof session.title !== 'string' || !session.title.trim()) invalid('INVALID_SESSIONS','Una seduta contiene identificativo, data, categoria o titolo non validi.');
     if (!isFiniteValue(session.durationMin) || Number(session.durationMin) <= 0 || !sessionPriorities.has(session.priority)) invalid('INVALID_SESSIONS','Una seduta contiene durata o priorità non valide.');
+    if (owns(session,'startTime') && !isClockTime(session.startTime)) invalid('INVALID_SESSIONS','L’ora di inizio della seduta non è valida.');
     if (!isObject(session.details)) invalid('INVALID_SESSIONS','I dettagli di una seduta non sono validi.');
     if(owns(session.details,'runBlocks')&&!validateEnduranceBlocks(session.details.runBlocks))invalid('INVALID_SESSIONS','La struttura della corsa non è valida.');
     if(owns(session.details,'rideBlocks')&&!validateEnduranceBlocks(session.details.rideBlocks))invalid('INVALID_SESSIONS','La struttura dei rulli non è valida.');
@@ -172,7 +174,7 @@
     if(owns(session,'adaptiveAdjustment')){
       const adjustment=session.adaptiveAdjustment,source=adjustment?.source;
       if(!isObject(adjustment)||adjustment.version!==1||!['active','paused'].includes(adjustment.status)||!['protect','reduce','steady','progress'].includes(adjustment.level)||!['low','medium','high'].includes(adjustment.confidence)||!isTimestamp(adjustment.preparedAt)||!Array.isArray(adjustment.instructions)||adjustment.instructions.length>20||adjustment.instructions.some(item=>typeof item!=='string'||!item.trim()))invalid('INVALID_SESSIONS','L’adattamento settimanale non è valido.');
-      if(!isObject(source)||!isDateKey(source.date)||!sessionCategories.has(source.category)||typeof source.title!=='string'||!source.title.trim()||!isFiniteValue(source.durationMin)||Number(source.durationMin)<=0||!sessionPriorities.has(source.priority)||!isObject(source.details)||typeof source.notes!=='string'||!['auto','custom'].includes(source.titleMode))invalid('INVALID_SESSIONS','La prescrizione originale dell’adattamento non è valida.');
+      if(!isObject(source)||!isDateKey(source.date)||!sessionCategories.has(source.category)||typeof source.title!=='string'||!source.title.trim()||!isFiniteValue(source.durationMin)||Number(source.durationMin)<=0||!sessionPriorities.has(source.priority)||!isObject(source.details)||typeof source.notes!=='string'||!['auto','custom'].includes(source.titleMode)||(owns(source,'startTime')&&!isClockTime(source.startTime)))invalid('INVALID_SESSIONS','La prescrizione originale dell’adattamento non è valida.');
       if(Array.isArray(source.details.strengthBlocks)&&source.details.strengthBlocks.some(block=>owns(block,'loadKg')&&block.loadKg!==''&&block.loadKg!==null&&block.loadKg!==undefined&&(!isFiniteValue(block.loadKg)||Number(block.loadKg)<0||Number(block.loadKg)>700)))invalid('INVALID_SESSIONS','Il carico di forza originale dell’adattamento non è valido.');
     }
     if(owns(session,'goalSubstitution')){

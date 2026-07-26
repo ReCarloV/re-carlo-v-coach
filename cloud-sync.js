@@ -112,15 +112,17 @@
     if(user){loadCursor();setMode('pending');await reconcile();}else setMode('signed-out');
   }
 
-  async function functionRequest(action,{method='GET',body=null,timeoutMs=45000}={}){
+  async function edgeFunctionRequest(functionName,action,{method='GET',body=null,timeoutMs=45000}={}){
     if(!client||!user)throw new Error('Accedi prima al cloud personale.');
     const{data,error}=await client.auth.getSession();if(error)throw error;const accessToken=data.session?.access_token;if(!accessToken)throw new Error('La sessione cloud è scaduta. Accedi di nuovo.');
     const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),timeoutMs);
     try{
-      const response=await fetch(`${String(config.supabaseUrl).replace(/\/$/,'')}/functions/v1/whoop-cloud?action=${encodeURIComponent(action)}`,{method,headers:{Authorization:`Bearer ${accessToken}`,apikey:config.supabasePublishableKey,'Content-Type':'application/json'},body:body===null?undefined:JSON.stringify(body),signal:controller.signal});
+      const safeFunction=String(functionName||'').replace(/[^a-z0-9-]/g,'');if(!safeFunction)throw new Error('Servizio cloud non valido.');
+      const response=await fetch(`${String(config.supabaseUrl).replace(/\/$/,'')}/functions/v1/${safeFunction}?action=${encodeURIComponent(action)}`,{method,headers:{Authorization:`Bearer ${accessToken}`,apikey:config.supabasePublishableKey,'Content-Type':'application/json'},body:body===null?undefined:JSON.stringify(body),signal:controller.signal});
       const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error||'Il servizio cloud non ha completato l’operazione.');return payload;
     }finally{clearTimeout(timeout);}
   }
+  function functionRequest(action,options){return edgeFunctionRequest('whoop-cloud',action,options);}
 
   primary.addEventListener('click',async()=>{
     if(!configured){window.alert('La struttura iPhone è pronta. Ora devo collegarla al progetto cloud gratuito: nessun dato è ancora uscito dal Mac.');return;}
@@ -159,7 +161,7 @@
 
   ['rc:sessions-updated','rc:goals-updated','rc:profile-updated','rc:body-issues-updated','rc:pre-checkin-updated','rc:weekly-checkin-updated','rc:weekly-availability-history-updated','rc:whoop-updated','rc:reconciliation-updated','rc:theme-updated'].forEach(name=>document.addEventListener(name,scheduleLocalSync));window.addEventListener('rc:data-restored',scheduleLocalSync);
   window.addEventListener('online',()=>pendingLocalChange?flushLocalSync():reconcile());window.addEventListener('offline',()=>{if(user)setMode('offline');});document.addEventListener('visibilitychange',()=>{if(!user)return;if(document.hidden&&pendingLocalChange)flushLocalSync();else if(!document.hidden)pendingLocalChange?flushLocalSync():reconcile();});
-  window.rcCloudSync={state:publicState,reconcile,flush:flushLocalSync,requestFunction:functionRequest,show:()=>user&&(mode==='choose'||mode==='conflict')?showChoice():openModal('auth')};
+  window.rcCloudSync={state:publicState,reconcile,flush:flushLocalSync,requestFunction:functionRequest,requestEdgeFunction:edgeFunctionRequest,show:()=>user&&(mode==='choose'||mode==='conflict')?showChoice():openModal('auth')};
 
   if(configured&&window.supabase?.createClient){
     client=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});

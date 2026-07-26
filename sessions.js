@@ -22,6 +22,7 @@
   const goalsModel=window.rcGoalsModel;
   const prescriptionModel=window.rcSessionPrescriptionModel;
   const safetyModel=window.rcSafetyScreenModel;
+  const calendarFeedModel=window.rcCalendarFeedModel;
   let sessions = load();
   let planView = localStorage.getItem(VIEW_KEY) === 'calendar' ? 'calendar' : 'list';
   let calendarCursor = relevantCalendarMonth();
@@ -108,28 +109,29 @@
   }
   function targetText(session) {
     const d = session.details || {};
+    const timing=calendarFeedModel?.timeRange?.(session)||'09:00';
     if (session.category === 'running') {
       let target = d.hrZone || '';
       if (d.runTarget === 'pace') target = `${d.paceMin}:${String(d.paceSec || 0).padStart(2,'0')}/km`;
       if (d.runTarget === 'rpe') target = `RPE ${d.runRpe}`;
       const phases=Array.isArray(d.runBlocks)?d.runBlocks.reduce((sum,item)=>sum+(item.type==='repeat'?(Number(item.repeats)||1)*(item.steps?.length||0):1),0):0;
-      return [`${session.durationMin} min`, d.distanceKm ? `${d.distanceKm} km` : '', d.runType, target,phases?`${phases} fasi programmate`:''].filter(Boolean).join(' · ');
+      return [timing,`${session.durationMin} min`, d.distanceKm ? `${d.distanceKm} km` : '', d.runType, target,phases?`${phases} fasi programmate`:''].filter(Boolean).join(' · ');
     }
     if (session.category === 'cycling') {
       const ftp = athleteFtp(); const hasFtp=Number(d.ftpMin)>0&&Number(d.ftpMax)>0;const ftpRange=hasFtp?`${d.ftpMin}–${d.ftpMax}% FTP`:'';const watts = hasFtp&&ftp ? `${Math.round(ftp*d.ftpMin/100)}–${Math.round(ftp*d.ftpMax/100)} W` : '';
       const phases=Array.isArray(d.rideBlocks)?d.rideBlocks.reduce((sum,item)=>sum+(item.type==='repeat'?(Number(item.repeats)||1)*(item.steps?.length||0):1),0):0;
       const brick=d.brickRun?`poi corsa ${d.brickRun.durationMin} min · ${d.brickRun.target}`:'';
-      return [`${session.durationMin} min`,d.rideType,ftpRange,watts,d.cadence ? `${d.cadence} rpm` : '',phases?`${phases} fasi programmate`:'',brick,d.powerSource].filter(Boolean).join(' · ');
+      return [timing,`${session.durationMin} min`,d.rideType,ftpRange,watts,d.cadence ? `${d.cadence} rpm` : '',phases?`${phases} fasi programmate`:'',brick,d.powerSource].filter(Boolean).join(' · ');
     }
-    if (session.category === 'swimming') return [`${session.durationMin} min`,d.swimDistanceM?`${d.swimDistanceM} m`:'',d.swimType,d.swimRpe?`RPE ${d.swimRpe}`:'',Array.isArray(d.swimStructuredBlocks)&&d.swimStructuredBlocks.length?`${d.swimStructuredBlocks.length} blocchi`:'' ].filter(Boolean).join(' · ');
+    if (session.category === 'swimming') return [timing,`${session.durationMin} min`,d.swimDistanceM?`${d.swimDistanceM} m`:'',d.swimType,d.swimRpe?`RPE ${d.swimRpe}`:'',Array.isArray(d.swimStructuredBlocks)&&d.swimStructuredBlocks.length?`${d.swimStructuredBlocks.length} blocchi`:'' ].filter(Boolean).join(' · ');
     if (session.category === 'strength') {
       const exercises = Array.isArray(d.strengthBlocks) ? d.strengthBlocks.slice(0,3).map(item => [item.name,item.sets && item.reps ? `${item.sets}×${item.reps}` : '',item.loadKg!==''&&item.loadKg!==null&&item.loadKg!==undefined?`@ ${item.loadKg} kg`:null].filter(Boolean).join(' ')).join(' · ') : String(d.exercises || '').split('\n').map(item => item.trim()).filter(Boolean).slice(0,3).join(' · ');
-      return [`${session.durationMin} min`,d.strengthFocus,d.targetRir !== '' ? `RIR ${d.targetRir}` : '',exercises].filter(Boolean).join(' · ');
+      return [timing,`${session.durationMin} min`,d.strengthFocus,d.targetRir !== '' ? `RIR ${d.targetRir}` : '',exercises].filter(Boolean).join(' · ');
     }
-    if (session.category === 'hyrox') return [`${session.durationMin} min`,d.hyroxFormat,d.hyroxRpe ? `RPE ${d.hyroxRpe}` : '',Array.isArray(d.hyroxStructuredBlocks)&&d.hyroxStructuredBlocks.length ? `${d.hyroxStructuredBlocks.length} blocchi` : ''].filter(Boolean).join(' · ');
-    if (session.category === 'metcon') return [`${session.durationMin} min`,d.metconType,d.metconRpe ? `RPE ${d.metconRpe}` : '',Array.isArray(d.metconStructuredBlocks)&&d.metconStructuredBlocks.length ? `${d.metconStructuredBlocks.length} blocchi` : ''].filter(Boolean).join(' · ');
-    if (session.category === 'test') return [`${session.durationMin} min`,d.testType,d.testRpe ? `RPE max ${d.testRpe}` : ''].filter(Boolean).join(' · ');
-    return [`${session.durationMin} min`,d.recoveryType].filter(Boolean).join(' · ');
+    if (session.category === 'hyrox') return [timing,`${session.durationMin} min`,d.hyroxFormat,d.hyroxRpe ? `RPE ${d.hyroxRpe}` : '',Array.isArray(d.hyroxStructuredBlocks)&&d.hyroxStructuredBlocks.length ? `${d.hyroxStructuredBlocks.length} blocchi` : ''].filter(Boolean).join(' · ');
+    if (session.category === 'metcon') return [timing,`${session.durationMin} min`,d.metconType,d.metconRpe ? `RPE ${d.metconRpe}` : '',Array.isArray(d.metconStructuredBlocks)&&d.metconStructuredBlocks.length ? `${d.metconStructuredBlocks.length} blocchi` : ''].filter(Boolean).join(' · ');
+    if (session.category === 'test') return [timing,`${session.durationMin} min`,d.testType,d.testRpe ? `RPE max ${d.testRpe}` : ''].filter(Boolean).join(' · ');
+    return [timing,`${session.durationMin} min`,d.recoveryType].filter(Boolean).join(' · ');
   }
   function dateKey(date) {
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
@@ -224,7 +226,7 @@
         if(selectionMode)button.setAttribute('aria-pressed',String(selected));
         const category=document.createElement('span');category.className='calendar-event-category';category.textContent=`${session.demoDataset?'DEMO · ':''}${status.symbol} ${paused?'SOSPESA':meta.label}`;
         const title=document.createElement('span');title.className='calendar-event-title';title.textContent=session.title;
-        const duration=document.createElement('span');duration.className='calendar-event-duration';duration.textContent=outcome?.actualDurationMin?`${outcome.actualDurationMin} min reali`:evidence?.prefill.actualDurationMin?`${evidence.prefill.actualDurationMin} min osservati`:`${session.durationMin} min`;
+        const duration=document.createElement('span');duration.className='calendar-event-duration';const time=calendarFeedModel?.startTime?.(session.startTime)||'09:00';duration.textContent=outcome?.actualDurationMin?`${time} · ${outcome.actualDurationMin} min reali`:evidence?.prefill.actualDurationMin?`${time} · ${evidence.prefill.actualDurationMin} min osservati`:`${time} · ${session.durationMin} min`;
         button.append(category,title,duration);if(evidence){const linked=document.createElement('span');linked.className='calendar-event-linked';linked.textContent='◆';linked.title=`Dati ${evidenceSourceLabel(evidence)} collegati`;button.append(linked);}button.addEventListener('click',()=>{if(Date.now()<suppressCalendarClickUntil)return;selectionMode?toggleSelection(session.id):(session.outcome?openOutcome(session):open(session));});events.append(button);
       });
       cell.append(events);grid.append(cell);
@@ -392,6 +394,7 @@
   }
   function open(session = null) {
     form.reset(); form.elements.id.value = ''; form.elements.date.value = localDate();
+    form.elements.startTime.value=calendarFeedModel?.DEFAULT_START_TIME||'09:00';
     document.getElementById('session-form-title').textContent = session ? 'Modifica seduta' : 'Nuova seduta';
     document.getElementById('delete-session').hidden = !session;
     const outcomeButton=document.getElementById('session-outcome');
@@ -400,11 +403,17 @@
     if (session) {
       const values = { ...session, ...(session.details || {}) };
       Object.entries(values).forEach(([name,value]) => { const field = form.elements.namedItem(name); if (field && value !== undefined && value !== null) field.value = value; });
+      form.elements.startTime.value=calendarFeedModel?.startTime?.(session.startTime)||'09:00';
       titleMode = session.titleMode || 'custom';
     } else {
       titleMode = 'auto';
     }
-    hydrateBuilders(session); toggleFields(); updateSuggestedTitle(!session); modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
+    hydrateBuilders(session); toggleFields(); updateSuggestedTitle(!session);updateSessionEndTime(); modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
+  }
+
+  function updateSessionEndTime(){
+    const windowValue=calendarFeedModel?.eventWindow?.({startTime:form.elements.startTime.value,durationMin:form.elements.durationMin.value});
+    document.getElementById('session-end-time').textContent=windowValue?`Fine prevista ${windowValue.endTime}${windowValue.endDayOffset?' · giorno successivo':''}`:'Fine calcolata automaticamente';
   }
   function athleteWeightKg(){try{return Number(JSON.parse(localStorage.getItem('rc-athlete-profile-v1')).weightKg)||null;}catch(_){return null;}}
   function athleteStrengthFormula(){try{const value=JSON.parse(localStorage.getItem('rc-athlete-profile-v1')).strengthFormula;return strengthModel.FORMULAS[value]?value:'epley';}catch(_){return 'epley';}}
@@ -568,7 +577,7 @@
     fillOutcomeSafetyScreen(outcome);
     renderEndurancePerformance(session,outcome);
     renderStrengthPerformance(session,outcome);
-    const context=document.getElementById('outcome-session-context');const strong=document.createElement('strong');strong.textContent=session.title;const span=document.createElement('span');const date=new Date(`${session.date}T12:00:00`);span.textContent=`${date.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})} · ${categoryMeta[session.category].label} · ${session.durationMin} min previsti`;context.replaceChildren(strong,span);
+    const context=document.getElementById('outcome-session-context');const strong=document.createElement('strong');strong.textContent=session.title;const span=document.createElement('span');const date=new Date(`${session.date}T12:00:00`),time=calendarFeedModel?.timeRange?.(session)||'09:00';span.textContent=`${date.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})} · ${time} · ${categoryMeta[session.category].label} · ${session.durationMin} min previsti`;context.replaceChildren(strong,span);
     renderObservedEvidence(evidence,Boolean(outcome));document.getElementById('outcome-delete').hidden=!outcome;toggleOutcomeFields();setOutcomeMode(session,Boolean(options.edit));outcomeModal.classList.add('open');outcomeModal.setAttribute('aria-hidden','false');outcomeForm.scrollTop=0;
   }
   function detailsFromForm(data, category) {
@@ -585,7 +594,8 @@
   runTargetInput.addEventListener('change', toggleFields);
   document.querySelectorAll('[data-title-source]').forEach(field => field.addEventListener('change', () => updateSuggestedTitle()));
   form.elements.rideType.addEventListener('change',regenerateRideBuilder);
-  form.elements.durationMin.addEventListener('change',()=>{if(categoryInput.value==='cycling')regenerateRideBuilder();});
+  form.elements.durationMin.addEventListener('input',()=>{updateSessionEndTime();if(categoryInput.value==='cycling')regenerateRideBuilder();});
+  form.elements.startTime.addEventListener('input',updateSessionEndTime);
   document.querySelectorAll('.add-workout-row').forEach(button => button.addEventListener('click', () => { const type=button.closest('[data-builder]').dataset.builder; const rows=syncBuilder(type); rows.push(type==='strength'?{name:strengthExerciseLibrary[0],sets:'',reps:'',loadKg:'',target:'',rest:''}:{name:'',volume:'',target:'',rest:''}); renderBuilder(type,rows); const inputs=document.querySelectorAll(`[data-builder="${type}"] .workout-row input`); inputs[inputs.length-(builderFields[type].length-1)]?.focus(); }));
   document.getElementById('add-run-segment').addEventListener('click',()=>{const items=syncRunBuilder();items.push({type:'segment',phase:items.length?'work':'warmup',unit:'min',amount:items.length?5:10,targetType:'free',target:''});renderRunBuilder(items);});
   document.getElementById('add-run-repeat').addEventListener('click',()=>{const items=syncRunBuilder();items.push({type:'repeat',repeats:6,steps:[{type:'segment',phase:'work',unit:'min',amount:3,targetType:'pace',target:''},{type:'segment',phase:'recovery',unit:'min',amount:2,targetType:'free',target:''}]});renderRunBuilder(items);});
@@ -634,7 +644,7 @@
     }
     const category = data.get('category'); let session = {
       id:id || (crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`), date:data.get('date'), category,
-      title:data.get('title').trim(),durationMin:Number(data.get('durationMin')),priority:data.get('priority'),details:detailsFromForm(data,category),
+      title:data.get('title').trim(),durationMin:Number(data.get('durationMin')),startTime:calendarFeedModel?.startTime?.(String(data.get('startTime')||''))||'09:00',priority:data.get('priority'),details:detailsFromForm(data,category),
       notes:data.get('notes').trim(),outcome:existing?.outcome||null,titleMode,createdAt:existing?.createdAt || new Date().toISOString(),updatedAt:new Date().toISOString(),...(existing?.planImport?{planImport:existing.planImport}:{}),...(existing?.goalId?{goalId:existing.goalId}:{}),...(existing?.goalGenerated?{goalGenerated:true}:{}),...(existing?.goalSyncedAt?{goalSyncedAt:existing.goalSyncedAt}:{})
     };
     session=prescriptionModel?.enrichSession?.(session,prescriptionContext())||session;
