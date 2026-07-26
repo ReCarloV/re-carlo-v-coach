@@ -863,14 +863,18 @@
     }
     function commitWhoopApiSync(batch,records){
       validateWhoopImportBatches([batch]);if(batch.sourceMode!=='api'||!isObject(batch.updatedIds))throw new DataStoreError('INVALID_WHOOP_SYNC','La sincronizzazione WHOOP non è valida.');
-      const current=readWhoopState();const batches=read('whoopImportBatches');validateWhoopConsistency(current,batches);if(batches.some(item=>item.id===batch.id))throw new DataStoreError('DUPLICATE_WHOOP_IMPORT','Questa sincronizzazione WHOOP è già presente.');const next={};
+      const current=readWhoopState();const batches=read('whoopImportBatches');validateWhoopConsistency(current,batches);const existingBatch=batches.find(item=>item.id===batch.id),next={};let incomingCount=0;
       Object.entries(whoopBatchKinds).forEach(([kind,dataset])=>{
         const incoming=clone(records[kind]||[]);validateWhoopRecords(dataset,incoming);const currentById=new Map(current[dataset].map(item=>[item.id,item]));const incomingIds=incoming.map(item=>item.id).sort();const expectedIds=[...batch.addedIds[kind],...batch.updatedIds[kind]].sort();
         if(JSON.stringify(incomingIds)!==JSON.stringify(expectedIds))throw new DataStoreError('INVALID_WHOOP_SYNC_LINKS','I dati ricevuti da WHOOP non corrispondono al riepilogo della sincronizzazione.');
         batch.addedIds[kind].forEach(id=>{const record=incoming.find(item=>item.id===id);if(currentById.has(id)||record?.source?.batchId!==batch.id)throw new DataStoreError('INVALID_WHOOP_SYNC_LINKS','Una nuova registrazione WHOOP non è collegata correttamente.');});
         batch.updatedIds[kind].forEach(id=>{const previous=currentById.get(id);const record=incoming.find(item=>item.id===id);if(!previous||!record||record.source.batchId!==previous.source.batchId)throw new DataStoreError('INVALID_WHOOP_SYNC_LINKS','Un aggiornamento WHOOP non conserva la propria provenienza.');});
-        incoming.forEach(item=>currentById.set(item.id,item));const sortField=dataset==='whoopWorkouts'?'start':dataset==='whoopSleeps'?'sleepStart':'cycleStart';next[dataset]=[...currentById.values()].sort((a,b)=>String(a[sortField]).localeCompare(String(b[sortField])));
+        incomingCount+=incoming.length;incoming.forEach(item=>currentById.set(item.id,item));const sortField=dataset==='whoopWorkouts'?'start':dataset==='whoopSleeps'?'sleepStart':'cycleStart';next[dataset]=[...currentById.values()].sort((a,b)=>String(a[sortField]).localeCompare(String(b[sortField])));
       });
+      if(existingBatch){
+        if(incomingCount===0)return{type:'whoop-api-sync',provider:'whoop',batchId:batch.id,added:0,updated:0,importedAt:existingBatch.importedAt,reused:true};
+        throw new DataStoreError('DUPLICATE_WHOOP_IMPORT','Questa sincronizzazione WHOOP è già presente.');
+      }
       const nextBatches=[...batches,clone(batch)].sort((a,b)=>a.importedAt.localeCompare(b.importedAt));const added=Object.values(batch.addedIds).reduce((sum,ids)=>sum+ids.length,0);const updated=Object.values(batch.updatedIds).reduce((sum,ids)=>sum+ids.length,0);
       return writeWhoopImportState(next,nextBatches,{type:'whoop-api-sync',provider:'whoop',batchId:batch.id,added,updated,importedAt:batch.importedAt});
     }
