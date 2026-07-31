@@ -60,9 +60,18 @@
         <button class="nav" data-view="knowledge" aria-label="Knowledge"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H11v17H7.5A3.5 3.5 0 0 0 4 22Z"></path><path d="M20 5.5A3.5 3.5 0 0 0 16.5 2H13v17h3.5A3.5 3.5 0 0 1 20 22Z"></path></svg></span><span class="nav-label">Knowledge</span></button>
         <button class="nav" data-view="profile" aria-label="Profilo atleta"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 21c.7-4.5 3.2-7 7.5-7s6.8 2.5 7.5 7"></path></svg></span><span class="nav-label">Profilo</span></button>
         <button class="nav" data-view="data" aria-label="Impostazioni"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"></path></svg></span><span class="nav-label">Impostazioni</span></button>
+        <button class="nav mobile-more-trigger" id="mobile-more-trigger" type="button" aria-label="Altre pagine" aria-controls="mobile-more-menu" aria-expanded="false"><span class="mobile-more-icon" aria-hidden="true"><i></i><i></i><i></i></span><span class="nav-label">Altro</span></button>
       </nav>
       <button class="sidebar-goal" id="sidebar-goal" type="button"><small>OBIETTIVO PRINCIPALE</small><strong id="sidebar-goal-name">Nessun obiettivo</strong><span id="sidebar-goal-summary">Aggiungi la prossima gara</span></button>
     </aside>
+
+    <button class="mobile-more-backdrop" id="mobile-more-backdrop" type="button" aria-label="Chiudi altre pagine" hidden></button>
+    <div class="mobile-more-menu" id="mobile-more-menu" role="dialog" aria-modal="true" aria-label="Altre pagine" hidden>
+      <div class="mobile-more-menu-head"><div><small>NAVIGAZIONE</small><strong>Altre pagine</strong></div><button type="button" id="mobile-more-close" aria-label="Chiudi">×</button></div>
+      <button type="button" data-mobile-view="knowledge"><span>K</span><div><strong>Knowledge</strong><small>Scienza e aggiornamenti</small></div></button>
+      <button type="button" data-mobile-view="profile"><span>P</span><div><strong>Profilo</strong><small>Dati atleta e discipline</small></div></button>
+      <button type="button" data-mobile-view="data"><span>I</span><div><strong>Impostazioni</strong><small>Cloud, connessioni e backup</small></div></button>
+    </div>
 
     <main>
       <header><div><small id="header-date"></small><h1 id="page-title">Ciao.</h1></div><div class="status" id="local-data-status"><i></i><span>Dati locali</span></div></header>

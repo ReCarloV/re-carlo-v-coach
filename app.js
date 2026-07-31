@@ -4,23 +4,32 @@ const transientDialogIds = [
   '#goal-modal','#profile-modal','#pb-modal','#selector-modal','#whoop-setup-modal','#cloud-sync-modal','#crop-modal'
 ];
 const transientDialogSelector=transientDialogIds.join(','),openDialogSelector=transientDialogIds.map(id=>`${id}.open`).join(',');
+const mobileMoreViews=new Set(['knowledge','profile','data']);let closeMobileMore=()=>{};
 function syncDialogLayer(){document.body.classList.toggle('dialog-open',Boolean(document.querySelector(openDialogSelector)));}
 function closeTransientDialogs(){document.querySelectorAll(openDialogSelector).forEach(dialog=>{dialog.classList.remove('open');dialog.setAttribute('aria-hidden','true');});syncDialogLayer();}
 document.querySelectorAll(transientDialogSelector).forEach(dialog=>new MutationObserver(syncDialogLayer).observe(dialog,{attributes:true,attributeFilter:['class']}));
-document.addEventListener('keydown',event=>{if(event.key==='Escape')closeTransientDialogs();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeTransientDialogs();closeMobileMore();}});
 function showView(name) {
   const button = document.querySelector(`.nav[data-view="${name}"]`);
   const view = document.getElementById(name);
   if (!button || !view) return;
   closeTransientDialogs();
+  closeMobileMore();
   document.querySelectorAll('.nav, .view').forEach(el => el.classList.remove('active'));
   button.classList.add('active');
+  document.getElementById('mobile-more-trigger')?.classList.toggle('active',mobileMoreViews.has(name));
+  document.querySelectorAll('[data-mobile-view]').forEach(item=>item.classList.toggle('active',item.dataset.mobileView===name));
   view.classList.add('active');
   document.getElementById('page-title').textContent = views[name];
   window.scrollTo({top:0,behavior:'auto'});
   document.dispatchEvent(new CustomEvent('rc:view-changed',{detail:{view:name}}));
 }
-document.querySelectorAll('.nav').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
+document.querySelectorAll('.nav[data-view]').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
+const mobileMoreTrigger=document.getElementById('mobile-more-trigger'),mobileMoreMenu=document.getElementById('mobile-more-menu'),mobileMoreBackdrop=document.getElementById('mobile-more-backdrop'),mobileMoreClose=document.getElementById('mobile-more-close');
+function setMobileMore(open){if(!mobileMoreTrigger||!mobileMoreMenu||!mobileMoreBackdrop)return;mobileMoreMenu.hidden=!open;mobileMoreBackdrop.hidden=!open;mobileMoreTrigger.setAttribute('aria-expanded',String(open));document.body.classList.toggle('mobile-more-open',open);if(open)mobileMoreMenu.querySelector('[data-mobile-view]')?.focus();}
+closeMobileMore=()=>setMobileMore(false);
+mobileMoreTrigger?.addEventListener('click',()=>setMobileMore(mobileMoreMenu.hidden));mobileMoreClose?.addEventListener('click',closeMobileMore);mobileMoreBackdrop?.addEventListener('click',closeMobileMore);
+document.querySelectorAll('[data-mobile-view]').forEach(button=>button.addEventListener('click',()=>showView(button.dataset.mobileView)));
 window.rcNavigation = {
   show:showView,
   closeDialogs:closeTransientDialogs,
