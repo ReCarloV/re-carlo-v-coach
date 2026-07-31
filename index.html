@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="safety-screen.css">
   <link rel="stylesheet" href="generator.css">
   <link rel="stylesheet" href="today.css">
+  <link rel="stylesheet" href="fasting-tracker.css">
   <link rel="stylesheet" href="workout-mode.css">
   <link rel="stylesheet" href="recap.css">
   <link rel="stylesheet" href="demo-data.css">
@@ -91,6 +92,8 @@
           <article class="panel session" id="today-session-panel" aria-live="polite"></article>
           <article class="panel" id="today-week-panel" aria-live="polite"></article>
         </div>
+
+        <article class="panel fasting-tracker-panel" id="fasting-tracker-panel" aria-live="polite"></article>
 
         <article class="panel today-adaptive-panel" id="today-adaptive-panel" aria-live="polite"></article>
       </section>
@@ -725,8 +728,21 @@
       <button class="primary" id="tab-stale-refresh" type="button">Aggiorna questa scheda</button>
     </div>
   </div>
+  <div class="fasting-modal" id="fasting-manual-modal" role="dialog" aria-modal="true" aria-labelledby="fasting-manual-title" aria-hidden="true">
+    <form class="fasting-dialog" id="fasting-manual-form">
+      <div class="panel-head"><div><small>TRACKER PERSONALE</small><h2 id="fasting-manual-title">Inserisci fasting</h2></div><button class="icon-button" id="fasting-manual-close" type="button" aria-label="Chiudi">×</button></div>
+      <p class="muted">Inserisci soltanto l’intervallo realmente svolto. Il dato resta separato dall’allenamento.</p>
+      <div class="fasting-form-grid">
+        <label>Inizio<input name="startedAt" type="datetime-local" required></label>
+        <label>Fine<input name="endedAt" type="datetime-local" required></label>
+      </div>
+      <p class="fasting-form-feedback" role="alert" aria-live="polite"></p>
+      <div class="modal-actions"><button class="ghost" id="fasting-manual-cancel" type="button">Annulla</button><button class="primary" type="submit">Salva fasting</button></div>
+    </form>
+  </div>
   <div id="toast">Salvato sul dispositivo</div>
   <script src="data-store.js"></script>
+  <script src="fasting-tracker-model.js"></script>
   <script src="tab-coordination-model.js"></script>
   <script src="tab-coordination.js"></script>
   <script src="activity-import-model.js"></script>
@@ -777,6 +793,7 @@
   <script src="today-model.js"></script>
   <script src="workout-mode-model.js"></script>
   <script src="today.js"></script>
+  <script src="fasting-tracker.js"></script>
   <script src="workout-mode.js"></script>
   <script src="weekly-recap-model.js"></script>
   <script src="recap.js"></script>

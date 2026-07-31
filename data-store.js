@@ -18,7 +18,7 @@
   'use strict';
 
   const APP_NAME = 'Re Carlo V Personal Coach';
-  const BACKUP_VERSION = 10;
+  const BACKUP_VERSION = 11;
   const MAX_PROFILE_PHOTO_BYTES = 2 * 1024 * 1024;
   const sessionCategories = new Set(['running','swimming','cycling','strength','hyrox','metcon','test','recovery']);
   const sessionPriorities = new Set(['essential','important','optional']);
@@ -50,6 +50,7 @@
     whoopImportBatches: { key:'rc-whoop-import-batches-v1', version:1, kind:'json', fallback:[] },
     reconciliationDecisions: { key:'rc-reconciliation-decisions-v1', version:1, kind:'json', fallback:[] },
     evidenceReviews: { key:'rc-evidence-reviews-v1', version:1, kind:'json', fallback:[] },
+    fastingRecords: { key:'rc-fasting-records-v1', version:1, kind:'json', fallback:[] },
     reconciliationCutoff: { key:'rc-reconciliation-cutoff-v1', version:1, kind:'raw', fallback:null },
     goals: { key:'rc-goals-v1', version:1, kind:'json', fallback:[] },
     planView: { key:'rc-plan-view-v1', version:1, kind:'raw', fallback:'list' },
@@ -433,6 +434,20 @@
     return value;
   }
 
+  function validateFastingRecords(value){
+    if(!Array.isArray(value)||value.length>500)invalid('INVALID_FASTING_RECORDS','Lo storico fasting non è valido.');
+    const ids=new Set();let active=0;
+    value.forEach(item=>{
+      if(!isObject(item)||typeof item.id!=='string'||!item.id.trim()||item.id.length>120||!isTimestamp(item.startedAt)||!isTimestamp(item.createdAt)||!isTimestamp(item.updatedAt))invalid('INVALID_FASTING_RECORDS','Una registrazione fasting non è valida.');
+      if(item.endedAt!==null&&item.endedAt!==undefined&&!isTimestamp(item.endedAt))invalid('INVALID_FASTING_RECORDS','La fine del fasting non è valida.');
+      if(item.endedAt!==null&&item.endedAt!==undefined&&new Date(item.endedAt)<=new Date(item.startedAt))invalid('INVALID_FASTING_RECORDS','La fine del fasting deve essere successiva all’inizio.');
+      if(item.endedAt===null||item.endedAt===undefined)active++;
+      if(ids.has(item.id))invalid('INVALID_FASTING_RECORDS','Lo stesso fasting è presente più volte.');ids.add(item.id);
+    });
+    if(active>1)invalid('INVALID_FASTING_RECORDS','Può esserci un solo fasting in corso.');
+    return value;
+  }
+
   function validateProfilePhoto(value) {
     if (value === null) return value;
     if (typeof value !== 'string') invalid('INVALID_PHOTO','La foto profilo non è valida.');
@@ -559,6 +574,8 @@
         return validateReconciliationDecisions(value);
       case 'evidenceReviews':
         return validateEvidenceReviews(value);
+      case 'fastingRecords':
+        return validateFastingRecords(value);
       case 'reconciliationCutoff':
         if(value!==null&&!isDateKey(value))throw new DataStoreError('INVALID_PREFERENCE','La finestra degli abbinamenti non è valida.');
         break;
@@ -598,7 +615,7 @@
   function prepareFullBackup(backup) {
     const sourceVersion=Number(backup.backupVersion);
     if (sourceVersion > BACKUP_VERSION) throw new DataStoreError('FUTURE_BACKUP', 'Questo backup è stato creato da una versione più recente dell’app.');
-    if (![3,4,5,6,7,8,9,BACKUP_VERSION].includes(sourceVersion) || !isObject(backup.data)) throw new DataStoreError('UNSUPPORTED_BACKUP', 'Versione del backup non supportata.');
+    if (![3,4,5,6,7,8,9,10,BACKUP_VERSION].includes(sourceVersion) || !isObject(backup.data)) throw new DataStoreError('UNSUPPORTED_BACKUP', 'Versione del backup non supportata.');
     const rawProfile = entryValue(backup.data,'profile');
     const profile = normalizeProfile(rawProfile);
     const weeklyCheckin=entryValue(backup.data,'weeklyCheckin');
@@ -622,7 +639,8 @@
       whoopImportBatches:sourceVersion>=6?entryValue(backup.data,'whoopImportBatches'):[],
       reconciliationDecisions:sourceVersion>=7?entryValue(backup.data,'reconciliationDecisions'):[],
       goals:sourceVersion>=8?entryValue(backup.data,'goals'):[],
-      evidenceReviews:sourceVersion>=10?entryValue(backup.data,'evidenceReviews'):[]
+      evidenceReviews:sourceVersion>=10?entryValue(backup.data,'evidenceReviews'):[],
+      fastingRecords:sourceVersion>=11?entryValue(backup.data,'fastingRecords'):[]
     };
     const preferences = entryValue(backup.data,'preferences',datasets.planView);
     if (!isObject(preferences)) throw new DataStoreError('INVALID_PREFERENCES', 'Le preferenze del backup non sono valide.');
@@ -739,7 +757,7 @@
         result.warnings.push('sessions');
         result.migrated=result.migrated.filter(item=>item!=='sessions');
       }
-      ['hrZones','profilePhoto','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','reconciliationCutoff','goals','planView','uiTheme','cloudSyncCursor'].forEach(name=>{
+      ['hrZones','profilePhoto','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','evidenceReviews','fastingRecords','reconciliationCutoff','goals','planView','uiTheme','cloudSyncCursor'].forEach(name=>{
         try {
           const definition=datasets[name];const raw=storage.getItem(definition.key);
           if(raw===null)return;
@@ -793,6 +811,7 @@
         whoopImportBatches:{version:datasets.whoopImportBatches.version,value:read('whoopImportBatches')},
         reconciliationDecisions:{version:datasets.reconciliationDecisions.version,value:read('reconciliationDecisions')},
         evidenceReviews:{version:datasets.evidenceReviews.version,value:read('evidenceReviews')},
+        fastingRecords:{version:datasets.fastingRecords.version,value:read('fastingRecords')},
         goals:{version:datasets.goals.version,value:read('goals')},
         preferences:{version:datasets.planView.version,value:{planView:read('planView'),uiTheme:read('uiTheme'),cloudSyncCursor:read('cloudSyncCursor'),reconciliationCutoff:read('reconciliationCutoff')}}
       };
@@ -821,6 +840,7 @@
         whoopWorkouts:Array.isArray(values.whoopWorkouts) ? values.whoopWorkouts.length : null,
         reconciliationDecisions:Array.isArray(values.reconciliationDecisions) ? values.reconciliationDecisions.length : null,
         evidenceReviews:Array.isArray(values.evidenceReviews) ? values.evidenceReviews.length : null,
+        fastingRecords:Array.isArray(values.fastingRecords) ? values.fastingRecords.length : null,
         goals:Array.isArray(values.goals) ? values.goals.length : null,
         athleteName:values.profile ? [values.profile.firstName,values.profile.lastName].filter(Boolean).join(' ') : ''
       };
@@ -970,6 +990,6 @@
 
   return {
     APP_NAME, BACKUP_VERSION, MAX_PROFILE_PHOTO_BYTES, DATASETS:datasets, ALL_KEYS:allKeys, DataStoreError,
-    create, prepareBackup, normalizeProfile, normalizeSessions, validateImportConsistency, validateWhoopConsistency, validateReconciliationDecisions, validateEvidenceReviews
+    create, prepareBackup, normalizeProfile, normalizeSessions, validateImportConsistency, validateWhoopConsistency, validateReconciliationDecisions, validateEvidenceReviews, validateFastingRecords
   };
 });

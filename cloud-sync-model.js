@@ -53,10 +53,10 @@
   }
 
   const datasetLabels=Object.freeze({
-    profile:'Profilo atleta',hrZones:'Zone cardiache',profilePhoto:'Foto profilo',sessions:'Piano e registrazioni',weeklyCheckin:'Check-in settimana',weeklyAvailabilityHistory:'Disponibilità settimanali',preSessionCheckins:'Check-in pre-sessione',bodyIssues:'Mappa fastidi',importedActivities:'Attività Strava',importBatches:'Importazioni Strava',whoopCycles:'Recovery WHOOP',whoopSleeps:'Sonno WHOOP',whoopWorkouts:'Allenamenti WHOOP',whoopJournal:'Diario WHOOP',whoopImportBatches:'Importazioni WHOOP',reconciliationDecisions:'Abbinamenti sedute',evidenceReviews:'Revisioni scientifiche',goals:'Obiettivi e gare',preferences:'Preferenze app'
+    profile:'Profilo atleta',hrZones:'Zone cardiache',profilePhoto:'Foto profilo',sessions:'Piano e registrazioni',weeklyCheckin:'Check-in settimana',weeklyAvailabilityHistory:'Disponibilità settimanali',preSessionCheckins:'Check-in pre-sessione',bodyIssues:'Mappa fastidi',importedActivities:'Attività Strava',importBatches:'Importazioni Strava',whoopCycles:'Recovery WHOOP',whoopSleeps:'Sonno WHOOP',whoopWorkouts:'Allenamenti WHOOP',whoopJournal:'Diario WHOOP',whoopImportBatches:'Importazioni WHOOP',reconciliationDecisions:'Abbinamenti sedute',evidenceReviews:'Revisioni scientifiche',fastingRecords:'Storico fasting',goals:'Obiettivi e gare',preferences:'Preferenze app'
   });
   const fieldLabels=Object.freeze({firstName:'nome',lastName:'cognome',birthDate:'data di nascita',heightCm:'altezza',weightKg:'peso',hrMax:'FC massima',restingHr:'FC a riposo',ftp:'FTP',sports:'discipline',equipment:'attrezzatura',personalBests:'personal best',strengthMaxes:'massimali',planView:'vista Piano',uiTheme:'tema'});
-  const diffPriority=Object.freeze(['sessions','goals','preSessionCheckins','weeklyCheckin','weeklyAvailabilityHistory','bodyIssues','reconciliationDecisions','whoopCycles','whoopSleeps','whoopWorkouts','importedActivities','profile','hrZones','profilePhoto','evidenceReviews','preferences','whoopJournal','importBatches','whoopImportBatches']);
+  const diffPriority=Object.freeze(['sessions','goals','preSessionCheckins','weeklyCheckin','weeklyAvailabilityHistory','bodyIssues','fastingRecords','reconciliationDecisions','whoopCycles','whoopSleeps','whoopWorkouts','importedActivities','profile','hrZones','profilePhoto','evidenceReviews','preferences','whoopJournal','importBatches','whoopImportBatches']);
 
   function recordKey(item,index){
     if(item&&typeof item==='object'){
@@ -122,7 +122,7 @@
   const localMutationEvents=new Set([
     'rc:sessions-updated','rc:goals-updated','rc:profile-updated','rc:body-issues-updated',
     'rc:pre-checkin-updated','rc:weekly-checkin-updated','rc:weekly-availability-history-updated',
-    'rc:whoop-updated','rc:reconciliation-updated','rc:evidence-reviews-updated'
+    'rc:whoop-updated','rc:reconciliation-updated','rc:evidence-reviews-updated','rc:fasting-updated'
   ]);
   function shouldQueueLocalSync(eventName,detail={}){
     if(localMutationEvents.has(String(eventName||'')))return true;
