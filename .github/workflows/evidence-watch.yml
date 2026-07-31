@@ -1,0 +1,36 @@
+name: Evidence Watch
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 5 * * 1'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: evidence-watch
+  cancel-in-progress: false
+
+jobs:
+  pubmed-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Scan PubMed
+        run: node evidence/refresh.mjs
+      - name: Validate report
+        run: node -e "const f=require('./evidence-watch.json'); if(f.schemaVersion!==1 || !Array.isArray(f.domains) || !Array.isArray(f.candidates)) process.exit(1)"
+      - name: Publish updated report
+        run: |
+          git config user.name "re-carlo-v-evidence-bot"
+          git config user.email "recarlov@users.noreply.github.com"
+          git add evidence-watch.json
+          if git diff --cached --quiet; then
+            echo "No report change"
+            exit 0
+          fi
+          git commit -m "chore: refresh Evidence Watch"
+          git push
