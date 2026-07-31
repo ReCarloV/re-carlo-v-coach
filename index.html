@@ -39,6 +39,7 @@
   <link rel="stylesheet" href="refinements.css">
   <link rel="stylesheet" href="cloud-sync.css">
   <link rel="stylesheet" href="calendar-integration.css">
+  <link rel="stylesheet" href="evidence-watch.css">
   <link rel="stylesheet" href="tab-coordination.css">
   <link rel="stylesheet" href="mobile.css">
   <link rel="stylesheet" href="ui-polish.css">
@@ -221,6 +222,24 @@
             <button class="ghost" id="calendar-integration-rotate" type="button" hidden>Rigenera link</button>
             <button class="ghost danger-text" id="calendar-integration-disable" type="button" hidden>Disattiva</button>
           </div>
+        </article>
+        <article class="panel evidence-watch-panel" id="evidence-watch-panel" data-settings-disclosure data-disclosure-open aria-live="polite">
+          <div class="panel-head evidence-watch-head">
+            <div class="evidence-watch-title"><span class="evidence-watch-mark" aria-hidden="true">E</span><div><small>STANDARD COACH ELITE</small><h2>Evidence Watch</h2></div></div>
+            <span class="evidence-watch-status waiting" id="evidence-watch-status">PRIMA SCANSIONE IN ATTESA</span>
+          </div>
+          <p class="evidence-watch-intro" id="evidence-watch-summary">Sorveglianza scientifica settimanale con revisione umana prima di ogni modifica al Coach.</p>
+          <div class="evidence-watch-metrics">
+            <span><small>ULTIMA SCANSIONE</small><strong id="evidence-watch-last-scan">In attesa</strong></span>
+            <span><small>DOMINI COPERTI</small><strong id="evidence-watch-coverage">9/9</strong></span>
+            <span><small>DA REVISIONARE</small><strong id="evidence-watch-candidate-count">0</strong></span>
+            <span><small>REGOLE AGGIORNATE</small><strong id="evidence-watch-change-count">0</strong></span>
+          </div>
+          <div class="evidence-watch-gate"><strong>Nessun automatismo scientifico</strong><span>Un nuovo studio resta un candidato. Per cambiare il Coach servono revisione, motivazione, riferimenti, test e una nuova versione dello Standard.</span></div>
+          <div class="evidence-watch-domains" id="evidence-watch-domains"></div>
+          <section class="evidence-watch-candidate-section" id="evidence-watch-candidate-section" hidden><div class="evidence-watch-section-head"><h3>Candidati prioritari</h3><small>Massimo 6 in evidenza</small></div><div class="evidence-watch-candidates" id="evidence-watch-candidates"></div></section>
+          <div class="evidence-watch-actions"><button class="ghost" id="evidence-watch-reload" type="button">Rileggi report</button><a class="ghost" id="evidence-watch-manual" href="#">Avvia scansione manuale</a><span><a href="https://www.ncbi.nlm.nih.gov/books/NBK25497/" target="_blank" rel="noopener noreferrer">Metodo NCBI</a><a href="https://www.ncbi.nlm.nih.gov/home/about/policies/" target="_blank" rel="noopener noreferrer">Disclaimer NCBI</a></span></div>
+          <p class="evidence-watch-source-note">Il report contiene solo metadati bibliografici pubblici. Non invia a PubMed profilo, sintomi, allenamenti o dati WHOOP.</p>
         </article>
         <div class="metrics data-overview-metrics">
           <article><span>ATTIVITÀ STRAVA</span><strong id="data-activity-count">0</strong><small id="data-activity-range">Nessun dato importato</small></article>
@@ -707,6 +726,7 @@
   <script src="microcycle-prescription-model.js"></script>
   <script src="goals-model.js"></script>
   <script src="coach-methodology-model.js"></script>
+  <script src="evidence-watch-model.js"></script>
   <script src="race-coach-model.js"></script>
   <script src="phase-constraints-model.js"></script>
   <script src="weekly-plan-adjustment-model.js"></script>
@@ -748,6 +768,7 @@
   <script src="cloud-sync.js"></script>
   <script src="calendar-integration.js"></script>
   <script src="whoop-live-sync.js"></script>
+  <script src="evidence-watch.js"></script>
   <script src="reconciliation.js"></script>
   <script src="pwa.js"></script>
 </body>
