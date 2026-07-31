@@ -1,9 +1,10 @@
 (function(root,factory){
   const todayModel=typeof module!=='undefined'&&module.exports?require('./today-model.js'):root.rcTodayModel;
-  const api=factory(todayModel);
+  const exerciseCatalog=typeof module!=='undefined'&&module.exports?require('./exercise-catalog-model.js'):root.rcExerciseCatalogModel;
+  const api=factory(todayModel,exerciseCatalog);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcWorkoutModeModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(todayModel){
+})(typeof globalThis!=='undefined'?globalThis:this,function(todayModel,exerciseCatalog){
   'use strict';
 
   const VERSION='1.0.0';
@@ -47,13 +48,13 @@
     const rows=Array.isArray(session?.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[];
     return rows.map((item,index)=>{
       const external=/trazioni|weighted (?:pull|chin)/i.test(String(item.exercise||'')),load=Number(item.loadKg),reps=Number(item.reps),rpe=Number(item.rpe);
-      return{kind:'exercise',eyebrow:`Set ${index+1}`,title:item.exercise||'Esercizio principale',metrics:[Number.isFinite(load)?`${external?'+':''}${load.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`:'Carico non registrato',Number.isFinite(reps)?`${reps} rep`:'',Number.isFinite(rpe)?`RPE ${rpe.toLocaleString('it-IT',{maximumFractionDigits:1})}`:''].filter(Boolean),actual:true};
+      return{kind:'exercise',eyebrow:`Set ${index+1}`,title:item.exercise||'Esercizio principale',metrics:[Number.isFinite(load)?`${external?'+':''}${load.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`:'Carico non registrato',Number.isFinite(reps)?`${reps} rep`:'',Number.isFinite(rpe)?`RPE ${rpe.toLocaleString('it-IT',{maximumFractionDigits:1})}`:''].filter(Boolean),exerciseMeta:exerciseCatalog?.describeExercise?.(item.exercise),actual:true};
     });
   }
   function strengthBlocks(session){
     if(performed(session))return actualStrengthBlocks(session);
     const items=Array.isArray(session?.details?.strengthBlocks)?session.details.strengthBlocks:[];
-    if(items.length)return items.map((item,index)=>({kind:'exercise',eyebrow:`Esercizio ${index+1}`,title:item.name||'Esercizio principale',metrics:[item.sets&&item.reps?`${item.sets} × ${item.reps}`:'Serie da definire',item.loadKg?`${item.loadKg} kg`:'',item.target||'',restText(item.rest)].filter(Boolean),rest:item.rest||''}));
+    if(items.length)return items.map((item,index)=>({kind:'exercise',eyebrow:`Esercizio ${index+1}`,title:item.name||'Esercizio principale',metrics:[item.sets&&item.reps?`${item.sets} × ${item.reps}`:'Serie da definire',item.loadKg!==''&&item.loadKg!==null&&item.loadKg!==undefined?`${item.loadKg} kg`:'',item.target||'',restText(item.rest)].filter(Boolean),exerciseMeta:exerciseCatalog?.describeExercise?.(item.name),rest:item.rest||''}));
     return [];
   }
   function enduranceBlocks(items=[]){
@@ -83,7 +84,8 @@
   function sortSessions(items){return [...items].sort((a,b)=>Number(Boolean(a.outcome))-Number(Boolean(b.outcome))||(priorityRank[a.priority]??1)-(priorityRank[b.priority]??1)||String(a.startTime||'09:00').localeCompare(String(b.startTime||'09:00')));}
   function buildSession(session){
     const meta=category(session),state=status(session),outcome=session.outcome||null;
-    return{...session,meta,state,timeRange:timeRange(session),priorityLabel:priorityLabel[session.priority]||'Importante',performed:performed(session),blocks:sessionBlocks(session),displayDuration:outcome?.actualDurationMin?`${outcome.actualDurationMin} min reali`:`${number(session.durationMin)} min previsti`,displayLoad:outcome?.sessionLoad?`${outcome.sessionLoad} AU`:null};
+    const wasPerformed=performed(session),strength=session.category==='strength';
+    return{...session,meta,state,timeRange:timeRange(session),priorityLabel:priorityLabel[session.priority]||'Importante',performed:wasPerformed,blocks:sessionBlocks(session),...(strength?{strengthStimulus:exerciseCatalog?.sessionStimulus?.(session,{actual:wasPerformed})||null,strengthReview:wasPerformed?exerciseCatalog?.compareStrengthSession?.(session)||null:null}:{}),displayDuration:outcome?.actualDurationMin?`${outcome.actualDurationMin} min reali`:`${number(session.durationMin)} min previsti`,displayLoad:outcome?.sessionLoad?`${outcome.sessionLoad} AU`:null};
   }
   function buildWorkoutDay(input={}){
     const today=input.today||iso(),all=Array.isArray(input.sessions)?input.sessions:[],todaySessions=sortSessions(all.filter(item=>item.date===today&&!paused(item))),selected=todaySessions.find(item=>item.id===input.selectedId)||todaySessions[0]||null;

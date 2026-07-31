@@ -16,6 +16,7 @@
   const defaults = [];
   const selectionModel=window.rcSessionSelectionModel;
   const strengthModel=window.rcStrengthPerformanceModel;
+  const exerciseCatalog=window.rcExerciseCatalogModel;
   const strengthReliabilityModel=window.rcStrengthReliabilityModel;
   const executionModel=window.rcExecutionEvidenceModel;
   const adjustmentModel=window.rcWeeklyPlanAdjustmentModel;
@@ -54,7 +55,7 @@
     metcon:[['name','Blocco / movimento','Es. Row'],['volume','Volume','12 cal'],['target','Intensità','RPE 8',{kind:'select',options:rpeOptions}],['rest','Recupero','30 s',{kind:'select',options:restOptions}]]
   };
   const builderInputNames = {swimming:'swimStructuredBlocks',strength:'strengthBlocks',hyrox:'hyroxStructuredBlocks',metcon:'metconStructuredBlocks'};
-  const strengthExerciseLibrary = ['Back Squat','Barbell Row','Bench Press','Bulgarian Split Squat','Deadlift','Front Squat','Hip Thrust','Incline Bench Press','Military Press','Romanian Deadlift','Trap Bar Deadlift','Weighted Chin-up','Weighted Pull-up'];
+  const strengthExerciseLibrary = exerciseCatalog?.listExercises?.()||['Back Squat','Barbell Row','Bench Press','Bulgarian Split Squat','Deadlift','Front Squat','Hip Thrust','Incline Bench Press','Military Press','Romanian Deadlift','Trap Bar Deadlift','Weighted Chin-up','Weighted Pull-up'];
 
   function migrateSession(session) {
     const d = { ...(session.details || {}) };
@@ -323,6 +324,11 @@
   }
   function restSeconds(value){const text=String(value||'').toLowerCase(),minutes=Number(text.match(/([\d.,]+)\s*(?:min|')/)?.[1]?.replace(',','.'))||0,seconds=Number(text.match(/([\d.,]+)\s*(?:s|sec)/)?.[1]?.replace(',','.'))||0;return Math.round(minutes*60+seconds)||null;}
   function structuredBuilderRow(type,row){const value={...row};if(type==='strength'){const rir=Number(String(value.target||'').match(/RIR\s*([\d.,]+)/i)?.[1]?.replace(',','.'));if(Number.isFinite(rir))value.targetRir=rir;}else{const rpe=Number(String(value.target||'').match(/RPE\s*([\d.,]+)/i)?.[1]?.replace(',','.'));if(Number.isFinite(rpe))value.targetRpe=rpe;}const seconds=restSeconds(value.rest);if(seconds)value.restSec=seconds;return value;}
+  function strengthExerciseProfile(name){
+    const profile=document.createElement('div');profile.className='strength-exercise-profile';const meta=exerciseCatalog?.describeExercise?.(name);
+    if(!meta){profile.classList.add('unknown');profile.textContent='Esercizio personalizzato · mappatura anatomica non disponibile';return profile;}
+    const pattern=document.createElement('strong');pattern.textContent=meta.patternLabel;const muscles=document.createElement('span');muscles.textContent=`Primari: ${meta.primaryMuscles.join(', ')}`;const equipment=document.createElement('small');equipment.textContent=`${meta.equipment.join(' · ')} · ${meta.joints.join(', ')}`;profile.append(pattern,muscles,equipment);return profile;
+  }
   function builderRows(type) {
     const input = form.elements.namedItem(builderInputNames[type]);
     try { const value = JSON.parse(input.value || '[]'); return Array.isArray(value) ? value : []; } catch (_) { return []; }
@@ -344,7 +350,9 @@
         input.dataset.field=key; wrap.append(input); row.append(wrap); });
       const actions=document.createElement('div'); actions.className='row-actions';
       [['↑','Sposta su',-1],['↓','Sposta giù',1]].forEach(([symbol,label,direction]) => { const button=document.createElement('button'); button.type='button'; button.className='row-action'; button.textContent=symbol; button.title=label; button.disabled=(direction<0&&index===0)||(direction>0&&index===rows.length-1); button.addEventListener('click',()=>{const current=syncBuilder(type); const next=index+direction; [current[index],current[next]]=[current[next],current[index]]; renderBuilder(type,current);}); actions.append(button); });
-      const remove=document.createElement('button'); remove.type='button'; remove.className='row-action remove'; remove.textContent='×'; remove.title='Rimuovi'; remove.addEventListener('click',()=>{const current=syncBuilder(type); current.splice(index,1); renderBuilder(type,current);}); actions.append(remove); row.append(actions); list.append(row);
+      const remove=document.createElement('button'); remove.type='button'; remove.className='row-action remove'; remove.textContent='×'; remove.title='Rimuovi'; remove.addEventListener('click',()=>{const current=syncBuilder(type); current.splice(index,1); renderBuilder(type,current);}); actions.append(remove); row.append(actions);
+      if(type==='strength'){let profile=strengthExerciseProfile(row.querySelector('[data-field="name"]')?.value);row.append(profile);row.querySelector('[data-field="name"]')?.addEventListener('change',event=>{const next=strengthExerciseProfile(event.currentTarget.value);profile.replaceWith(next);profile=next;});}
+      list.append(row);
     });
     if (!rows.length) { const empty=document.createElement('div'); empty.className='builder-empty'; empty.textContent=type==='strength'?'Nessun esercizio inserito.':'Nessun blocco inserito.'; list.append(empty); }
     form.elements.namedItem(builderInputNames[type]).value=JSON.stringify(rows.map(row=>structuredBuilderRow(type,row)));

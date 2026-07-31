@@ -74,6 +74,17 @@
     Object.keys(LIFTS).forEach(key=>{const value=Number(manualMaxes?.[key]);if(Number.isFinite(value)&&value>0)result[key]={key,label:LIFTS[key].label,value:roundHalf(value),source:'manual',externalLoad:LIFTS[key].externalLoad};});
     return result;
   }
+  function historyByLift({sessions=[],bodyweightKg=null,formula='epley',limit=8}={}){
+    const selectedFormula=FORMULAS[formula]?formula:'epley',perSession=new Map();
+    (Array.isArray(sessions)?sessions:[]).forEach(session=>{
+      if(session?.category!=='strength'||!['completed','partial'].includes(session?.outcome?.status))return;
+      (Array.isArray(session.outcome.strengthPerformance)?session.outcome.strengthPerformance:[]).forEach(raw=>{
+        const entry=normalizedEntry(raw);if(!entry)return;const lift=LIFTS[entry.key],value=estimateE1rm(entry.loadKg,entry.reps,{externalLoad:lift.externalLoad,bodyweightKg:entry.bodyweightKg||bodyweightKg,formula:selectedFormula,rpe:entry.rpe});if(value===null)return;
+        const point={key:entry.key,label:lift.label,value,date:session.date||'',sessionId:session.id||'',loadKg:entry.loadKg,reps:entry.reps,...(entry.rpe!==undefined?{rpe:entry.rpe}:{}),...(entry.e1rmConfirmed?{e1rmConfirmed:true}:{})},signature=`${point.sessionId}|${point.date}|${point.key}`,current=perSession.get(signature);if(!current||point.value>current.value)perSession.set(signature,point);
+      });
+    });
+    const result=Object.fromEntries(Object.keys(LIFTS).map(key=>[key,[]]));[...perSession.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.sessionId.localeCompare(b.sessionId)).forEach(point=>result[point.key].push(point));Object.keys(result).forEach(key=>{result[key]=result[key].slice(-Math.max(2,Number(limit)||8));});return result;
+  }
 
-  return {LIFTS,FORMULAS,liftKey,rirFromRpe,effectiveReps,estimateE1rm,normalizedEntry,plannedValues,editableLifts,deriveMaxes};
+  return {LIFTS,FORMULAS,liftKey,rirFromRpe,effectiveReps,estimateE1rm,normalizedEntry,plannedValues,editableLifts,deriveMaxes,historyByLift};
 });

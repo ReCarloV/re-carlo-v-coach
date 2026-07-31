@@ -3,7 +3,8 @@
 .tag.swim { color:#61d8ff; background:#10364a; }
 .workout-row.swimming{grid-template-columns:minmax(160px,2fr) minmax(120px,1.4fr) minmax(100px,1fr) minmax(85px,1fr) auto}
 .workout-row.strength{grid-template-columns:minmax(135px,1.7fr) repeat(2,minmax(55px,.6fr)) minmax(85px,.8fr) minmax(95px,1fr) minmax(70px,.75fr) auto}
-@media(max-width:760px){.workout-row.strength{grid-template-columns:1fr 1fr}}
+.strength-exercise-profile{grid-column:1/-1;display:grid;grid-template-columns:minmax(150px,.8fr) minmax(210px,1.5fr) minmax(180px,1fr);align-items:center;gap:10px;margin-top:2px;padding:9px 11px;border:1px solid #294560;border-radius:8px;background:#0a1727}.strength-exercise-profile strong{color:#8fc1ff;font-size:10px}.strength-exercise-profile span{color:#b8c6d7;font-size:10px}.strength-exercise-profile small{color:#6f87a3;font-size:9px;text-align:right}.strength-exercise-profile.unknown{display:block;color:#7187a2;font-size:9px}
+@media(max-width:760px){.workout-row.strength{grid-template-columns:1fr 1fr}.strength-exercise-profile{grid-template-columns:1fr;gap:4px}.strength-exercise-profile small{text-align:left}}
 @media(max-width:760px){.workout-row.swimming{grid-template-columns:1fr 1fr}.workout-row.swimming label:first-child{grid-column:1/-1}.workout-row.swimming .row-actions{grid-column:1/-1;justify-content:flex-end}}
 #title-hint { display:block; margin-top:6px; }
 .day { transition:border-color .2s, background .2s, transform .2s; }

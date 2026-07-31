@@ -164,6 +164,7 @@ html[data-theme="light"] .builder-heading span,html[data-theme="light"] .field-h
 html[data-theme="light"] .workout-row,html[data-theme="light"] .run-segment,html[data-theme="light"] .run-repeat{border-color:#ccd9e6;background:#fff}
 html[data-theme="light"] .run-repeat{border-color:#9fbfe0;background:#edf5fd}
 html[data-theme="light"] .workout-row label,html[data-theme="light"] .run-segment label,html[data-theme="light"] .repeat-count,html[data-theme="light"] .run-target-value{color:#5d7188}
+html[data-theme="light"] .strength-exercise-profile{border-color:#cedbe7;background:#f3f7fb}html[data-theme="light"] .strength-exercise-profile strong{color:#176fc7}html[data-theme="light"] .strength-exercise-profile span{color:#405b74}html[data-theme="light"] .strength-exercise-profile small,html[data-theme="light"] .strength-exercise-profile.unknown{color:#667b91}
 html[data-theme="light"] .workout-row input,html[data-theme="light"] .workout-row select,html[data-theme="light"] .run-segment input,html[data-theme="light"] .run-segment select,html[data-theme="light"] .repeat-count input{border-color:#c7d5e3;background:#fff;color:#1b2d44}
 html[data-theme="light"] .row-action{border-color:#bdccdc;background:#edf3f9;color:#42617f}
 html[data-theme="light"] .row-action:not(:disabled):hover{border-color:#7ca5cf;background:#e3eef9;color:#174f92}
@@ -569,6 +570,7 @@ html[data-theme="light"] .hr-source-strip span{border-color:#c6d4e2;background:#
 html[data-theme="light"] .hr-source-strip span.whoop{border-color:#87c7b2;background:#e8f8f2;color:#176e54}
 html[data-theme="light"] .strength-max-card,html[data-theme="light"] .strength-max-card.recorded,html[data-theme="light"] .strength-max-card.manual{border-color:#d1dce8;background:linear-gradient(145deg,#fff,#f4f7fb)}
 html[data-theme="light"] .strength-max-card small,html[data-theme="light"] .strength-max-card .strength-source,html[data-theme="light"] .strength-max-card .strength-set{color:#62778f}
+html[data-theme="light"] .strength-trend{border-color:#d7e1ea}html[data-theme="light"] .strength-trend-summary{color:#667b91!important}
 html[data-theme="light"] .strength-max-card .strength-source b{color:#225f9f}
 html[data-theme="light"] .body-active-count{border-color:#aac5df;background:#edf5fd;color:#245f99}
 html[data-theme="light"] .body-map{border-color:#d7e1ec;background:#fafbfd}
