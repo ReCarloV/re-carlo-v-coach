@@ -70,7 +70,7 @@
   async function load(force=false){if(loading||loaded&&!force)return;loading=true;setLoading();try{let feed;try{feed=await fetchJson(`${remoteUrl}?v=${Date.now()}`);}catch{feed=await fetchJson('./evidence-watch.json');}render(feed);loaded=true;}catch{render(null);}finally{loading=false;reload.disabled=false;}}
 
   reload.addEventListener('click',()=>load(true));filter.addEventListener('change',()=>currentReport&&renderCandidates(currentReport));manual.href=workflowUrl;manual.target='_blank';manual.rel='noopener noreferrer';
-  document.addEventListener('rc:view-changed',event=>{if(event.detail?.view==='data')load();});
+  document.addEventListener('rc:view-changed',event=>{if(event.detail?.view==='knowledge')load();});
   ['rc:profile-updated','rc:goals-updated'].forEach(name=>document.addEventListener(name,()=>currentFeed&&render(currentFeed)));window.addEventListener('rc:data-restored',()=>currentFeed&&render(currentFeed));
-  if(document.getElementById('data')?.classList.contains('active'))load();
+  if(document.getElementById('knowledge')?.classList.contains('active'))load();
 })();
