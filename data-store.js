@@ -78,6 +78,21 @@
   }
   function isTimestamp(value) { return typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Date.parse(value)); }
   function isClockTime(value) { return typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value); }
+  function isDecisionBasisValue(value,depth=0) {
+    if(depth>6)return false;
+    if(value===null||typeof value==='boolean')return true;
+    if(typeof value==='string')return value.length<=500;
+    if(typeof value==='number')return Number.isFinite(value);
+    if(Array.isArray(value))return value.length<=100&&value.every(item=>isDecisionBasisValue(item,depth+1));
+    if(isObject(value)){const keys=Object.keys(value);return keys.length<=100&&keys.every(key=>key.length<=100&&isDecisionBasisValue(value[key],depth+1));}
+    return false;
+  }
+  function validateDecisionBasis(basis) {
+    if(!isObject(basis)||!isDecisionBasisValue(basis)||!['protect','reduce','steady','progress'].includes(basis.level)||!['low','medium','high'].includes(basis.confidence)||!isObject(basis.settings))return false;
+    if(basis.recovery!==null&&(!isObject(basis.recovery)||!['unavailable','stale','insufficient','stable','caution','protect'].includes(basis.recovery.level)||typeof basis.recovery.usable!=='boolean'||!['low','medium','high'].includes(basis.recovery.confidence)))return false;
+    if(basis.tolerance!==null&&(!isObject(basis.tolerance)||![null,'allowed','partial','blocked'].includes(basis.tolerance.status)||!Array.isArray(basis.tolerance.checks)))return false;
+    return ['goal','phase','programming','limits'].every(field=>basis[field]===null||isObject(basis[field]));
+  }
   function invalid(code, message) { throw new DataStoreError(code,message); }
   function validateCardiopulmonaryScreen(value,code='INVALID_SAFETY_SCREEN'){
     if(!isObject(value)||!['clear','red-flag'].includes(value.status)||!Array.isArray(value.symptoms)||value.symptoms.length>cardiopulmonarySignals.size||new Set(value.symptoms).size!==value.symptoms.length||value.symptoms.some(item=>!cardiopulmonarySignals.has(item)))invalid(code,'Il controllo di sicurezza cardiopolmonare non è valido.');
@@ -182,8 +197,9 @@
       if(!isObject(substitution)||substitution.version!==1||typeof substitution.goalId!=='string'||!substitution.goalId.trim()||typeof substitution.goalSessionId!=='string'||!substitution.goalSessionId.trim()||!isTimestamp(substitution.appliedAt)||substitution.reason!=='same-day-specific-race')invalid('INVALID_SESSIONS','La sostituzione della seduta con la gara non è valida.');
     }
     if(owns(session,'coachApplication')){
-      const application=session.coachApplication,validVersion=[1,2].includes(application?.version);if(!isObject(application)||!validVersion||!isDateKey(application.weekStart)||!isTimestamp(application.appliedAt)||!/^adaptive-v1-[0-9a-f]{8}$/.test(String(application.signature||''))||!['protect','reduce','steady','progress'].includes(application.level)||!['low','medium','high'].includes(application.confidence))invalid('INVALID_SESSIONS','La conferma del piano adattivo non è valida.');
-      if(application.version===2&&application.phase!==null&&application.phase!==undefined){const phase=application.phase;if(!isObject(phase)||(phase.version!==null&&phase.version!==undefined&&typeof phase.version!=='string')||(phase.goalId!==null&&phase.goalId!==undefined&&typeof phase.goalId!=='string')||(phase.phaseKey!==null&&phase.phaseKey!==undefined&&typeof phase.phaseKey!=='string')||(phase.label!==null&&phase.label!==undefined&&typeof phase.label!=='string'))invalid('INVALID_SESSIONS','La fase associata alla conferma del piano non è valida.');}
+      const application=session.coachApplication,validVersion=[1,2,3].includes(application?.version),validSignature=application?.version===3?/^adaptive-v2-[0-9a-f]{8}$/.test(String(application.signature||'')):/^adaptive-v1-[0-9a-f]{8}$/.test(String(application.signature||''));if(!isObject(application)||!validVersion||!isDateKey(application.weekStart)||!isTimestamp(application.appliedAt)||!validSignature||!['protect','reduce','steady','progress'].includes(application.level)||!['low','medium','high'].includes(application.confidence))invalid('INVALID_SESSIONS','La conferma del piano adattivo non è valida.');
+      if(application.version>=2&&application.phase!==null&&application.phase!==undefined){const phase=application.phase;if(!isObject(phase)||(phase.version!==null&&phase.version!==undefined&&typeof phase.version!=='string')||(phase.goalId!==null&&phase.goalId!==undefined&&typeof phase.goalId!=='string')||(phase.phaseKey!==null&&phase.phaseKey!==undefined&&typeof phase.phaseKey!=='string')||(phase.label!==null&&phase.label!==undefined&&typeof phase.label!=='string'))invalid('INVALID_SESSIONS','La fase associata alla conferma del piano non è valida.');}
+      if(application.version===3&&!validateDecisionBasis(application.basis))invalid('INVALID_SESSIONS','I fattori decisionali associati alla conferma del piano non sono validi.');
     }
     if (session.outcome !== null && session.outcome !== undefined) {
       if (!isObject(session.outcome) || !outcomeStatuses.has(session.outcome.status)) invalid('INVALID_OUTCOME','Una registrazione post-allenamento usa uno stato non riconosciuto. I dati originali sono stati preservati.');
