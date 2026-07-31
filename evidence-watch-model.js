@@ -8,6 +8,9 @@
   const SCHEMA_VERSION=1;
   const MAX_CANDIDATES=60;
   const allowedStatuses=new Set(['awaiting-first-scan','ok','partial','error']);
+  const personalReviewStatuses=new Set(['shortlisted','monitor','excluded','reviewed']);
+  const applicabilityStatuses=new Set(['to-review','direct','contextual','low']);
+  const agreementStatuses=new Set(['to-review','supports','extends','conflicts','unclear']);
 
   function cleanText(value,max=500){return typeof value==='string'?value.trim().slice(0,max):'';}
   function unique(items){return[...new Set((Array.isArray(items)?items:[]).filter(Boolean))];}
@@ -55,6 +58,51 @@
     if(!key||!label)return null;
     return{key,label,resultCount:Math.max(0,Number(input.resultCount)||0),status:['ok','error'].includes(input.status)?input.status:'ok'};
   }
+  function normalizeApprovedChange(input={}){
+    const id=cleanText(input.id,100),title=cleanText(input.title,300),standardVersion=cleanText(input.standardVersion,40);
+    if(!/^[a-z0-9][a-z0-9._-]{2,99}$/i.test(id)||!title||!/^\d+\.\d+\.\d+$/.test(standardVersion))return null;
+    return{
+      id,title,standardVersion,status:'approved',
+      rationale:cleanText(input.rationale,1600),
+      domains:unique((Array.isArray(input.domains)?input.domains:[]).map(item=>cleanText(item,60))).slice(0,10),
+      pmids:unique((Array.isArray(input.pmids)?input.pmids:[]).map(item=>String(item||'').replace(/\D/g,'').slice(0,12))).filter(Boolean).slice(0,30),
+      affectedRuleIds:unique((Array.isArray(input.affectedRuleIds)?input.affectedRuleIds:[]).map(item=>cleanText(item,100))).slice(0,30),
+      approvedAt:cleanText(input.approvedAt,30)||null,
+      effectiveFrom:cleanText(input.effectiveFrom,20)||null
+    };
+  }
+  function normalizeConflict(input={}){
+    const id=cleanText(input.id,100),title=cleanText(input.title,300);
+    if(!/^[a-z0-9][a-z0-9._-]{2,99}$/i.test(id)||!title)return null;
+    return{id,title,summary:cleanText(input.summary,1200),domains:unique((Array.isArray(input.domains)?input.domains:[]).map(item=>cleanText(item,60))).slice(0,10),pmids:unique((Array.isArray(input.pmids)?input.pmids:[]).map(item=>String(item||'').replace(/\D/g,'').slice(0,12))).filter(Boolean).slice(0,30),openedAt:cleanText(input.openedAt,30)||null,status:'open'};
+  }
+  function normalizePersonalReview(input={}){
+    const pmid=String(input.pmid||'').replace(/\D/g,'').slice(0,12),status=cleanText(input.status,30),title=cleanText(input.title,600),reviewedAt=cleanText(input.reviewedAt,30);
+    if(!pmid||!title||!personalReviewStatuses.has(status)||!dateValue(reviewedAt))return null;
+    const applicability=applicabilityStatuses.has(input.applicability)?input.applicability:'to-review',agreement=agreementStatuses.has(input.agreement)?input.agreement:'to-review',rationale=cleanText(input.rationale,1600),fullTextRead=Boolean(input.fullTextRead);
+    if(status==='reviewed'&&(!fullTextRead||applicability==='to-review'||agreement==='to-review'||rationale.length<20))return null;
+    return{version:1,pmid,title,status,applicability,agreement,rationale,fullTextRead,feedGeneratedAt:cleanText(input.feedGeneratedAt,30)||null,reviewedAt};
+  }
+  function upsertPersonalReview(reviews,candidate,input={},now=new Date().toISOString()){
+    const current=(Array.isArray(reviews)?reviews:[]).map(normalizePersonalReview).filter(Boolean),pmid=String(candidate?.pmid||'').replace(/\D/g,'').slice(0,12);
+    if(!pmid||!candidate?.title)throw new Error('Il candidato scientifico non è valido.');
+    const next=current.filter(item=>item.pmid!==pmid);
+    if(input.status==='unread'||!input.status)return next;
+    const record=normalizePersonalReview({...input,pmid,title:candidate.title,feedGeneratedAt:input.feedGeneratedAt||null,reviewedAt:now});
+    if(!record)throw new Error(input.status==='reviewed'?'Per completare la revisione servono testo integrale letto, applicabilità, confronto con lo Standard e una motivazione di almeno 20 caratteri.':'La valutazione scientifica non è completa o non è valida.');
+    return[...next,record].sort((a,b)=>a.reviewedAt.localeCompare(b.reviewedAt));
+  }
+  function personalReviewSummary(candidates=[],reviews=[]){
+    const candidateIds=new Set((Array.isArray(candidates)?candidates:[]).map(item=>String(item?.pmid||''))),valid=(Array.isArray(reviews)?reviews:[]).map(normalizePersonalReview).filter(item=>item&&candidateIds.has(item.pmid)),byStatus={shortlisted:0,monitor:0,excluded:0,reviewed:0};
+    valid.forEach(item=>{byStatus[item.status]+=1;});
+    return{total:valid.length,unread:Math.max(0,candidateIds.size-valid.length),...byStatus};
+  }
+  function resolveStandardChanges(review={},options={}){
+    const version=cleanText(options.standardVersion,40),registered=new Set(Array.isArray(options.approvedChangeIds)?options.approvedChangeIds:[]),approved=(Array.isArray(review.approvedChanges)?review.approvedChanges:[]).map(normalizeApprovedChange).filter(Boolean);
+    const active=approved.filter(item=>item.standardVersion===version&&registered.has(item.id));
+    const awaitingRelease=approved.filter(item=>!active.includes(item));
+    return{approved,active,awaitingRelease,conflicts:(Array.isArray(review.unresolvedConflicts)?review.unresolvedConflicts:[]).map(normalizeConflict).filter(Boolean)};
+  }
   function validateFeed(input){
     if(!input||typeof input!=='object'||Number(input.schemaVersion)!==SCHEMA_VERSION)return null;
     const domains=(Array.isArray(input.domains)?input.domains:[]).map(normalizeDomain).filter(Boolean);
@@ -76,8 +124,8 @@
       },
       domains,candidates,
       review:{
-        approvedChanges:Array.isArray(review.approvedChanges)?review.approvedChanges.slice(0,20):[],
-        unresolvedConflicts:Array.isArray(review.unresolvedConflicts)?review.unresolvedConflicts.slice(0,20):[]
+        approvedChanges:(Array.isArray(review.approvedChanges)?review.approvedChanges:[]).map(normalizeApprovedChange).filter(Boolean).slice(0,20),
+        unresolvedConflicts:(Array.isArray(review.unresolvedConflicts)?review.unresolvedConflicts:[]).map(normalizeConflict).filter(Boolean).slice(0,20)
       },
       errors:(Array.isArray(input.errors)?input.errors:[]).map(item=>cleanText(item,240)).filter(Boolean).slice(0,12)
     };
@@ -103,22 +151,25 @@
     const ageDays=feed.generatedAt?daysBetween(feed.generatedAt,now):null;
     let state=feed.status==='awaiting-first-scan'?'waiting':feed.status==='error'?'error':feed.status==='partial'?'partial':'current';
     if(ageDays!==null&&ageDays>14&&state==='current')state='stale';
-    const approved=feed.review.approvedChanges.length,conflicts=feed.review.unresolvedConflicts.length,candidates=rankCandidates(feed.candidates).map(item=>({...item,athleteApplicability:athleteApplicability(item,options.athleteContext)}));
+    const governance=resolveStandardChanges(feed.review,options),approved=governance.active.length,conflicts=governance.conflicts.length,candidates=rankCandidates(feed.candidates).map(item=>({...item,athleteApplicability:athleteApplicability(item,options.athleteContext)})),reviews=(Array.isArray(options.personalReviews)?options.personalReviews:[]).map(normalizePersonalReview).filter(Boolean),reviewsByPmid=new Map(reviews.map(item=>[item.pmid,item]));
+    const reviewedCandidates=candidates.map(item=>({...item,personalReview:reviewsByPmid.get(item.pmid)||null}));
     const labels={waiting:'Prima scansione in attesa',error:'Scansione non riuscita',partial:'Scansione parziale',stale:'Report da aggiornare',current:'Sorveglianza aggiornata'};
-    const noRelevantChange=approved===0&&conflicts===0;
+    const noRelevantChange=approved===0&&governance.awaitingRelease.length===0&&conflicts===0;
     return{
       state,label:labels[state]||'Report non disponibile',feed,ageDays,
       domainsCovered:feed.domains.filter(item=>item.status==='ok').length,
       domainCount:feed.domains.length,
-      candidates,
-      priorityCandidates:candidates.filter(item=>['A','B'].includes(item.evidenceType.tier)&&item.practicalRelevance!=='low'&&item.athleteApplicability.key!=='low'),
+      candidates:reviewedCandidates,
+      priorityCandidates:reviewedCandidates.filter(item=>['A','B'].includes(item.evidenceType.tier)&&item.practicalRelevance!=='low'&&item.athleteApplicability.key!=='low'&&item.personalReview?.status!=='excluded'),
+      personalReviewSummary:personalReviewSummary(reviewedCandidates,reviews),
       approvedChanges:approved,
+      approvedAwaitingRelease:governance.awaitingRelease.length,
       unresolvedConflicts:conflicts,
       noRelevantChange,
-      standardAligned:!standardVersion||!feed.standardVersion||standardVersion===feed.standardVersion,
-      detail:noRelevantChange?'Nessuna modifica è stata approvata: lo Standard Coach resta invariato.':'Sono presenti elementi che richiedono una decisione umana e una nuova versione dello Standard.'
+      standardAligned:(!standardVersion||!feed.standardVersion||standardVersion===feed.standardVersion)&&governance.awaitingRelease.length===0,
+      detail:noRelevantChange?'Nessuna modifica è stata approvata: lo Standard Coach resta invariato.':governance.awaitingRelease.length?'Esistono modifiche approvate nel report ma non ancora registrate in una release del Coach: restano inattive.':'Sono presenti elementi che richiedono una decisione umana e una nuova versione dello Standard.'
     };
   }
 
-  return{SCHEMA_VERSION,MAX_CANDIDATES,publicationType,populationFit,classifyCandidate,validateFeed,rankCandidates,athleteApplicability,summarize,daysBetween};
+  return{SCHEMA_VERSION,MAX_CANDIDATES,publicationType,populationFit,classifyCandidate,normalizeApprovedChange,normalizePersonalReview,upsertPersonalReview,personalReviewSummary,resolveStandardChanges,validateFeed,rankCandidates,athleteApplicability,summarize,daysBetween};
 });

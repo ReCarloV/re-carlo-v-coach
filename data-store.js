@@ -18,7 +18,7 @@
   'use strict';
 
   const APP_NAME = 'Re Carlo V Personal Coach';
-  const BACKUP_VERSION = 9;
+  const BACKUP_VERSION = 10;
   const MAX_PROFILE_PHOTO_BYTES = 2 * 1024 * 1024;
   const sessionCategories = new Set(['running','swimming','cycling','strength','hyrox','metcon','test','recovery']);
   const sessionPriorities = new Set(['essential','important','optional']);
@@ -49,6 +49,7 @@
     whoopJournal: { key:'rc-whoop-journal-v1', version:1, kind:'json', fallback:[] },
     whoopImportBatches: { key:'rc-whoop-import-batches-v1', version:1, kind:'json', fallback:[] },
     reconciliationDecisions: { key:'rc-reconciliation-decisions-v1', version:1, kind:'json', fallback:[] },
+    evidenceReviews: { key:'rc-evidence-reviews-v1', version:1, kind:'json', fallback:[] },
     reconciliationCutoff: { key:'rc-reconciliation-cutoff-v1', version:1, kind:'raw', fallback:null },
     goals: { key:'rc-goals-v1', version:1, kind:'json', fallback:[] },
     planView: { key:'rc-plan-view-v1', version:1, kind:'raw', fallback:'list' },
@@ -419,6 +420,17 @@
     });
     return value;
   }
+  function validateEvidenceReviews(value){
+    const statuses=new Set(['shortlisted','monitor','excluded','reviewed']),applicability=new Set(['to-review','direct','contextual','low']),agreement=new Set(['to-review','supports','extends','conflicts','unclear']);
+    if(!Array.isArray(value)||value.length>500)invalid('INVALID_EVIDENCE_REVIEWS','Lo storico delle revisioni scientifiche non è valido.');
+    const pmids=new Set();
+    value.forEach(item=>{
+      if(!isObject(item)||item.version!==1||!/^[0-9]{1,12}$/.test(String(item.pmid||''))||typeof item.title!=='string'||!item.title.trim()||item.title.length>600||!statuses.has(item.status)||!applicability.has(item.applicability)||!agreement.has(item.agreement)||typeof item.rationale!=='string'||item.rationale.length>1600||typeof item.fullTextRead!=='boolean'||!isTimestamp(item.reviewedAt)||(item.feedGeneratedAt!==null&&item.feedGeneratedAt!==undefined&&!isTimestamp(item.feedGeneratedAt)))invalid('INVALID_EVIDENCE_REVIEWS','Una revisione scientifica non è valida.');
+      if(item.status==='reviewed'&&(!item.fullTextRead||item.applicability==='to-review'||item.agreement==='to-review'||item.rationale.trim().length<20))invalid('INVALID_EVIDENCE_REVIEWS','Una revisione completa richiede lettura, applicabilità, confronto e motivazione.');
+      if(pmids.has(item.pmid))invalid('INVALID_EVIDENCE_REVIEWS','Lo stesso articolo è stato revisionato più volte.');pmids.add(item.pmid);
+    });
+    return value;
+  }
 
   function validateProfilePhoto(value) {
     if (value === null) return value;
@@ -544,6 +556,8 @@
         return validateWhoopImportBatches(value);
       case 'reconciliationDecisions':
         return validateReconciliationDecisions(value);
+      case 'evidenceReviews':
+        return validateEvidenceReviews(value);
       case 'reconciliationCutoff':
         if(value!==null&&!isDateKey(value))throw new DataStoreError('INVALID_PREFERENCE','La finestra degli abbinamenti non è valida.');
         break;
@@ -583,7 +597,7 @@
   function prepareFullBackup(backup) {
     const sourceVersion=Number(backup.backupVersion);
     if (sourceVersion > BACKUP_VERSION) throw new DataStoreError('FUTURE_BACKUP', 'Questo backup è stato creato da una versione più recente dell’app.');
-    if (![3,4,5,6,7,8,BACKUP_VERSION].includes(sourceVersion) || !isObject(backup.data)) throw new DataStoreError('UNSUPPORTED_BACKUP', 'Versione del backup non supportata.');
+    if (![3,4,5,6,7,8,9,BACKUP_VERSION].includes(sourceVersion) || !isObject(backup.data)) throw new DataStoreError('UNSUPPORTED_BACKUP', 'Versione del backup non supportata.');
     const rawProfile = entryValue(backup.data,'profile');
     const profile = normalizeProfile(rawProfile);
     const weeklyCheckin=entryValue(backup.data,'weeklyCheckin');
@@ -606,7 +620,8 @@
       whoopJournal:sourceVersion>=6?entryValue(backup.data,'whoopJournal'):[],
       whoopImportBatches:sourceVersion>=6?entryValue(backup.data,'whoopImportBatches'):[],
       reconciliationDecisions:sourceVersion>=7?entryValue(backup.data,'reconciliationDecisions'):[],
-      goals:sourceVersion>=8?entryValue(backup.data,'goals'):[]
+      goals:sourceVersion>=8?entryValue(backup.data,'goals'):[],
+      evidenceReviews:sourceVersion>=10?entryValue(backup.data,'evidenceReviews'):[]
     };
     const preferences = entryValue(backup.data,'preferences',datasets.planView);
     if (!isObject(preferences)) throw new DataStoreError('INVALID_PREFERENCES', 'Le preferenze del backup non sono valide.');
@@ -776,6 +791,7 @@
         whoopJournal:{version:datasets.whoopJournal.version,value:read('whoopJournal')},
         whoopImportBatches:{version:datasets.whoopImportBatches.version,value:read('whoopImportBatches')},
         reconciliationDecisions:{version:datasets.reconciliationDecisions.version,value:read('reconciliationDecisions')},
+        evidenceReviews:{version:datasets.evidenceReviews.version,value:read('evidenceReviews')},
         goals:{version:datasets.goals.version,value:read('goals')},
         preferences:{version:datasets.planView.version,value:{planView:read('planView'),uiTheme:read('uiTheme'),cloudSyncCursor:read('cloudSyncCursor'),reconciliationCutoff:read('reconciliationCutoff')}}
       };
@@ -803,6 +819,7 @@
         whoopSleeps:Array.isArray(values.whoopSleeps) ? values.whoopSleeps.length : null,
         whoopWorkouts:Array.isArray(values.whoopWorkouts) ? values.whoopWorkouts.length : null,
         reconciliationDecisions:Array.isArray(values.reconciliationDecisions) ? values.reconciliationDecisions.length : null,
+        evidenceReviews:Array.isArray(values.evidenceReviews) ? values.evidenceReviews.length : null,
         goals:Array.isArray(values.goals) ? values.goals.length : null,
         athleteName:values.profile ? [values.profile.firstName,values.profile.lastName].filter(Boolean).join(' ') : ''
       };
@@ -952,6 +969,6 @@
 
   return {
     APP_NAME, BACKUP_VERSION, MAX_PROFILE_PHOTO_BYTES, DATASETS:datasets, ALL_KEYS:allKeys, DataStoreError,
-    create, prepareBackup, normalizeProfile, normalizeSessions, validateImportConsistency, validateWhoopConsistency, validateReconciliationDecisions
+    create, prepareBackup, normalizeProfile, normalizeSessions, validateImportConsistency, validateWhoopConsistency, validateReconciliationDecisions, validateEvidenceReviews
   };
 });

@@ -8,6 +8,7 @@
   const VERSION='1.0.0';
   const LABEL='Standard Coach Elite v1';
   const RELEASE_DATE='2026-07-16';
+  const APPROVED_EVIDENCE_UPDATE_IDS=Object.freeze([]);
 
   const evidenceLevels={
     A:{label:'Consensus / position stand',note:'Riferimento principale per i confini e le decisioni generali.'},
@@ -119,7 +120,8 @@
       ]
     };
   }
-  function manifest(){return clone({version:VERSION,label:LABEL,releasedAt:RELEASE_DATE,evidenceLevels,domains,sources});}
+  function standardRelease(){return clone({version:VERSION,label:LABEL,releasedAt:RELEASE_DATE,approvedEvidenceUpdateIds:[...APPROVED_EVIDENCE_UPDATE_IDS]});}
+  function manifest(){return clone({version:VERSION,label:LABEL,releasedAt:RELEASE_DATE,approvedEvidenceUpdateIds:[...APPROVED_EVIDENCE_UPDATE_IDS],evidenceLevels,domains,sources});}
 
-  return{VERSION,LABEL,manifest,contextForAudit,activeDomainKeys,timeWindows};
+  return{VERSION,LABEL,APPROVED_EVIDENCE_UPDATE_IDS,standardRelease,manifest,contextForAudit,activeDomainKeys,timeWindows};
 });

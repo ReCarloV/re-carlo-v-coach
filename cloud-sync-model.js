@@ -67,7 +67,7 @@
   const localMutationEvents=new Set([
     'rc:sessions-updated','rc:goals-updated','rc:profile-updated','rc:body-issues-updated',
     'rc:pre-checkin-updated','rc:weekly-checkin-updated','rc:weekly-availability-history-updated',
-    'rc:whoop-updated','rc:reconciliation-updated'
+    'rc:whoop-updated','rc:reconciliation-updated','rc:evidence-reviews-updated'
   ]);
   function shouldQueueLocalSync(eventName,detail={}){
     if(localMutationEvents.has(String(eventName||'')))return true;
