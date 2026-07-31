@@ -46,8 +46,8 @@
   }
   function restText(value){const text=String(value||'').trim();return text?`Recupero ${text}`:'';}
   function actualStrengthBlocks(session){
-    const rows=Array.isArray(session?.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[];
-    return (strengthModel?.groupedEntries?.(rows)||[]).map(group=>({kind:'exercise',eyebrow:`${group.entries.length} ${group.entries.length===1?'serie registrata':'serie registrate'}`,title:group.label,metrics:group.entries.map((item,index)=>`S${index+1} · ${group.externalLoad?'+':''}${item.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${item.reps}${item.rpe!==undefined?` · RPE ${item.rpe.toLocaleString('it-IT')}`:''}`),exerciseMeta:exerciseCatalog?.describeExercise?.(group.label),actual:true}));
+    const rows=Array.isArray(session?.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[],volumeKnown=session?.outcome?.strengthPerformanceVersion===2;
+    return (strengthModel?.groupedEntries?.(rows)||[]).map(group=>({kind:'exercise',eyebrow:volumeKnown?`${group.entries.length} ${group.entries.length===1?'serie registrata':'serie registrate'}`:'Miglior serie storica · volume n.d.',title:group.label,metrics:group.entries.map((item,index)=>`${volumeKnown?`S${index+1} · `:''}${group.externalLoad?'+':''}${item.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${item.reps}${item.rpe!==undefined?` · RPE ${item.rpe.toLocaleString('it-IT')}`:''}`),exerciseMeta:exerciseCatalog?.describeExercise?.(group.label),actual:true,volumeKnown}));
   }
   function strengthBlocks(session){
     if(performed(session))return actualStrengthBlocks(session);

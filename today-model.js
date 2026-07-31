@@ -133,7 +133,7 @@
     if(session.category==='strength') {
       if(performed(session)){
         const actual=Array.isArray(session.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[];
-        if(actual.length)return (strengthModel?.groupedEntries?.(actual)||[]).map(group=>({label:group.label,value:`${group.entries.length} ${group.entries.length===1?'serie':'serie'} · ${group.entries.map((item,index)=>`S${index+1} ${group.externalLoad?'+':''}${item.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${item.reps}${item.rpe!==undefined?` @${item.rpe.toLocaleString('it-IT')}`:''}`).join(' / ')}`,actual:true}));
+        if(actual.length){const volumeKnown=session.outcome?.strengthPerformanceVersion===2;return (strengthModel?.groupedEntries?.(actual)||[]).map(group=>({label:group.label,value:volumeKnown?`${group.entries.length} serie · ${group.entries.map((item,index)=>`S${index+1} ${group.externalLoad?'+':''}${item.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${item.reps}${item.rpe!==undefined?` @${item.rpe.toLocaleString('it-IT')}`:''}`).join(' / ')}`:`Miglior serie storica · ${group.entries.map(item=>`${group.externalLoad?'+':''}${item.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${item.reps}${item.rpe!==undefined?` @${item.rpe.toLocaleString('it-IT')}`:''}`).join(' / ')} · volume n.d.`,actual:true}));}
         return [{label:'Serie principali effettive',value:'Nessuna serie principale registrata',actual:true}];
       }
       const blocks=Array.isArray(details.strengthBlocks)?details.strengthBlocks:[];
