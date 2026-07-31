@@ -2,11 +2,11 @@
   'use strict';
   const model=window.rcCloudSyncModel,store=window.rcDataStore,config=window.rcCloudConfig||{};
   const panel=document.getElementById('cloud-sync-panel'),title=document.getElementById('cloud-sync-title'),detail=document.getElementById('cloud-sync-detail'),meta=document.getElementById('cloud-sync-meta');
-  const primary=document.getElementById('cloud-sync-primary'),syncNow=document.getElementById('cloud-sync-now'),signout=document.getElementById('cloud-sync-signout'),locationBadge=document.getElementById('data-location-badge'),headerStatus=document.getElementById('local-data-status');
-  const modal=document.getElementById('cloud-sync-modal'),authView=document.getElementById('cloud-auth-view'),choiceView=document.getElementById('cloud-choice-view'),authForm=document.getElementById('cloud-auth-form'),authStatus=document.getElementById('cloud-auth-status');
+  const primary=document.getElementById('cloud-sync-primary'),syncNow=document.getElementById('cloud-sync-now'),historyButton=document.getElementById('cloud-sync-history'),signout=document.getElementById('cloud-sync-signout'),locationBadge=document.getElementById('data-location-badge'),headerStatus=document.getElementById('local-data-status');
+  const modal=document.getElementById('cloud-sync-modal'),modalTitle=document.getElementById('cloud-sync-modal-title'),authView=document.getElementById('cloud-auth-view'),choiceView=document.getElementById('cloud-choice-view'),historyView=document.getElementById('cloud-history-view'),authForm=document.getElementById('cloud-auth-form'),authStatus=document.getElementById('cloud-auth-status'),historyStatus=document.getElementById('cloud-history-status'),historyList=document.getElementById('cloud-history-list');
   const configured=/^https:\/\/[^/]+\.supabase\.co\/?$/.test(String(config.supabaseUrl||''))&&String(config.supabasePublishableKey||'').length>20;
   const deviceName=model.safeDeviceName(/iphone|ipad|ipod/i.test(navigator.userAgent)?'iPhone personale':/macintosh/i.test(navigator.userAgent)?'Mac personale':'Dispositivo personale');
-  let client=null,user=null,remote=null,baseRevision=null,baseFingerprint=null,mode=configured?'signed-out':'not-configured',busy=false,lastSyncAt=null,timer=null,localSyncTimer=null,pendingLocalChange=false,manageOpen=false;
+  let client=null,user=null,remote=null,revisions=[],baseRevision=null,baseFingerprint=null,mode=configured?'signed-out':'not-configured',busy=false,lastSyncAt=null,timer=null,localSyncTimer=null,pendingLocalChange=false,manageOpen=false;
   function tabStale(){return Boolean(window.rcTabCoordination?.isStale?.());}
 
   function snapshot(){return store.createCloudSnapshot();}
@@ -18,7 +18,7 @@
   function setMode(next,message){mode=next;if(message)detail.textContent=message;render();document.dispatchEvent(new CustomEvent('rc:cloud-sync-state',{detail:publicState()}));}
   function publicState(){return{configured,user:Boolean(user),mode,busy,pendingLocalChange,revision:baseRevision,lastSyncAt,deviceName};}
   function render(){
-    panel.classList.remove('synced','pending','error','conflict','cloud-compact-hidden');primary.hidden=false;primary.disabled=busy;syncNow.hidden=true;syncNow.disabled=busy;signout.hidden=!user;
+    panel.classList.remove('synced','pending','error','conflict','cloud-compact-hidden');primary.hidden=false;primary.disabled=busy;syncNow.hidden=true;syncNow.disabled=busy;historyButton.hidden=!user;historyButton.disabled=busy;signout.hidden=!user;
     if(!configured){panel.classList.add('pending');title.textContent='iPhone · struttura pronta';detail.textContent='Manca soltanto il progetto cloud gratuito. I dati attuali restano esclusivamente sul Mac.';meta.textContent='Nessun dato trasferito';primary.textContent='Configurazione cloud richiesta';setHeader('', 'Dati locali');locationBadge.textContent='Solo su questo dispositivo';return;}
     if(!user){title.textContent='Cloud personale';detail.textContent='Accedi con il tuo account personale per ritrovare piano e dati su ogni dispositivo.';meta.textContent='Disconnesso';primary.textContent='Accedi al cloud';setHeader('', 'Dati locali');locationBadge.textContent='Solo su questo dispositivo';return;}
     locationBadge.textContent='Cloud attivo · offline protetto';
@@ -31,18 +31,40 @@
   }
 
   function openModal(view='auth'){
-    authView.hidden=view!=='auth';choiceView.hidden=view!=='choice';modal.classList.add('open');modal.setAttribute('aria-hidden','false');
+    authView.hidden=view!=='auth';choiceView.hidden=view!=='choice';historyView.hidden=view!=='history';modalTitle.textContent=view==='choice'?'Confronta le copie':view==='history'?'Revisioni cloud recenti':'Accedi al cloud personale';modal.classList.add('open');modal.setAttribute('aria-hidden','false');
     if(view==='auth')setTimeout(()=>authForm.elements.email.focus(),0);
   }
   function closeModal(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');authStatus.textContent='';}
   function summaryText(item){const summary=model.snapshotSummary(item);return`${summary.sessions} sedute · ${summary.checkins} check-in · ${summary.whoopDays} giorni WHOOP · ${summary.goals} obiettivi${summary.exportedAt?` · ${formatTime(summary.exportedAt)}`:''}`;}
+  function element(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}
+  function changeSummary(change){
+    if(change.kind==='fields')return`${change.localOnly+change.cloudOnly+change.changed} campi diversi`;
+    if(change.kind==='value')return'Copia diversa';
+    const parts=[];if(change.localOnly)parts.push(`${change.localOnly} solo qui`);if(change.cloudOnly)parts.push(`${change.cloudOnly} solo cloud`);if(change.changed)parts.push(`${change.changed} modificati`);return parts.join(' · ')||'Contenuto diverso';
+  }
+  function renderDiff(local,cloud){
+    const list=document.getElementById('cloud-diff-list'),count=document.getElementById('cloud-diff-count'),diff=model.snapshotDiff(local,cloud);list.replaceChildren();count.textContent=`${diff.changedDatasets} ${diff.changedDatasets===1?'sezione':'sezioni'}`;
+    diff.changes.forEach(change=>{const row=element('article','cloud-diff-row'),head=element('div','cloud-diff-row-head'),copy=element('div');copy.append(element('strong','',change.label),element('small','',changeSummary(change)));head.append(copy);if(change.kind==='records')head.append(element('span','cloud-diff-totals',`${change.localTotal} qui · ${change.cloudTotal} cloud`));row.append(head);if(change.details.length){const details=element('div','cloud-diff-details');change.details.forEach(item=>details.append(element('span',item.side,item.label)));row.append(details);}list.append(row);});
+    if(!diff.changes.length)list.append(element('p','cloud-diff-empty','Le copie hanno lo stesso contenuto atleta.'));
+  }
   function showChoice(){
     if(!remote?.payload)return;
     const local=snapshot(),localInfo=model.snapshotSummary(local),remoteInfo=model.snapshotSummary(remote.payload);
     document.getElementById('cloud-choice-alert').textContent=mode==='conflict'?'Sono state rilevate modifiche su entrambi i dispositivi. Scegli quale copia conservare come principale.':'Questo è il primo collegamento da questo dispositivo. Controlla le due copie prima di continuare.';
     document.getElementById('cloud-local-name').textContent=localInfo.athleteName||deviceName;document.getElementById('cloud-local-summary').textContent=summaryText(local);
     document.getElementById('cloud-remote-name').textContent=remoteInfo.athleteName||'Copia condivisa';document.getElementById('cloud-remote-summary').textContent=summaryText(remote.payload);
+    renderDiff(local,remote.payload);
     openModal('choice');
+  }
+
+  function renderHistory(){
+    historyList.replaceChildren();if(!revisions.length){historyList.append(element('p','cloud-history-empty','Nessuna revisione recuperabile disponibile.'));return;}
+    revisions.forEach(item=>{const row=element('article',`cloud-history-row${item.current?' current':''}`),copy=element('div','cloud-history-copy'),head=element('div','cloud-history-row-head'),badge=element('span','',item.current?'ATTUALE':`REV. ${item.revision}`);head.append(badge,element('small','',formatTime(item.createdAt)));copy.append(head,element('strong','',item.deviceName),element('p','',summaryText(item.payload)));const action=element('button',item.current?'ghost':'primary',item.current?'Copia attuale':'Ripristina');action.type='button';action.disabled=item.current;action.addEventListener('click',()=>restoreRevision(item));row.append(copy,action);historyList.append(row);});
+  }
+  async function loadHistory(){
+    if(!client||!user)return;openModal('history');historyStatus.hidden=false;historyStatus.textContent='Caricamento revisioni…';historyList.replaceChildren();
+    try{await fetchRemoteResilient();const{data,error}=await client.from('athlete_snapshot_revisions').select('revision,payload,device_name,created_at').order('revision',{ascending:false}).limit(8);if(error)throw error;revisions=model.normalizeRevisions(data,remote?.revision??baseRevision).filter(item=>{try{store.inspectBackup(item.payload);return true;}catch{return false;}});historyStatus.hidden=true;renderHistory();}
+    catch(error){revisions=[];historyStatus.hidden=false;historyStatus.textContent=error?.message||'Non è stato possibile leggere le revisioni cloud.';renderHistory();}
   }
 
   async function fetchRemote(){
@@ -52,10 +74,10 @@
   }
   async function fetchRemoteResilient(){try{return await fetchRemote();}catch(error){if(!navigator.onLine)throw error;await new Promise(resolve=>setTimeout(resolve,450));return fetchRemote();}}
 
-  async function persistSnapshot(current,expectedRevision){
+  async function persistSnapshot(current,expectedRevision,{remember=true}={}){
       const currentFingerprint=fingerprint(current);const{data,error}=await client.rpc('push_athlete_snapshot',{expected_revision:Number(expectedRevision)||0,snapshot:current,source_device:deviceName});if(error)throw error;
       const result=Array.isArray(data)?data[0]:data;if(!result||result.status!=='saved'){await fetchRemote();setMode('conflict');return false;}
-      remote={revision:Number(result.revision),payload:current,device_name:deviceName,updated_at:result.updated_at};rememberBase(remote.revision,currentFingerprint,result.updated_at);return true;
+      remote={revision:Number(result.revision),payload:current,device_name:deviceName,updated_at:result.updated_at};if(remember)rememberBase(remote.revision,currentFingerprint,result.updated_at);return true;
   }
 
   async function pushCurrent(expectedRevision){
@@ -76,6 +98,23 @@
       remote={...accepted,payload:restored};rememberBase(plan.revision,plan.restoredFingerprint,accepted.updated_at);
     }
     setMode('synced');return true;
+  }
+
+  async function archiveLocalAndApplyRemote(){
+    if(!remote?.payload)return false;const selected={...remote},local=snapshot();
+    if(fingerprint(local)!==fingerprint(selected.payload)){
+      const archived=await persistSnapshot(local,selected.revision);if(!archived)return false;
+      const restored=await persistSnapshot(selected.payload,remote.revision,{remember:false});if(!restored)return false;
+    }
+    return applyRemote();
+  }
+
+  async function restoreRevision(item){
+    if(tabStale()||busy||item.current||!window.confirm(`Ripristinare la revisione ${item.revision}? La copia attuale resterà disponibile nello storico.`))return;
+    busy=true;historyStatus.hidden=false;historyStatus.textContent=`Ripristino revisione ${item.revision}…`;render();
+    try{store.inspectBackup(item.payload);await fetchRemoteResilient();if(!remote)throw new Error('La copia cloud attuale non è disponibile.');const saved=await persistSnapshot(item.payload,remote.revision,{remember:false});if(!saved)throw new Error('Il cloud è cambiato durante il ripristino: confronta di nuovo le copie.');await applyRemote();closeModal();}
+    catch(error){historyStatus.textContent=error?.message||'Non è stato possibile ripristinare la revisione.';setMode(navigator.onLine?'error':'offline');}
+    finally{busy=false;render();}
   }
 
   async function reconcile(){
@@ -135,8 +174,9 @@
     await reconcile();
   });
   syncNow.addEventListener('click',reconcile);
+  historyButton.addEventListener('click',loadHistory);document.getElementById('cloud-history-reload').addEventListener('click',loadHistory);
   locationBadge.addEventListener('click',()=>{if(!user)return;manageOpen=!manageOpen;render();if(manageOpen)panel.scrollIntoView({behavior:'smooth',block:'center'});});
-  signout.addEventListener('click',async()=>{if(!window.confirm('Disconnettere questo dispositivo? I dati locali e la copia cloud resteranno intatti.'))return;await client.auth.signOut();user=null;remote=null;baseRevision=null;baseFingerprint=null;lastSyncAt=null;setMode('signed-out');});
+  signout.addEventListener('click',async()=>{if(!window.confirm('Disconnettere questo dispositivo? I dati locali e la copia cloud resteranno intatti.'))return;await client.auth.signOut();user=null;remote=null;revisions=[];baseRevision=null;baseFingerprint=null;lastSyncAt=null;setMode('signed-out');});
   document.getElementById('cloud-sync-close').addEventListener('click',closeModal);modal.addEventListener('click',event=>{if(event.target===modal)closeModal();});
   authForm.addEventListener('submit',async event=>{
     event.preventDefault();authStatus.textContent='Accesso in corso…';const values=new FormData(authForm);
@@ -150,7 +190,7 @@
   document.getElementById('cloud-use-remote').addEventListener('click',async()=>{
     if(!remote||!window.confirm('Usare la copia cloud su questo dispositivo? La copia locale attuale verrà sostituita.'))return;
     closeModal();busy=true;render();
-    try{await applyRemote();}
+    try{await archiveLocalAndApplyRemote();}
     catch(error){detail.textContent=error?.message||'Non è stato possibile applicare la copia cloud.';setMode(navigator.onLine?'error':'offline');}
     finally{busy=false;render();}
   });

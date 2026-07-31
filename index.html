@@ -240,6 +240,7 @@
           <div class="cloud-sync-actions">
             <button class="primary" id="cloud-sync-primary" type="button">Accedi al cloud</button>
             <button class="ghost" id="cloud-sync-now" type="button" hidden>Sincronizza ora</button>
+            <button class="ghost" id="cloud-sync-history" type="button" hidden>Revisioni recenti</button>
             <button class="ghost" id="pwa-install" type="button">Installa app</button>
             <button class="ghost danger-text" id="cloud-sync-signout" type="button" hidden>Esci</button>
           </div>
@@ -691,7 +692,13 @@
           <article><small>QUESTO DISPOSITIVO</small><strong id="cloud-local-name">Copia locale</strong><span id="cloud-local-summary">—</span><button class="ghost" id="cloud-use-local" type="button">Usa questa copia</button></article>
           <article class="recommended"><small>CLOUD</small><strong id="cloud-remote-name">Copia condivisa</strong><span id="cloud-remote-summary">—</span><button class="primary" id="cloud-use-remote" type="button">Usa la copia cloud</button></article>
         </div>
-        <p class="cloud-choice-note">La scelta è necessaria soltanto al primo collegamento o se due dispositivi hanno modificato dati diversi prima di sincronizzarsi. I backup JSON restano disponibili manualmente nelle Impostazioni.</p>
+        <section class="cloud-diff" aria-labelledby="cloud-diff-title"><div class="cloud-diff-head"><div><small>CONFRONTO DETTAGLIATO</small><h3 id="cloud-diff-title">Cosa cambia tra le copie</h3></div><strong id="cloud-diff-count">—</strong></div><div class="cloud-diff-list" id="cloud-diff-list"></div></section>
+        <p class="cloud-choice-note">La copia esclusa resta recuperabile nelle revisioni recenti. I backup JSON restano disponibili manualmente nelle Impostazioni.</p>
+      </div>
+      <div id="cloud-history-view" hidden>
+        <div class="cloud-history-intro"><p>Ogni salvataggio cloud conserva automaticamente le ultime otto revisioni. Ripristinarne una crea una nuova revisione, quindi la copia attuale non viene cancellata.</p><button class="ghost small" id="cloud-history-reload" type="button">Aggiorna elenco</button></div>
+        <p class="cloud-history-status" id="cloud-history-status" role="status" aria-live="polite">Caricamento revisioni…</p>
+        <div class="cloud-history-list" id="cloud-history-list"></div>
       </div>
     </div>
   </div>
