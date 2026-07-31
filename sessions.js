@@ -480,13 +480,13 @@
     const update=()=>{const hasAny=loadInput.value!==''||repsMetric.select.value!==''||rpeMetric.select.value!=='';loadInput.required=hasAny;repsMetric.select.required=hasAny;rpeMetric.select.required=hasAny;const value=strengthModel.estimateE1rm(loadInput.value,repsMetric.select.value,{externalLoad:lift.externalLoad,bodyweightKg:athleteWeightKg(),formula,rpe:rpeMetric.select.value}),rir=strengthModel.rirFromRpe(rpeMetric.select.value);previewLabel.textContent=`e1RM${rir===null?'':' · RIR '+rir.toLocaleString('it-IT')}`;previewValue.textContent=value===null?'—':`${lift.externalLoad?'+':''}${value.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`;updateStrengthPerformanceRow(row,formula);};
     loadInput.addEventListener('input',update);repsMetric.select.addEventListener('change',update);rpeMetric.select.addEventListener('change',update);set.append(marker,loadLabel,repsMetric.label,rpeMetric.label,preview);set.dataset.update='strength';queueMicrotask(update);return set;
   }
-  function strengthPerformanceRow(lift,savedEntries,formula){
+  function strengthPerformanceRow(lift,savedEntries,formula,{prefillPlanned=false}={}){
     const row=document.createElement('div');row.className='strength-performance-row';row.dataset.liftKey=lift.key;row.dataset.exercise=lift.exercise;
     const name=document.createElement('div');name.className='strength-performance-name';const copy=document.createElement('div');
     const type=document.createElement('small');const plannedLoad=lift.plannedLoadKg!==undefined?`${lift.externalLoad?'+':''}${lift.plannedLoadKg} kg`:null,plannedReps=lift.plannedReps?` × ${lift.plannedReps}`:'',plannedSets=lift.plannedSets?`${lift.plannedSets} SERIE · `:'';type.textContent=`${lift.externalLoad?`ZAVORRA ESTERNA · BW ${athleteWeightKg()||'—'} KG`:'CARICO TOTALE'}${plannedLoad||plannedSets?` · PREVISTO ${plannedSets}${plannedLoad||''}${plannedReps}`:lift.planned?' · DA PROGRAMMA':' · AGGIUNTO COME SVOLTO'}`;
     const title=document.createElement('strong');title.textContent=lift.label;copy.append(type,title);name.append(copy);
     if(!lift.planned){const remove=document.createElement('button');remove.type='button';remove.className='row-action remove strength-performance-remove';remove.textContent='×';remove.setAttribute('aria-label',`Rimuovi ${lift.label}`);remove.title=`Rimuovi ${lift.label}`;remove.addEventListener('click',()=>{row.remove();syncStrengthPerformanceChoices();});name.append(remove);}
-    const sets=document.createElement('div');sets.className='strength-performance-sets';const saved=Array.isArray(savedEntries)?savedEntries:[],count=saved.length||Math.max(1,Math.min(10,Number(lift.plannedSets)||1));for(let index=0;index<count;index+=1)sets.append(strengthPerformanceSet(row,lift,saved[index]||{},formula));
+    const sets=document.createElement('div');sets.className='strength-performance-sets';const saved=Array.isArray(savedEntries)?savedEntries:[],plannedCount=Math.max(1,Math.min(10,Number(lift.plannedSets)||1)),count=saved.length||(prefillPlanned?plannedCount:1),plannedDefaults=prefillPlanned?strengthModel.plannedSetDefaults(lift):{};for(let index=0;index<count;index+=1)sets.append(strengthPerformanceSet(row,lift,saved[index]||plannedDefaults,formula));
     const footer=document.createElement('div');footer.className='strength-performance-footer';const add=document.createElement('button');add.type='button';add.className='ghost small strength-performance-add-set';add.textContent='+ Aggiungi serie';add.addEventListener('click',()=>{sets.append(strengthPerformanceSet(row,lift,{},formula));updateStrengthPerformanceRow(row,formula);sets.lastElementChild?.querySelector('input')?.focus();});const best=document.createElement('div');best.className='strength-performance-best';best.append(document.createElement('small'),document.createElement('strong'));footer.append(add,best);row.append(name,sets,footer);queueMicrotask(()=>updateStrengthPerformanceRow(row,formula));return row;
   }
   function renderStrengthPerformance(session,outcome){
@@ -494,7 +494,7 @@
     const formula=athleteStrengthFormula();section.querySelector('.strength-performance-heading small').textContent=`${strengthModel.FORMULAS[formula].shortLabel} · RPE-AWARE`;
     const isStrength=session.category==='strength',lifts=isStrength?strengthModel.editableLifts({...session,outcome}):[];section.dataset.hasRows=String(isStrength);
     const existing=new Map(strengthModel.groupedEntries(outcome?.strengthPerformance).map(group=>[group.key,group.entries]));
-    lifts.forEach(lift=>container.append(strengthPerformanceRow(lift,existing.get(lift.key)||[],formula)));
+    lifts.forEach(lift=>container.append(strengthPerformanceRow(lift,existing.get(lift.key)||[],formula,{prefillPlanned:!outcome})));
     select.onchange=()=>{button.disabled=!select.value;};button.onclick=()=>{const key=select.value,meta=strengthModel.LIFTS[key];if(!meta)return;const row=strengthPerformanceRow({key,label:meta.label,exercise:meta.label,externalLoad:meta.externalLoad,planned:false},[],formula);container.append(row);syncStrengthPerformanceChoices();row.querySelector('input')?.focus();};
     syncStrengthPerformanceChoices();
   }
@@ -631,7 +631,7 @@
     outcomeForm.elements.rpe.value=outcome?.rpe??'';
     outcomeForm.elements.execution.value=outcome?.execution||'';outcomeForm.elements.pain.value=outcome?.pain??'';
     outcomeForm.elements.skipReason.value=outcome?.skipReason||'time';outcomeForm.elements.outcomeNotes.value=outcome?.notes||'';
-    fillOutcomeSafetyScreen(outcome);
+    fillOutcomeSafetyScreen(outcome);if(!outcome)outcomeForm.elements.outcomeCardiopulmonaryStatus.value='clear';
     renderEndurancePerformance(session,outcome);
     renderStrengthPerformance(session,outcome);
     const context=document.getElementById('outcome-session-context');const strong=document.createElement('strong');strong.textContent=session.title;const span=document.createElement('span');const date=new Date(`${session.date}T12:00:00`),time=calendarFeedModel?.timeRange?.(session)||'09:00';span.textContent=`${date.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})} · ${time} · ${categoryMeta[session.category].label} · ${session.durationMin} min previsti`;context.replaceChildren(strong,span);
