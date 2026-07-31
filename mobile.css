@@ -66,7 +66,7 @@
 @media(hover:none) and (pointer:coarse){.today-whoop-refresh{display:none}}
 
 .sidebar .mobile-more-trigger,.mobile-more-menu,.mobile-more-backdrop{display:none}
-@media(max-width:620px) and (orientation:portrait){
+@media(max-width:900px){
   body.mobile-more-open{overflow:hidden}
   .sidebar nav{grid-template-columns:repeat(6,minmax(0,1fr))}
   .sidebar nav>.nav[data-view="knowledge"],.sidebar nav>.nav[data-view="profile"],.sidebar nav>.nav[data-view="data"]{display:none}
