@@ -6,9 +6,9 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (safetyModel) {
   'use strict';
 
-  const LOWER_PATTERN = /^(hip|quad|knee|ankle|glute|hamstring|calf)(-|$)/;
-  const UPPER_PATTERN = /^(shoulder|elbow|wrist)(-|$)/;
-  const TRUNK_PATTERN = /^(chest|upper-back|lower-back|neck)(-|$)/;
+  const LOWER_PATTERN = /^(hip|adductor|quad|knee|shin|ankle|foot|glute|hamstring|calf)(-|$)/;
+  const UPPER_PATTERN = /^(shoulder|upper-arm|triceps|elbow|forearm|wrist)(-|$)/;
+  const TRUNK_PATTERN = /^(chest|abdomen|upper-back|lower-back|neck)(-|$)/;
   const LOWER_LABEL = /(anca|quadricipite|ginocchio|caviglia|gluteo|femorale|polpaccio)/i;
   const UPPER_LABEL = /(spalla|gomito|polso)/i;
   const TRUNK_LABEL = /(petto|dorso|schiena|lombare|collo)/i;

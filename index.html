@@ -478,7 +478,7 @@
       <section class="session-fields" data-session-category="strength">
         <h3>Parametri forza</h3><div class="form-grid">
           <label>Focus<select name="strengthFocus" data-title-source><option>Upper body</option><option>Lower body</option><option>Full body</option><option>HYROX strength</option><option>Accessori / prevenzione</option></select></label>
-          <label>RIR target<input name="targetRir" type="number" min="0" max="6" step="0.5" value="2"></label>
+          <label>RIR target<select name="targetRir"><option value="0">0 · cedimento previsto</option><option value="0.5">0,5</option><option value="1">1</option><option value="1.5">1,5</option><option value="2" selected>2</option><option value="2.5">2,5</option><option value="3">3</option><option value="3.5">3,5</option><option value="4">4</option><option value="4.5">4,5</option><option value="5">5</option><option value="5.5">5,5</option><option value="6">6</option></select></label>
           <div class="full workout-builder" data-builder="strength"><div class="builder-heading"><div><strong>Esercizi</strong></div><button class="ghost add-workout-row" type="button">+ Esercizio</button></div><div class="workout-rows"></div><input name="strengthBlocks" type="hidden"></div>
           <label class="full">Complementari e indicazioni <span class="field-hint">Fuori dal calcolo e1RM</span><textarea name="strengthAccessories" rows="4" placeholder="Es. 2–3 esercizi upper back, cuffia e core a scelta"></textarea></label>
         </div>
@@ -542,9 +542,9 @@
           <div class="form-grid outcome-grid">
             <label>Durata reale (min)<input name="actualDurationMin" type="number" inputmode="numeric" min="1" max="600" step="1" required></label>
             <label id="outcome-distance-field" hidden>Distanza reale (km)<input name="actualDistanceKm" type="number" inputmode="decimal" min="0" max="200" step="0.01"></label>
-            <label>RPE della seduta<input name="rpe" type="number" inputmode="decimal" min="1" max="10" step="0.5" placeholder="Da compilare" required></label>
+            <label>RPE della seduta<select name="rpe" required><option value="" selected disabled>Seleziona RPE</option><option value="1">1</option><option value="1.5">1,5</option><option value="2">2</option><option value="2.5">2,5</option><option value="3">3</option><option value="3.5">3,5</option><option value="4">4</option><option value="4.5">4,5</option><option value="5">5</option><option value="5.5">5,5</option><option value="6">6</option><option value="6.5">6,5</option><option value="7">7</option><option value="7.5">7,5</option><option value="8">8</option><option value="8.5">8,5</option><option value="9">9</option><option value="9.5">9,5</option><option value="10">10 · massimale</option></select></label>
             <label>Rispetto al previsto<select name="execution" required><option value="" selected disabled>Seleziona confronto</option><option value="easier">Più facile</option><option value="as-planned">Come previsto</option><option value="harder">Più impegnativa</option></select></label>
-            <label>Dolore massimo durante (0–10)<input name="pain" type="number" inputmode="numeric" min="0" max="10" step="1" placeholder="0 se assente" required></label>
+            <label>Dolore massimo durante (0–10)<select name="pain" required><option value="" selected disabled>Seleziona</option><option value="0">0 · assente</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10 · massimo</option></select></label>
             <fieldset class="full safety-screen outcome-safety-screen">
               <legend>Sicurezza durante o dopo la seduta</legend>
               <label>Hai avvertito un segnale cardiopolmonare nuovo o anomalo?

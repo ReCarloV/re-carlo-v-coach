@@ -169,6 +169,20 @@
     });
   }
 
+  function validateWorkoutBlocks(blocks,{strength=false}={}){
+    if(!Array.isArray(blocks)||blocks.length>50)return false;
+    return blocks.every(block=>{
+      if(!isObject(block))return false;
+      if(strength&&(typeof block.name!=='string'||!block.name.trim()))return false;
+      if(['name','volume','target','rest'].some(field=>owns(block,field)&&typeof block[field]!=='string'))return false;
+      const bounded=(field,min,max,integer=false)=>!owns(block,field)||block[field]===''||block[field]===null||block[field]===undefined||(isFiniteValue(block[field])&&Number(block[field])>=min&&Number(block[field])<=max&&(!integer||Number.isInteger(Number(block[field]))));
+      if(!bounded('sets',1,100,true)||!bounded('reps',1,100,true)||!bounded('loadKg',0,700)||!bounded('targetRir',0,6)||!bounded('targetRpe',1,10)||!bounded('restSec',1,3600,true))return false;
+      if(owns(block,'targetRir')&&block.targetRir!==''&&block.targetRir!==null&&block.targetRir!==undefined&&!Number.isInteger(Number(block.targetRir)*2))return false;
+      if(owns(block,'targetRpe')&&block.targetRpe!==''&&block.targetRpe!==null&&block.targetRpe!==undefined&&!Number.isInteger(Number(block.targetRpe)*2))return false;
+      return true;
+    });
+  }
+
   function validateSession(session) {
     if (!isObject(session)) invalid('INVALID_SESSIONS','Una seduta del backup non è valida.');
     if (typeof session.id !== 'string' || !session.id.trim() || !isDateKey(session.date) || !sessionCategories.has(session.category) || typeof session.title !== 'string' || !session.title.trim()) invalid('INVALID_SESSIONS','Una seduta contiene identificativo, data, categoria o titolo non validi.');
@@ -178,9 +192,8 @@
     if(owns(session.details,'runBlocks')&&!validateEnduranceBlocks(session.details.runBlocks))invalid('INVALID_SESSIONS','La struttura della corsa non è valida.');
     if(owns(session.details,'rideBlocks')&&!validateEnduranceBlocks(session.details.rideBlocks))invalid('INVALID_SESSIONS','La struttura dei rulli non è valida.');
     if(owns(session.details,'prescriptionVersion')&&typeof session.details.prescriptionVersion!=='string')invalid('INVALID_SESSIONS','La versione della prescrizione non è valida.');
-    if(owns(session.details,'strengthBlocks')){
-      const blocks=session.details.strengthBlocks;if(!Array.isArray(blocks)||blocks.length>50||blocks.some(block=>!isObject(block)||typeof block.name!=='string'||!block.name.trim()||(owns(block,'loadKg')&&block.loadKg!==''&&block.loadKg!==null&&block.loadKg!==undefined&&(!isFiniteValue(block.loadKg)||Number(block.loadKg)<0||Number(block.loadKg)>700))))invalid('INVALID_SESSIONS','La prescrizione dei carichi di forza non è valida.');
-    }
+    if(owns(session.details,'strengthBlocks')&&!validateWorkoutBlocks(session.details.strengthBlocks,{strength:true}))invalid('INVALID_SESSIONS','La prescrizione dei carichi di forza non è valida.');
+    [['swimStructuredBlocks','nuoto'],['hyroxStructuredBlocks','HYROX'],['metconStructuredBlocks','Metcon']].forEach(([field,label])=>{if(owns(session.details,field)&&!validateWorkoutBlocks(session.details[field]))invalid('INVALID_SESSIONS',`La struttura ${label} non è valida.`);});
     if (owns(session,'notes') && typeof session.notes !== 'string') invalid('INVALID_SESSIONS','Le note di una seduta non sono valide.');
     if (owns(session,'titleMode') && !['auto','custom'].includes(session.titleMode)) invalid('INVALID_SESSIONS','La modalità del titolo di una seduta non è valida.');
     if(owns(session,'planImport')){
@@ -190,7 +203,7 @@
       const adjustment=session.adaptiveAdjustment,source=adjustment?.source;
       if(!isObject(adjustment)||adjustment.version!==1||!['active','paused'].includes(adjustment.status)||!['protect','reduce','steady','progress'].includes(adjustment.level)||!['low','medium','high'].includes(adjustment.confidence)||!isTimestamp(adjustment.preparedAt)||!Array.isArray(adjustment.instructions)||adjustment.instructions.length>20||adjustment.instructions.some(item=>typeof item!=='string'||!item.trim()))invalid('INVALID_SESSIONS','L’adattamento settimanale non è valido.');
       if(!isObject(source)||!isDateKey(source.date)||!sessionCategories.has(source.category)||typeof source.title!=='string'||!source.title.trim()||!isFiniteValue(source.durationMin)||Number(source.durationMin)<=0||!sessionPriorities.has(source.priority)||!isObject(source.details)||typeof source.notes!=='string'||!['auto','custom'].includes(source.titleMode)||(owns(source,'startTime')&&!isClockTime(source.startTime)))invalid('INVALID_SESSIONS','La prescrizione originale dell’adattamento non è valida.');
-      if(Array.isArray(source.details.strengthBlocks)&&source.details.strengthBlocks.some(block=>owns(block,'loadKg')&&block.loadKg!==''&&block.loadKg!==null&&block.loadKg!==undefined&&(!isFiniteValue(block.loadKg)||Number(block.loadKg)<0||Number(block.loadKg)>700)))invalid('INVALID_SESSIONS','Il carico di forza originale dell’adattamento non è valido.');
+      if(owns(source.details,'strengthBlocks')&&!validateWorkoutBlocks(source.details.strengthBlocks,{strength:true}))invalid('INVALID_SESSIONS','Il carico di forza originale dell’adattamento non è valido.');
     }
     if(owns(session,'goalSubstitution')){
       const substitution=session.goalSubstitution;

@@ -45,11 +45,13 @@
   let currentEvidenceIndex=new Map();
   let activeOutcomeEvidence=null;
   let activeActualEnduranceBlocks=[];
+  const rangeOptions=(start,end,step=1,prefix='',suffix='')=>{const values=[];for(let value=start;value<=end+0.0001;value+=step){const rounded=Math.round(value*10)/10;values.push([String(rounded),`${prefix}${rounded.toLocaleString('it-IT')}${suffix}`]);}return values;};
+  const rirOptions=rangeOptions(0,6,.5,'RIR ').map(([,label])=>[label,label]),rpeOptions=rangeOptions(1,10,.5,'RPE ').map(([,label])=>[label,label]),restOptions=[['20 s','20 secondi'],['30 s','30 secondi'],['45 s','45 secondi'],['60 s','1 minuto'],['90 s','1 minuto 30'],['2 min','2 minuti'],['2 min 30 s','2 minuti 30'],['3 min','3 minuti'],['4 min','4 minuti'],['5 min','5 minuti']];
   const builderFields = {
-    swimming:[['name','Blocco','Es. Tecnica assetto'],['volume','Volume','10 min / 8 × 50 m'],['target','Target','RPE 5 · tecnica'],['rest','Recupero','20 s']],
-    strength:[['name','Esercizio','Es. Bench press'],['sets','Serie','4'],['reps','Ripetizioni','5'],['loadKg','Carico previsto (kg)','80'],['target','Target','RIR 2 / 80% 1RM'],['rest','Recupero','2 min']],
-    hyrox:[['name','Blocco / stazione','Es. Sled push'],['volume','Volume','4 × 25 m'],['target','Target','RPE 8'],['rest','Recupero','90 s']],
-    metcon:[['name','Blocco / movimento','Es. Row'],['volume','Volume','12 cal'],['target','Target','RPE 8'],['rest','Recupero','30 s']]
+    swimming:[['name','Blocco','Es. Tecnica assetto'],['volume','Volume','10 min / 8 × 50 m'],['target','Intensità','RPE 5',{kind:'select',options:rpeOptions}],['rest','Recupero','20 s',{kind:'select',options:restOptions}]],
+    strength:[['name','Esercizio','Es. Bench press'],['sets','Serie','4',{kind:'select',options:rangeOptions(1,12),numeric:true}],['reps','Ripetizioni','5',{kind:'select',options:rangeOptions(1,30),numeric:true}],['loadKg','Carico previsto (kg)','80',{kind:'number',min:0,max:700,step:.5,numeric:true}],['target','RIR target','RIR 2',{kind:'select',options:rirOptions}],['rest','Recupero','2 min',{kind:'select',options:restOptions}]],
+    hyrox:[['name','Blocco / stazione','Es. Sled push'],['volume','Volume','4 × 25 m'],['target','Intensità','RPE 8',{kind:'select',options:rpeOptions}],['rest','Recupero','90 s',{kind:'select',options:restOptions}]],
+    metcon:[['name','Blocco / movimento','Es. Row'],['volume','Volume','12 cal'],['target','Intensità','RPE 8',{kind:'select',options:rpeOptions}],['rest','Recupero','30 s',{kind:'select',options:restOptions}]]
   };
   const builderInputNames = {swimming:'swimStructuredBlocks',strength:'strengthBlocks',hyrox:'hyroxStructuredBlocks',metcon:'metconStructuredBlocks'};
   const strengthExerciseLibrary = ['Back Squat','Barbell Row','Bench Press','Bulgarian Split Squat','Deadlift','Front Squat','Hip Thrust','Incline Bench Press','Military Press','Romanian Deadlift','Trap Bar Deadlift','Weighted Chin-up','Weighted Pull-up'];
@@ -319,13 +321,15 @@
   function legacyRows(text, type) {
     return String(text || '').split('\n').map(value => value.trim()).filter(Boolean).map(name => type === 'strength' ? {name,sets:'',reps:'',loadKg:'',target:'',rest:''} : {name,volume:'',target:'',rest:''});
   }
+  function restSeconds(value){const text=String(value||'').toLowerCase(),minutes=Number(text.match(/([\d.,]+)\s*(?:min|')/)?.[1]?.replace(',','.'))||0,seconds=Number(text.match(/([\d.,]+)\s*(?:s|sec)/)?.[1]?.replace(',','.'))||0;return Math.round(minutes*60+seconds)||null;}
+  function structuredBuilderRow(type,row){const value={...row};if(type==='strength'){const rir=Number(String(value.target||'').match(/RIR\s*([\d.,]+)/i)?.[1]?.replace(',','.'));if(Number.isFinite(rir))value.targetRir=rir;}else{const rpe=Number(String(value.target||'').match(/RPE\s*([\d.,]+)/i)?.[1]?.replace(',','.'));if(Number.isFinite(rpe))value.targetRpe=rpe;}const seconds=restSeconds(value.rest);if(seconds)value.restSec=seconds;return value;}
   function builderRows(type) {
     const input = form.elements.namedItem(builderInputNames[type]);
     try { const value = JSON.parse(input.value || '[]'); return Array.isArray(value) ? value : []; } catch (_) { return []; }
   }
   function syncBuilder(type) {
     const builder = document.querySelector(`[data-builder="${type}"]`);
-    const rows = [...builder.querySelectorAll('.workout-row')].map(row => Object.fromEntries(builderFields[type].map(([key]) => [key,row.querySelector(`[data-field="${key}"]`).value.trim()]))).filter(row => Object.values(row).some(Boolean));
+    const rows = [...builder.querySelectorAll('.workout-row')].map(row => structuredBuilderRow(type,Object.fromEntries(builderFields[type].map(([key,,,config]) => {const raw=row.querySelector(`[data-field="${key}"]`).value.trim();return[key,config?.numeric&&raw!==''?Number(raw):raw];})))).filter(row => Object.values(row).some(value=>value!==''&&value!==null&&value!==undefined));
     form.elements.namedItem(builderInputNames[type]).value = JSON.stringify(rows);
     return rows;
   }
@@ -333,16 +337,17 @@
     const builder = document.querySelector(`[data-builder="${type}"]`); const list = builder.querySelector('.workout-rows'); list.replaceChildren();
     rows.forEach((values,index) => {
       const row = document.createElement('div'); row.className = `workout-row ${type}`;
-      builderFields[type].forEach(([key,label,placeholder]) => { const wrap=document.createElement('label'); wrap.textContent=label; let input;
+      builderFields[type].forEach(([key,label,placeholder,config]) => { const wrap=document.createElement('label'); wrap.textContent=label; let input;
         if(type==='strength'&&key==='name'){input=document.createElement('select'); const preserved=values[key]&&!strengthExerciseLibrary.includes(values[key])?[values[key]]:[]; [...preserved,...strengthExerciseLibrary].forEach(name=>{const option=document.createElement('option');option.value=name;option.textContent=name;input.append(option);}); input.value=values[key]||strengthExerciseLibrary[0]; input.addEventListener('change',()=>syncBuilder(type));}
-        else {input=document.createElement('input');input.type=type==='strength'&&key==='loadKg'?'number':'text';if(input.type==='number'){input.inputMode='decimal';input.min='0';input.max='700';input.step='0.5';}input.placeholder=placeholder;input.value=values[key]??'';input.addEventListener('input',()=>syncBuilder(type));}
+        else if(config?.kind==='select'){input=document.createElement('select');const blank=document.createElement('option');blank.value='';blank.textContent='Seleziona';input.append(blank);const options=[...(config.options||[])],current=values[key]===null||values[key]===undefined?'':String(values[key]);if(current&&!options.some(([value])=>String(value)===current))options.unshift([current,`${current} · valore esistente`]);options.forEach(([value,text])=>{const option=document.createElement('option');option.value=String(value);option.textContent=text;input.append(option);});input.value=current;input.addEventListener('change',()=>syncBuilder(type));}
+        else {input=document.createElement('input');input.type=config?.kind==='number'?'number':'text';if(input.type==='number'){input.inputMode='decimal';input.min=String(config.min);input.max=String(config.max);input.step=String(config.step);}input.placeholder=placeholder;input.value=values[key]??'';input.addEventListener('input',()=>syncBuilder(type));}
         input.dataset.field=key; wrap.append(input); row.append(wrap); });
       const actions=document.createElement('div'); actions.className='row-actions';
       [['↑','Sposta su',-1],['↓','Sposta giù',1]].forEach(([symbol,label,direction]) => { const button=document.createElement('button'); button.type='button'; button.className='row-action'; button.textContent=symbol; button.title=label; button.disabled=(direction<0&&index===0)||(direction>0&&index===rows.length-1); button.addEventListener('click',()=>{const current=syncBuilder(type); const next=index+direction; [current[index],current[next]]=[current[next],current[index]]; renderBuilder(type,current);}); actions.append(button); });
       const remove=document.createElement('button'); remove.type='button'; remove.className='row-action remove'; remove.textContent='×'; remove.title='Rimuovi'; remove.addEventListener('click',()=>{const current=syncBuilder(type); current.splice(index,1); renderBuilder(type,current);}); actions.append(remove); row.append(actions); list.append(row);
     });
     if (!rows.length) { const empty=document.createElement('div'); empty.className='builder-empty'; empty.textContent=type==='strength'?'Nessun esercizio inserito.':'Nessun blocco inserito.'; list.append(empty); }
-    form.elements.namedItem(builderInputNames[type]).value=JSON.stringify(rows);
+    form.elements.namedItem(builderInputNames[type]).value=JSON.stringify(rows.map(row=>structuredBuilderRow(type,row)));
   }
   function hydrateBuilders(session) {
     const d=session?.details || {};
@@ -453,13 +458,14 @@
     const type=document.createElement('small');const plannedLoad=lift.plannedLoadKg!==undefined?`${lift.externalLoad?'+':''}${lift.plannedLoadKg} kg`:null,plannedReps=lift.plannedReps?` × ${lift.plannedReps}`:'';type.textContent=`${lift.externalLoad?`ZAVORRA ESTERNA · BW ${athleteWeightKg()||'—'} KG`:'CARICO TOTALE'}${plannedLoad?` · PREVISTO ${plannedLoad}${plannedReps}`:lift.planned?' · DA PROGRAMMA':' · AGGIUNTO COME SVOLTO'}`;
     const title=document.createElement('strong');title.textContent=lift.label;copy.append(type,title);name.append(copy);
     if(!lift.planned){const remove=document.createElement('button');remove.type='button';remove.className='row-action remove strength-performance-remove';remove.textContent='×';remove.setAttribute('aria-label',`Rimuovi ${lift.label}`);remove.title=`Rimuovi ${lift.label}`;remove.addEventListener('click',()=>{row.remove();syncStrengthPerformanceChoices();});name.append(remove);}
-    const loadLabel=document.createElement('label');loadLabel.textContent=lift.externalLoad?'Zavorra (kg)':'Carico (kg)';const loadInput=document.createElement('input');loadInput.type='number';loadInput.inputMode='decimal';loadInput.min='0.5';loadInput.max=lift.externalLoad?'200':'700';loadInput.step='0.5';loadInput.value=saved.loadKg??'';loadInput.setAttribute('aria-label',`${loadLabel.textContent} ${lift.label}`);loadLabel.append(loadInput);
-    const repsLabel=document.createElement('label');repsLabel.textContent='Ripetizioni';const repsInput=document.createElement('input');repsInput.type='number';repsInput.inputMode='numeric';repsInput.min='1';repsInput.max='10';repsInput.step='1';repsInput.value=saved.reps??'';repsInput.setAttribute('aria-label',`Ripetizioni ${lift.label}`);repsLabel.append(repsInput);
-    const rpeLabel=document.createElement('label');rpeLabel.textContent='RPE set';const rpeInput=document.createElement('input');rpeInput.type='number';rpeInput.inputMode='decimal';rpeInput.min='6';rpeInput.max='10';rpeInput.step='0.5';rpeInput.placeholder='Es. 8';rpeInput.value=saved.rpe??'';rpeInput.setAttribute('aria-label',`RPE del set ${lift.label}`);rpeLabel.append(rpeInput);
+    const loadLabel=document.createElement('label');loadLabel.textContent=lift.externalLoad?'Zavorra (kg)':'Carico (kg)';const loadInput=document.createElement('input');loadInput.type='number';loadInput.inputMode='decimal';loadInput.min='0.5';loadInput.max=lift.externalLoad?'200':'700';loadInput.step='0.5';loadInput.value=saved.loadKg??'';loadInput.dataset.performanceField='load';loadInput.setAttribute('aria-label',`${loadLabel.textContent} ${lift.label}`);loadLabel.append(loadInput);
+    const selectMetric=(labelText,field,options,value,aria)=>{const label=document.createElement('label');label.textContent=labelText;const select=document.createElement('select');select.dataset.performanceField=field;const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Seleziona';select.append(placeholder);options.forEach(([optionValue,text])=>{const option=document.createElement('option');option.value=String(optionValue);option.textContent=text;select.append(option);});select.value=value??'';select.setAttribute('aria-label',aria);label.append(select);return{label,select};};
+    const repsMetric=selectMetric('Ripetizioni','reps',rangeOptions(1,10),saved.reps,`Ripetizioni ${lift.label}`),repsLabel=repsMetric.label,repsInput=repsMetric.select;
+    const rpeMetric=selectMetric('RPE set','rpe',rangeOptions(6,10,.5),saved.rpe,`RPE del set ${lift.label}`),rpeLabel=rpeMetric.label,rpeInput=rpeMetric.select;
     if(lift.plannedLoadKg!==undefined)loadInput.placeholder=`Previsto ${lift.externalLoad?'+':''}${lift.plannedLoadKg}`;if(lift.plannedReps)repsInput.placeholder=`Previsto ${lift.plannedReps}`;
     const preview=document.createElement('div');preview.className='strength-performance-preview';const previewLabel=document.createElement('small');previewLabel.textContent=`e1RM · ${strengthModel.FORMULAS[formula].shortLabel}`;const previewValue=document.createElement('strong');preview.append(previewLabel,previewValue);
     const update=()=>{const hasAny=loadInput.value!==''||repsInput.value!==''||rpeInput.value!=='';loadInput.required=hasAny;repsInput.required=hasAny;rpeInput.required=hasAny;const value=strengthModel.estimateE1rm(loadInput.value,repsInput.value,{externalLoad:lift.externalLoad,bodyweightKg:athleteWeightKg(),formula,rpe:rpeInput.value});const rir=strengthModel.rirFromRpe(rpeInput.value);previewLabel.textContent=`e1RM · ${strengthModel.FORMULAS[formula].shortLabel}${rir===null?'':' · RIR '+rir.toLocaleString('it-IT')}`;previewValue.textContent=value===null?'—':`${lift.externalLoad?'+':''}${value.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`;};
-    loadInput.addEventListener('input',update);repsInput.addEventListener('input',update);rpeInput.addEventListener('input',update);update();row.append(name,loadLabel,repsLabel,rpeLabel,preview);return row;
+    loadInput.addEventListener('input',update);repsInput.addEventListener('change',update);rpeInput.addEventListener('change',update);update();row.append(name,loadLabel,repsLabel,rpeLabel,preview);return row;
   }
   function renderStrengthPerformance(session,outcome){
     const section=document.getElementById('strength-performance-fields'),container=document.getElementById('strength-performance-rows'),select=document.getElementById('strength-performance-exercise'),button=document.getElementById('add-strength-performance');container.replaceChildren();
@@ -471,17 +477,25 @@
     syncStrengthPerformanceChoices();
   }
   function strengthPerformanceFromForm(){
-    return [...document.querySelectorAll('#strength-performance-rows .strength-performance-row')].map(row=>{const inputs=row.querySelectorAll('input'),key=row.dataset.liftKey,bodyweightKg=athleteWeightKg();return inputs[0].value&&inputs[1].value&&inputs[2].value?{exercise:row.dataset.exercise,loadKg:Number(inputs[0].value),reps:Number(inputs[1].value),rpe:Number(inputs[2].value),...(key==='pullup'&&bodyweightKg?{bodyweightKg}: {})}:null;}).filter(Boolean);
+    return [...document.querySelectorAll('#strength-performance-rows .strength-performance-row')].map(row=>{const load=row.querySelector('[data-performance-field="load"]'),reps=row.querySelector('[data-performance-field="reps"]'),rpe=row.querySelector('[data-performance-field="rpe"]'),key=row.dataset.liftKey,bodyweightKg=athleteWeightKg();return load?.value&&reps?.value&&rpe?.value?{exercise:row.dataset.exercise,loadKg:Number(load.value),reps:Number(reps.value),rpe:Number(rpe.value),...(key==='pullup'&&bodyweightKg?{bodyweightKg}: {})}:null;}).filter(Boolean);
+  }
+  function targetSelect(options,current,onChange){const select=document.createElement('select'),value=String(current||'');const normalized=options.map(([key,label])=>[String(key),label]);if(value&&!normalized.some(([key])=>key===value))normalized.unshift([value,`${value} · registrato`]);normalized.forEach(([key,label])=>{const option=document.createElement('option');option.value=key;option.textContent=label;select.append(option);});if(value)select.value=value;select.addEventListener('change',onChange);return{node:select,value:()=>select.value};}
+  function actualTargetEditor(item,onChange){const type=item.targetType||'free',current=item.target||'';
+    if(type==='pace'){const wrapper=document.createElement('span');wrapper.className='pace-stepper';const seconds=value=>{const match=String(value||'').match(/(\d+):([0-5]\d)/);return match?Number(match[1])*60+Number(match[2]):300;},text=value=>{const safe=Math.max(120,Math.min(900,Math.round(value)));return`${Math.floor(safe/60)}:${String(safe%60).padStart(2,'0')}/km`;};const minus=document.createElement('button'),input=document.createElement('input'),plus=document.createElement('button');minus.type=plus.type='button';minus.textContent='−5s';plus.textContent='+5s';input.type='text';input.readOnly=true;input.value=text(seconds(current));minus.addEventListener('click',()=>{input.value=text(seconds(input.value)-5);onChange();});plus.addEventListener('click',()=>{input.value=text(seconds(input.value)+5);onChange();});wrapper.append(minus,input,plus);return{node:wrapper,value:()=>input.value};}
+    if(type==='hr')return targetSelect(athleteHrTargets().map(zone=>[zone.value,zone.label]),current,onChange);
+    if(type==='rpe')return targetSelect(rpeOptions,current,onChange);
+    if(type==='ftp')return targetSelect([['40–55% FTP','Recupero · 40–55% FTP'],['56–75% FTP','Endurance · 56–75% FTP'],['76–90% FTP','Tempo · 76–90% FTP'],['91–105% FTP','Soglia · 91–105% FTP'],['106–120% FTP','VO₂ · 106–120% FTP']],current,onChange);
+    const input=document.createElement('input');input.type='text';input.disabled=true;input.value='Libero';return{node:input,value:()=>''};
   }
   function actualEnduranceSegmentRow(item,onUpdate){
     const row=document.createElement('div');row.className=`endurance-actual-segment intensity-${prescriptionModel?.inferIntensity?.(item)||'easy'}`;row.classList.toggle('not-completed',item.completed===false);
     const status=document.createElement('label');status.className='endurance-completed';const check=document.createElement('input');check.type='checkbox';check.checked=item.completed!==false;const statusText=document.createElement('span');statusText.textContent='Fatto';status.append(check,statusText);
     const phase=document.createElement('div');phase.className='endurance-actual-phase';const small=document.createElement('small');small.textContent=prescriptionModel?.PHASE_LABELS?.[item.phase]||'Blocco';const planned=document.createElement('span');planned.textContent=`Previsto ${item.plannedAmount??item.amount} ${item.unit||''}`;phase.append(small,planned);
     const quantity=document.createElement('label');quantity.textContent='Quantità reale';const amount=document.createElement('input');amount.type='number';amount.inputMode='decimal';amount.min='0';amount.max='1000';amount.step=item.unit==='min'?'1':'0.1';amount.value=item.amount??'';quantity.append(amount);
-    const target=document.createElement('label');target.textContent='Target / zona reale';const targetInput=document.createElement('input');targetInput.type='text';targetInput.value=item.target||'';targetInput.placeholder='Es. Z2 oppure 5:00/km';target.append(targetInput);
+    const target=document.createElement('label');target.textContent=`Target reale · ${{pace:'passo',hr:'zona HR',rpe:'RPE',ftp:'FTP',free:'libero'}[item.targetType]||'intensità'}`;let update=()=>{};const targetEditor=actualTargetEditor(item,()=>update());target.append(targetEditor.node);
     const hint=document.createElement('small');hint.className='endurance-actual-hint';hint.textContent=item.paceHint?`Riferimento programmato ${item.paceHint}`:'Modifica solo se il blocco è cambiato.';
-    const update=()=>{item.completed=check.checked;item.amount=Number(amount.value)||0;item.target=targetInput.value.trim();row.classList.toggle('not-completed',!item.completed);statusText.textContent=item.completed?'Fatto':'Non fatto';onUpdate?.();};
-    check.addEventListener('change',update);amount.addEventListener('input',update);targetInput.addEventListener('input',update);update();row.append(status,phase,quantity,target,hint);return row;
+    update=()=>{item.completed=check.checked;item.amount=Number(amount.value)||0;item.target=targetEditor.value().trim();row.classList.toggle('not-completed',!item.completed);statusText.textContent=item.completed?'Fatto':'Non fatto';onUpdate?.();};
+    check.addEventListener('change',update);amount.addEventListener('input',update);update();row.append(status,phase,quantity,target,hint);return row;
   }
   function renderEndurancePerformance(session,outcome){
     const section=document.getElementById('endurance-performance-fields'),container=document.getElementById('endurance-performance-rows');container.replaceChildren();
@@ -618,7 +632,7 @@
   form.elements.rideType.addEventListener('change',regenerateRideBuilder);
   form.elements.durationMin.addEventListener('input',()=>{updateSessionEndTime();if(categoryInput.value==='cycling')regenerateRideBuilder();});
   form.elements.startTime.addEventListener('input',updateSessionEndTime);
-  document.querySelectorAll('.add-workout-row').forEach(button => button.addEventListener('click', () => { const type=button.closest('[data-builder]').dataset.builder; const rows=syncBuilder(type); rows.push(type==='strength'?{name:strengthExerciseLibrary[0],sets:'',reps:'',loadKg:'',target:'',rest:''}:{name:'',volume:'',target:'',rest:''}); renderBuilder(type,rows); const inputs=document.querySelectorAll(`[data-builder="${type}"] .workout-row input`); inputs[inputs.length-(builderFields[type].length-1)]?.focus(); }));
+  document.querySelectorAll('.add-workout-row').forEach(button => button.addEventListener('click', () => { const type=button.closest('[data-builder]').dataset.builder; const rows=syncBuilder(type); rows.push(type==='strength'?{name:strengthExerciseLibrary[0],sets:'',reps:'',loadKg:'',target:'',rest:''}:{name:'',volume:'',target:'',rest:''}); renderBuilder(type,rows); document.querySelector(`[data-builder="${type}"] .workout-row:last-child [data-field]`)?.focus(); }));
   document.getElementById('add-run-segment').addEventListener('click',()=>{const items=syncRunBuilder();items.push({type:'segment',phase:items.length?'work':'warmup',unit:'min',amount:items.length?5:10,targetType:'free',target:''});renderRunBuilder(items);});
   document.getElementById('add-run-repeat').addEventListener('click',()=>{const items=syncRunBuilder();items.push({type:'repeat',repeats:6,steps:[{type:'segment',phase:'work',unit:'min',amount:3,targetType:'pace',target:''},{type:'segment',phase:'recovery',unit:'min',amount:2,targetType:'free',target:''}]});renderRunBuilder(items);});
   titleInput.addEventListener('input', () => { titleMode = titleInput.value.trim() ? 'custom' : 'auto'; updateSuggestedTitle(); });
@@ -644,7 +658,7 @@
   outcomeForm.querySelectorAll('input[name="status"]').forEach(input=>input.addEventListener('change',toggleOutcomeFields));
   outcomeForm.elements.skipReason.addEventListener('change',toggleOutcomeFields);
   outcomeForm.elements.outcomeCardiopulmonaryStatus.addEventListener('change',updateOutcomeSafetyScreen);
-  outcomeForm.elements.actualDurationMin.addEventListener('input',updateOutcomeLoad);outcomeForm.elements.rpe.addEventListener('input',updateOutcomeLoad);
+  outcomeForm.elements.actualDurationMin.addEventListener('input',updateOutcomeLoad);outcomeForm.elements.rpe.addEventListener('change',updateOutcomeLoad);
   outcomeForm.addEventListener('submit',event=>{
     event.preventDefault();const data=new FormData(outcomeForm),id=data.get('sessionId'),existing=sessions.find(item=>item.id===id);if(!existing)return;
     if(!canRecordOutcome(existing)){closeOutcome();window.alert(outcomeLockedMessage(existing));return;}
