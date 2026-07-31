@@ -26,6 +26,7 @@
 .body-base{fill:#132940;stroke:#42617f;stroke-width:1.35;stroke-linejoin:round}
 .body-landmarks{fill:none;stroke:#4a6987;stroke-width:1;stroke-linecap:round;opacity:.45}
 .body-regions .body-point{position:static;width:auto;height:auto;transform:none;border:0;border-radius:0;background:none;box-shadow:none;fill:rgba(86,133,179,.42);stroke:#7398bd;stroke-width:1.4;stroke-linejoin:round;cursor:pointer;transition:fill .18s ease,stroke .18s ease,filter .18s ease,opacity .18s ease;outline:none;transform-box:fill-box;transform-origin:center}
+.body-figure .body-regions .body-point.muscle,.body-figure .body-regions .body-point.muscle:hover,.body-figure .body-regions .body-point.muscle:focus,.body-figure .body-regions .body-point.muscle:focus-visible,.body-figure .body-regions .body-point.muscle.selected{transform:none}
 .body-regions .body-point.joint{fill:#10243d;stroke:#8aadd0;stroke-width:2.5}
 .body-regions .body-point.other{fill:rgba(83,125,165,.3)}
 .body-regions .body-point:hover,.body-regions .body-point:focus-visible,.body-regions .body-point.selected{transform:none;fill:#377dc6;stroke:#c6e0ff;filter:drop-shadow(0 0 7px rgba(86,160,244,.72))}
