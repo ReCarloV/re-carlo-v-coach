@@ -7,3 +7,15 @@
 @media(max-width:560px){.data-overview-metrics{grid-template-columns:1fr 1fr}.data-overview-metrics strong{font-size:21px}.reconciliation-stats{grid-template-columns:1fr 1fr}}
 .plan-source:before{background:#4c91f4}.source-logo.plan{background:#163d71;color:#9cc8ff;border:1px solid #3b6da9}.source-status.optional{background:#1c2d43;color:#9fb4ce}.plan-preview{border-color:#3d6d9f}.plan-preview .import-preview-note{border-left-color:#6aa9f7}.plan-source .plan-button{background:#172740!important;border-color:#315a86!important;color:#b9d6ff!important}.plan-preview .plan-button{background:#246fc8!important;border-color:#246fc8!important;color:#fff!important}
 .compact-more{display:block;margin:12px auto 0;padding:8px 13px;font-size:11px}.compact-more[hidden]{display:none}
+html[data-theme="light"] .reconciliation-panel{border-color:#bed4ea;background:linear-gradient(145deg,#fff,#f3f8fd)}
+html[data-theme="light"] .reconciliation-safety{border-left-color:#2478d0;background:#edf5fd;color:#455d75}
+html[data-theme="light"] .reconciliation-safety strong{color:#185f9f}
+html[data-theme="light"] .reconciliation-stats>span,html[data-theme="light"] .reconciliation-card,html[data-theme="light"] .reconciliation-source,html[data-theme="light"] .reconciliation-history-item{border-color:#c9d9e8;background:#fff;color:#15283b;box-shadow:0 6px 18px rgba(30,76,118,.05)}
+html[data-theme="light"] .reconciliation-source.whoop>span{color:#52677c}
+html[data-theme="light"] .reconciliation-confidence.high{background:#dff5ec;color:#176a50;border:1px solid #a8ddca}
+html[data-theme="light"] .reconciliation-confidence.medium{background:#fff4cf;color:#765b00;border:1px solid #e9d284}
+html[data-theme="light"] .reconciliation-confidence.low{background:#ffeadf;color:#8e492c;border:1px solid #edbea8}
+html[data-theme="light"] .reconciliation-reasons span{background:#e3f5ef;color:#196a53}
+html[data-theme="light"] .reconciliation-history summary{color:#314d68}
+html[data-theme="light"] .reconciliation-history summary span{background:#e8f1fa;color:#28649c}
+html[data-theme="light"] .reconciliation-cutoff-note{border-color:#c7d9ea;background:#eef6fd;color:#476682}

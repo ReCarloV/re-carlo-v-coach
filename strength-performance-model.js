@@ -48,10 +48,10 @@
   function normalizedEntry(entry){
     const key=liftKey(entry?.exercise),loadKg=Number(entry?.loadKg),reps=Number(entry?.reps);if(!key||!Number.isFinite(loadKg)||loadKg<=0||!Number.isInteger(reps)||reps<1||reps>10)return null;
     const hasRpe=entry?.rpe!==null&&entry?.rpe!==undefined&&entry?.rpe!=='',rpe=normalizedRpe(entry?.rpe);if(hasRpe&&rpe===null)return null;
-    const bodyweightKg=Number(entry?.bodyweightKg);return {key,exercise:String(entry.exercise).trim(),loadKg:roundHalf(loadKg),reps,...(rpe!==null?{rpe}:{}),...(key==='pullup'&&Number.isFinite(bodyweightKg)&&bodyweightKg>0?{bodyweightKg:roundHalf(bodyweightKg)}:{}),...(entry?.e1rmConfirmed===true?{e1rmConfirmed:true}:{})};
+    const bodyweightKg=Number(entry?.bodyweightKg),setNumber=Number(entry?.setNumber);return {key,exercise:String(entry.exercise).trim(),loadKg:roundHalf(loadKg),reps,...(rpe!==null?{rpe}:{}),...(Number.isInteger(setNumber)&&setNumber>=1&&setNumber<=20?{setNumber}:{}),...(key==='pullup'&&Number.isFinite(bodyweightKg)&&bodyweightKg>0?{bodyweightKg:roundHalf(bodyweightKg)}:{}),...(entry?.e1rmConfirmed===true?{e1rmConfirmed:true}:{})};
   }
   function plannedValues(block){
-    const hasLoad=block?.loadKg!==''&&block?.loadKg!==null&&block?.loadKg!==undefined,load=Number(block?.loadKg),reps=Number(block?.reps);return{...(hasLoad&&Number.isFinite(load)&&load>=0?{plannedLoadKg:roundHalf(load)}:{}),...(Number.isInteger(reps)&&reps>0?{plannedReps:reps}:{})};
+    const hasLoad=block?.loadKg!==''&&block?.loadKg!==null&&block?.loadKg!==undefined,load=Number(block?.loadKg),reps=Number(block?.reps),sets=Number(block?.sets);return{...(hasLoad&&Number.isFinite(load)&&load>=0?{plannedLoadKg:roundHalf(load)}:{}),...(Number.isInteger(reps)&&reps>0?{plannedReps:reps}:{}),...(Number.isInteger(sets)&&sets>0?{plannedSets:sets}:{})};
   }
   function editableLifts(session){
     const result=[],seen=new Set();
@@ -74,6 +74,17 @@
     Object.keys(LIFTS).forEach(key=>{const value=Number(manualMaxes?.[key]);if(Number.isFinite(value)&&value>0)result[key]={key,label:LIFTS[key].label,value:roundHalf(value),source:'manual',externalLoad:LIFTS[key].externalLoad};});
     return result;
   }
+  function groupedEntries(entries=[]){
+    const groups=[],index=new Map();(Array.isArray(entries)?entries:[]).forEach((raw,position)=>{const entry=normalizedEntry(raw);if(!entry)return;let group=index.get(entry.key);if(!group){group={key:entry.key,label:LIFTS[entry.key].label,externalLoad:LIFTS[entry.key].externalLoad,entries:[]};index.set(entry.key,group);groups.push(group);}group.entries.push({...entry,setNumber:entry.setNumber||group.entries.length+1,_position:position});});groups.forEach(group=>group.entries.sort((a,b)=>a.setNumber-b.setNumber||a._position-b._position).forEach(entry=>delete entry._position));return groups;
+  }
+  function bestSet(entries=[],options={}){
+    let best=null;(Array.isArray(entries)?entries:[]).forEach(raw=>{const entry=normalizedEntry(raw);if(!entry)return;const lift=LIFTS[entry.key],value=estimateE1rm(entry.loadKg,entry.reps,{externalLoad:lift.externalLoad,bodyweightKg:entry.bodyweightKg||options.bodyweightKg,formula:options.formula,rpe:entry.rpe});if(value===null)return;if(!best||value>best.value||(value===best.value&&entry.loadKg>best.entry.loadKg))best={entry,value,key:entry.key,label:lift.label,externalLoad:lift.externalLoad};});return best;
+  }
+  function sessionVolume(session={}){
+    const planned=(Array.isArray(session?.details?.strengthBlocks)?session.details.strengthBlocks:[]).reduce((sum,block)=>liftKey(block?.name)?sum+(Number.isInteger(Number(block?.sets))?Number(block.sets):0):sum,0);
+    const actual=(Array.isArray(session?.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[]).map(normalizedEntry).filter(Boolean).length,known=session?.outcome?.strengthPerformanceVersion===2;
+    return{known,plannedSets:planned,actualSets:actual,deltaSets:known?actual-planned:null,ratio:known&&planned>0?actual/planned:null,groups:groupedEntries(session?.outcome?.strengthPerformance)};
+  }
   function historyByLift({sessions=[],bodyweightKg=null,formula='epley',limit=8}={}){
     const selectedFormula=FORMULAS[formula]?formula:'epley',perSession=new Map();
     (Array.isArray(sessions)?sessions:[]).forEach(session=>{
@@ -86,5 +97,5 @@
     const result=Object.fromEntries(Object.keys(LIFTS).map(key=>[key,[]]));[...perSession.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.sessionId.localeCompare(b.sessionId)).forEach(point=>result[point.key].push(point));Object.keys(result).forEach(key=>{result[key]=result[key].slice(-Math.max(2,Number(limit)||8));});return result;
   }
 
-  return {LIFTS,FORMULAS,liftKey,rirFromRpe,effectiveReps,estimateE1rm,normalizedEntry,plannedValues,editableLifts,deriveMaxes,historyByLift};
+  return {LIFTS,FORMULAS,liftKey,rirFromRpe,effectiveReps,estimateE1rm,normalizedEntry,plannedValues,editableLifts,groupedEntries,bestSet,sessionVolume,deriveMaxes,historyByLift};
 });

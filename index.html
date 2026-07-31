@@ -152,7 +152,6 @@
         <div class="section-head"><div><small>PROGRAMMAZIONE</small></div><div class="plan-actions"><button class="primary small" id="generate-week">Genera settimana</button><button class="ghost small" id="open-weekly-checkin">Check-in settimana</button><button class="ghost small" id="add-session">+ Seduta manuale</button><button class="ghost small" id="select-sessions" type="button">Seleziona</button></div></div>
         <p class="muted intro plan-availability-line" id="plan-intro">Disponibilità non impostata</p>
         <div id="weekly-checkin-summary" class="weekly-checkin-summary" hidden></div>
-        <article class="plan-concurrent-audit" id="plan-concurrent-audit" hidden aria-live="polite"></article>
         <div class="plan-view-toolbar">
           <div class="plan-view-switch" role="group" aria-label="Modalità di visualizzazione del piano">
             <button type="button" class="plan-view-button active" data-plan-view="list" aria-pressed="true">☷ <span>Lista</span></button>
@@ -190,6 +189,7 @@
           <div class="calendar-weekdays" aria-hidden="true"><span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span></div>
           <div class="calendar-grid" id="calendar-grid"></div>
         </div>
+        <article class="plan-concurrent-audit" id="plan-concurrent-audit" hidden aria-live="polite"></article>
       </section>
 
       <section class="view" id="knowledge">
@@ -601,14 +601,14 @@
             <div class="endurance-performance-rows" id="endurance-performance-rows"></div>
           </section>
           <section class="strength-performance" id="strength-performance-fields" hidden>
-            <div class="strength-performance-heading"><div><strong>Set principali effettivi per e1RM</strong></div><small>1–10 RIPETIZIONI</small></div>
+            <div class="strength-performance-heading"><div><strong>Serie principali realmente svolte</strong><span>Registra ogni serie: il Coach confronta il volume e usa automaticamente la migliore per l’e1RM.</span></div><small>1–10 RIPETIZIONI</small></div>
             <div class="strength-performance-add">
               <label>Altro esercizio principale svolto<select id="strength-performance-exercise" aria-label="Altro esercizio principale svolto"></select></label>
               <button class="ghost" id="add-strength-performance" type="button">+ Aggiungi esercizio</button>
             </div>
             <div class="strength-performance-rows" id="strength-performance-rows"></div>
             <p class="strength-performance-empty" id="strength-performance-empty" hidden>Nessun fondamentale e1RM selezionato. Aggiungilo qui sopra se ne hai svolto uno.</p>
-            <details class="methodology-details strength-inline-method"><summary>Metodo e1RM</summary><p class="strength-estimate-note">Carico, ripetizioni e RPE; RIR stimata = 10 − RPE.</p></details>
+            <details class="methodology-details strength-inline-method"><summary>Metodo volume ed e1RM</summary><p class="strength-estimate-note">Ogni riga è una serie effettiva. Il volume usa il numero di serie registrate; l’e1RM usa la migliore stima tra carico, ripetizioni e RPE, con RIR stimata = 10 − RPE.</p></details>
           </section>
         </div>
         <div id="outcome-skipped-fields" hidden>

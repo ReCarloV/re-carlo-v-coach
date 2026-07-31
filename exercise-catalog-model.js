@@ -1,8 +1,9 @@
 (function(root,factory){
-  const api=factory();
+  const strengthModel=typeof module!=='undefined'&&module.exports?require('./strength-performance-model.js'):root.rcStrengthPerformanceModel;
+  const api=factory(strengthModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcExerciseCatalogModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(strengthModel){
   'use strict';
 
   const VERSION='1.0.0';
@@ -37,7 +38,7 @@
   function listExercises(){return EXERCISES.map(item=>item.label);}
   function describeExercise(value){const item=findExercise(value);return item?{id:item.id,label:item.label,pattern:item.pattern,patternLabel:PATTERN_LABELS[item.pattern]||item.pattern,equipment:[...item.equipment],primaryMuscles:[...item.primaryMuscles],secondaryMuscles:[...item.secondaryMuscles],joints:[...item.joints],primaryRegions:[...item.primaryRegions],secondaryRegions:[...item.secondaryRegions]}:null;}
   function exerciseNames(session,{actual=false}={}){
-    if(actual&&Array.isArray(session?.outcome?.strengthPerformance))return session.outcome.strengthPerformance.map(item=>item?.exercise).filter(Boolean);
+    if(actual&&Array.isArray(session?.outcome?.strengthPerformance))return [...new Set(session.outcome.strengthPerformance.map(item=>item?.exercise).filter(Boolean))];
     return (Array.isArray(session?.details?.strengthBlocks)?session.details.strengthBlocks:[]).map(item=>item?.name).filter(Boolean);
   }
   function sessionStimulus(session,options={}){
@@ -47,12 +48,12 @@
     return{version:VERSION,source:options.actual?'actual':'planned',recognized:known.length,total:names.length,primaryRegions:[...primary],secondaryRegions:[...secondary],primaryMuscles:[...muscles],patterns:[...patterns],unknown:names.filter(name=>!findExercise(name))};
   }
   function plannedText(block){return [block?.sets&&block?.reps?`${block.sets} × ${block.reps}`:'',block?.loadKg!==''&&block?.loadKg!==null&&block?.loadKg!==undefined?`${Number(block.loadKg).toLocaleString('it-IT',{maximumFractionDigits:1})} kg`:'',block?.target||''].filter(Boolean).join(' · ')||'Prescrizione non quantificata';}
-  function actualText(entry){return entry?[`${Number(entry.loadKg).toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${entry.reps}`,entry.rpe!==undefined?`RPE ${Number(entry.rpe).toLocaleString('it-IT')}`:'RPE non registrata'].join(' · '):'Nessun set principale registrato';}
+  function actualText(entries){const values=Array.isArray(entries)?entries:entries?[entries]:[];if(!values.length)return'Nessuna serie principale registrata';const best=strengthModel?.bestSet?.(values),entry=best?.entry||values[0];return`${values.length} ${values.length===1?'serie':'serie'} · migliore ${Number(entry.loadKg).toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${entry.reps}${entry.rpe!==undefined?` · RPE ${Number(entry.rpe).toLocaleString('it-IT')}`:' · RPE non registrata'}`;}
   function compareStrengthSession(session){
-    const planned=Array.isArray(session?.details?.strengthBlocks)?session.details.strengthBlocks:[],actual=Array.isArray(session?.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[],rows=[],used=new Set();
-    planned.forEach(block=>{const meta=findExercise(block?.name),matchIndex=actual.findIndex((entry,index)=>!used.has(index)&&((meta&&findExercise(entry?.exercise)?.id===meta.id)||normalized(entry?.exercise)===normalized(block?.name)));if(matchIndex>=0)used.add(matchIndex);const entry=matchIndex>=0?actual[matchIndex]:null;const plannedLoad=block?.loadKg!==''&&block?.loadKg!==null&&block?.loadKg!==undefined?Number(block.loadKg):null,actualLoad=entry?Number(entry.loadKg):null;rows.push({name:meta?.label||block?.name||'Esercizio',planned:plannedText(block),actual:actualText(entry),status:entry?'recorded':'missing',loadDeltaKg:Number.isFinite(plannedLoad)&&Number.isFinite(actualLoad)?Math.round((actualLoad-plannedLoad)*2)/2:null,meta:describeExercise(block?.name)});});
-    actual.forEach((entry,index)=>{if(used.has(index))return;rows.push({name:findExercise(entry?.exercise)?.label||entry?.exercise||'Esercizio aggiunto',planned:'Non previsto',actual:actualText(entry),status:'added',loadDeltaKg:null,meta:describeExercise(entry?.exercise)});});
-    return{version:VERSION,rows,recorded:actual.length,matched:rows.filter(row=>row.status==='recorded').length,added:rows.filter(row=>row.status==='added').length,planned:planned.length};
+    const planned=Array.isArray(session?.details?.strengthBlocks)?session.details.strengthBlocks:[],actual=Array.isArray(session?.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[],groups=strengthModel?.groupedEntries?.(actual)||[],rows=[],used=new Set();
+    planned.forEach(block=>{const meta=findExercise(block?.name),group=groups.find(item=>!used.has(item.key)&&((meta&&findExercise(item.label)?.id===meta.id)||strengthModel?.liftKey?.(block?.name)===item.key));if(group)used.add(group.key);const plannedLoad=block?.loadKg!==''&&block?.loadKg!==null&&block?.loadKg!==undefined?Number(block.loadKg):null,best=group?strengthModel?.bestSet?.(group.entries):null,actualLoad=best?Number(best.entry.loadKg):null;rows.push({name:meta?.label||block?.name||'Esercizio',planned:plannedText(block),actual:actualText(group?.entries),status:group?'recorded':'missing',actualSets:group?.entries.length||0,plannedSets:Number(block?.sets)||null,loadDeltaKg:Number.isFinite(plannedLoad)&&Number.isFinite(actualLoad)?Math.round((actualLoad-plannedLoad)*2)/2:null,meta:describeExercise(block?.name)});});
+    groups.forEach(group=>{if(used.has(group.key))return;rows.push({name:findExercise(group.label)?.label||group.label||'Esercizio aggiunto',planned:'Non previsto',actual:actualText(group.entries),status:'added',actualSets:group.entries.length,plannedSets:null,loadDeltaKg:null,meta:describeExercise(group.label)});});
+    return{version:VERSION,rows,recorded:actual.length,recordedExercises:groups.length,matched:rows.filter(row=>row.status==='recorded').length,added:rows.filter(row=>row.status==='added').length,planned:planned.length};
   }
 
   return{VERSION,PATTERN_LABELS,EXERCISES,listExercises,findExercise,describeExercise,sessionStimulus,compareStrengthSession};

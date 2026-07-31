@@ -5,6 +5,7 @@
   const recoveryModel=typeof module!=='undefined'&&module.exports?require('./recovery-trend-model.js'):root.rcRecoveryTrendModel;
   const toleranceModel=typeof module!=='undefined'&&module.exports?require('./progression-tolerance-model.js'):root.rcProgressionToleranceModel;
   const safetyModel=typeof module!=='undefined'&&module.exports?require('./safety-screen-model.js'):root.rcSafetyScreenModel;
+  const strengthModel=typeof module!=='undefined'&&module.exports?require('./strength-performance-model.js'):root.rcStrengthPerformanceModel;
   const levelMeta={
     protect:{label:'Protezione del recupero',summary:'I segnali recenti richiedono una settimana conservativa: volume ridotto e niente qualità aggressiva.'},
     reduce:{label:'Carico ridotto',summary:'Mantengo gli stimoli principali, ma riduco volume e densità per assorbire fatica o fastidi.'},
@@ -39,6 +40,8 @@
     const knownPain=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value));
     const pains=performed.map(session=>session.outcome.pain).filter(knownPain);
     const runningPains=performed.filter(session=>session.category==='running').map(session=>session.outcome.pain).filter(knownPain);
+    const strengthVolumes=performed.filter(session=>session.category==='strength').map(session=>strengthModel?.sessionVolume?.(session)).filter(item=>item?.known);
+    const strengthPlannedSets=sum(strengthVolumes.map(item=>item.plannedSets)),strengthActualSets=sum(strengthVolumes.map(item=>item.actualSets));
     const eligibleAdherence=recorded.length;
     return {
       due:due.length,recorded:recorded.length,unrecorded:Math.max(0,due.length-recorded.length),
@@ -58,7 +61,11 @@
       timeSkips:skipped.filter(session=>session.outcome.skipReason==='time').length,
       organizationSkips:skipped.filter(session=>skipGroup(session.outcome.skipReason)==='organization').length,
       planningSkips:skipped.filter(session=>skipGroup(session.outcome.skipReason)==='planning').length,
-      unknownSkips:skipped.filter(session=>skipGroup(session.outcome.skipReason)==='unknown').length
+      unknownSkips:skipped.filter(session=>skipGroup(session.outcome.skipReason)==='unknown').length,
+      strengthVolumeKnown:strengthVolumes.length,strengthPlannedSets,strengthActualSets,
+      strengthVolumeRatio:strengthPlannedSets>0?strengthActualSets/strengthPlannedSets:null,
+      strengthReducedSessions:strengthVolumes.filter(item=>item.ratio!==null&&item.ratio<.8).length,
+      strengthExpandedSessions:strengthVolumes.filter(item=>item.ratio!==null&&item.ratio>1.2).length
     };
   }
   function organizationSignals(recent,previous){
@@ -133,6 +140,7 @@
     if(recent.fatigueSkips)reasons.push(`${recent.fatigueSkips} sedut${recent.fatigueSkips===1?'a':'e'} non svolt${recent.fatigueSkips===1?'a':'e'} per fatica o recupero insufficiente.`);
     if(recent.hardSessions)reasons.push(`${recent.hardSessions} sedut${recent.hardSessions===1?'a':'e'} con sforzo superiore al previsto.`);
     if(loadRatio!==null&&Math.abs(loadRatio-1)>.15)reasons.push(`Carico degli ultimi 7 giorni ${loadRatio>1?'superiore':'inferiore'} del ${Math.round(Math.abs(loadRatio-1)*100)}% rispetto ai 7 precedenti.`);
+    if(recent.strengthVolumeKnown&&recent.strengthVolumeRatio!==null&&Math.abs(recent.strengthVolumeRatio-1)>=.15)reasons.push(`Forza: ${recent.strengthActualSets}/${recent.strengthPlannedSets} serie principali registrate rispetto al programmato. Il dato descrive il volume svolto, senza modificare da solo il piano.`);
     if(preSummary.weeklyLevel==='reduce')reasons.push('Check-in contestuali distinti, o corroborati dagli esiti, suggeriscono una riduzione del carico.');
     if(preSummary.weeklyLevel==='protect')reasons.push('Segnali contestuali ripetuti e corroborati suggeriscono recupero e protezione del carico.');
     if(preSummary.contextOnly)reasons.push('Un segnale contestuale isolato resta limitato alla seduta collegata e non modifica l’intera settimana.');
@@ -167,6 +175,7 @@
       metric('Carico 7 gg',recent.recorded?`${Math.round(recent.load)} AU`:'—'),
       metric('Dolore max',body.staleCount&&combinedPain===0?'Da aggiornare':recent.painKnown||body.fresh.length?`${combinedPain}/10`:'—',combinedPain>=5?'danger':combinedPain>=3||body.staleCount?'warn':'neutral'),
       metric('Vincoli 14 gg',organization.total14?String(organization.total14):'0',organization.level==='adapt'?'warn':'neutral'),
+      ...(recent.strengthVolumeKnown?[metric('Volume forza',recent.strengthPlannedSets?`${recent.strengthActualSets}/${recent.strengthPlannedSets} serie`:`${recent.strengthActualSets} serie`,recent.strengthVolumeRatio!==null&&recent.strengthVolumeRatio<.8?'warn':'neutral')]:[]),
       metric('WHOOP',recovery.label,recovery.tone),
       ...(safety.active?[metric('Sicurezza','STOP','danger')]:[])
     ];

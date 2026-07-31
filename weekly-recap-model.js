@@ -1,9 +1,10 @@
 (function(root,factory){
   const skipReasonModel=typeof module!=='undefined'&&module.exports?require('./skip-reason-model.js'):root.rcSkipReasonModel;
-  const api=factory(skipReasonModel);
+  const strengthModel=typeof module!=='undefined'&&module.exports?require('./strength-performance-model.js'):root.rcStrengthPerformanceModel;
+  const api=factory(skipReasonModel,strengthModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcWeeklyRecapModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(skipReasonModel){
+})(typeof globalThis!=='undefined'?globalThis:this,function(skipReasonModel,strengthModel){
   'use strict';
 
   const levelMeta={
@@ -104,6 +105,7 @@
     const runningDistance=runsWithDistance.reduce((sum,item)=>sum+number(item.outcome.actualDistanceKm),0);const rpes=performedSessions.map(item=>item.outcome?.rpe).filter(value=>number(value)>0);
     const outcomePainValues=performedSessions.map(item=>item.outcome?.pain).filter(value=>value!==undefined&&value!==null&&Number.isFinite(Number(value)));const issuePainValues=preCheckins.flatMap(item=>(Array.isArray(item.issueReadings)?item.issueReadings:[]).map(reading=>reading.pain)).filter(value=>value!==undefined&&value!==null&&Number.isFinite(Number(value)));
     const painKnown=outcomePainValues.length+issuePainValues.length>0;const maxPain=painKnown?Math.max(0,...outcomePainValues.map(Number),...issuePainValues.map(Number)):0;const pastUnrecorded=due.filter(item=>!item.outcome).length;
+    const strengthVolumes=performedSessions.filter(item=>item.category==='strength').map(item=>strengthModel?.sessionVolume?.(item)).filter(item=>item?.known);const strengthPlannedSets=strengthVolumes.reduce((sum,item)=>sum+item.plannedSets,0),strengthActualSets=strengthVolumes.reduce((sum,item)=>sum+item.actualSets,0);const strengthVolume={knownSessions:strengthVolumes.length,plannedSets:strengthPlannedSets,actualSets:strengthActualSets,ratio:strengthPlannedSets>0?strengthActualSets/strengthPlannedSets:null};
     const categoryCounts={};performedSessions.forEach(item=>{categoryCounts[item.category]=(categoryCounts[item.category]||0)+1;});
     const subjective={count:preCheckins.length,energy:averageField(preCheckins,'energy'),fatigue:averageField(preCheckins,'fatigue'),soreness:averageField(preCheckins,'soreness'),motivation:averageField(preCheckins,'motivation')};
     const analysis=input.analysis||{level:'steady',settings:{},reasons:[]};const meta=levelMeta[analysis.level]||levelMeta.steady;
@@ -115,6 +117,7 @@
     if(fatigueSkips)reasons.push(`${fatigueSkips} sedut${fatigueSkips===1?'a':'e'} non svolt${fatigueSkips===1?'a':'e'} per fatica o recupero.`);
     if(painSkips||maxPain>=3)reasons.push(`Dolore massimo disponibile: ${maxPain}/10.`);
     const harder=performedSessions.filter(item=>item.outcome?.execution==='harder'||number(item.outcome?.rpe)>=8).length;if(harder)reasons.push(`${harder} sedut${harder===1?'a è':'e sono'} risultat${harder===1?'a':'e'} più impegnativ${harder===1?'a':'e'} del previsto.`);
+    if(strengthVolume.knownSessions&&strengthVolume.ratio!==null&&Math.abs(strengthVolume.ratio-1)>=.15)reasons.push(`Forza: ${strengthVolume.actualSets}/${strengthVolume.plannedSets} serie principali svolte rispetto al programma.`);
     if(analysis.recovery?.usable&&['caution','protect'].includes(analysis.recovery.level))reasons.push(`WHOOP: ${analysis.recovery.reasons.join(' ')}`);
     if(!preCheckins.length&&performedSessions.length)reasons.push('Nessun check-in soggettivo disponibile per questa settimana.');
     if(!reasons.length&&sessions.length)reasons.push(isCurrent?'La settimana è ancora in corso: il recap si aggiorna dopo ogni registrazione.':'Nessun segnale rilevante emerge dai dati disponibili.');
@@ -128,7 +131,7 @@
       today,weekStart,weekEnd,isPast,isCurrent,isFuture,sessions,demoCount,due,recorded,performed:performedSessions,skipped,keyDue,keyRecorded,
       adherence,coverage:confidence.coverage,confidence,
       load,actualMinutes,plannedMinutes,runningDistance,distanceKnown:runsWithDistance.length>0,distancePartial:runsWithDistance.length<runs.length,
-      meanRpe:mean(rpes),maxPain,painKnown,pastUnrecorded,categoryCounts,categoryLabels,subjective,availability,skipSignals,
+      meanRpe:mean(rpes),maxPain,painKnown,pastUnrecorded,categoryCounts,categoryLabels,subjective,availability,skipSignals,strengthVolume,
       coach:{level:analysis.level||'steady',tone:meta.tone,title:coachTitle,summary:coachSummary,reasons},recovery:analysis.recovery||null,nextWeek
     };
   }

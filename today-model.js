@@ -4,10 +4,11 @@
   const recoveryModel=typeof module!=='undefined'&&module.exports?require('./recovery-trend-model.js'):root.rcRecoveryTrendModel;
   const freshnessModel=typeof module!=='undefined'&&module.exports?require('./device-freshness-model.js'):root.rcDeviceFreshnessModel;
   const applicationModel=typeof module!=='undefined'&&module.exports?require('./adaptive-application-model.js'):root.rcAdaptiveApplicationModel;
-  const api = factory(symptomModel,skipReasonModel,recoveryModel,freshnessModel,applicationModel);
+  const strengthModel=typeof module!=='undefined'&&module.exports?require('./strength-performance-model.js'):root.rcStrengthPerformanceModel;
+  const api = factory(symptomModel,skipReasonModel,recoveryModel,freshnessModel,applicationModel,strengthModel);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.rcTodayModel = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (symptomModel,skipReasonModel,recoveryModel,freshnessModel,applicationModel) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (symptomModel,skipReasonModel,recoveryModel,freshnessModel,applicationModel,strengthModel) {
   'use strict';
 
   const categoryMeta = {
@@ -132,11 +133,8 @@
     if(session.category==='strength') {
       if(performed(session)){
         const actual=Array.isArray(session.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[];
-        if(actual.length)return actual.map(item=>{
-          const load=Number(item.loadKg),reps=Number(item.reps),hasRpe=item.rpe!==null&&item.rpe!==undefined&&item.rpe!=='',rpe=Number(item.rpe),external=/trazioni|weighted (?:pull|chin)/i.test(String(item.exercise||''));
-          return {label:item.exercise||'Esercizio principale',value:[Number.isFinite(load)?`${external?'+':''}${load.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`:null,Number.isFinite(reps)?`× ${reps}`:null,hasRpe&&Number.isFinite(rpe)?`RPE ${rpe.toLocaleString('it-IT',{maximumFractionDigits:1})}`:null].filter(Boolean).join(' · '),actual:true};
-        });
-        return [{label:'Set principali effettivi',value:'Nessun set principale registrato',actual:true}];
+        if(actual.length)return (strengthModel?.groupedEntries?.(actual)||[]).map(group=>({label:group.label,value:`${group.entries.length} ${group.entries.length===1?'serie':'serie'} · ${group.entries.map((item,index)=>`S${index+1} ${group.externalLoad?'+':''}${item.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${item.reps}${item.rpe!==undefined?` @${item.rpe.toLocaleString('it-IT')}`:''}`).join(' / ')}`,actual:true}));
+        return [{label:'Serie principali effettive',value:'Nessuna serie principale registrata',actual:true}];
       }
       const blocks=Array.isArray(details.strengthBlocks)?details.strengthBlocks:[];
       if(blocks.length)return blocks.map(item=>({label:item.name||'Esercizio',value:[item.sets&&item.reps?`${item.sets}×${item.reps}`:'',item.target,item.rest?`rec. ${item.rest}`:''].filter(Boolean).join(' · ')}));

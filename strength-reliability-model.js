@@ -30,7 +30,8 @@
   function historicalObservations({sessions=[],excludeSessionId=null,bodyweightKg=null,formula='epley'}={}){
     const observations=[];(Array.isArray(sessions)?sessions:[]).forEach(session=>{
       if(session?.id===excludeSessionId||session?.category!=='strength'||!['completed','partial'].includes(session?.outcome?.status)||session?.demoDataset)return;
-      (Array.isArray(session.outcome.strengthPerformance)?session.outcome.strengthPerformance:[]).forEach(raw=>{
+      const bestEntries=strengthModel.groupedEntries(session.outcome.strengthPerformance).map(group=>strengthModel.bestSet(group.entries,{bodyweightKg,formula})?.entry).filter(Boolean);
+      bestEntries.forEach(raw=>{
         const estimated=estimateEntry(raw,{bodyweightKg,formula});if(estimated)observations.push({...estimated,date:session.date||'',sessionId:session.id||'',confirmed:raw.e1rmConfirmed===true});
       });
     });return observations;
@@ -41,7 +42,8 @@
   }
   function reviewE1rmEntries({entries=[],sessions=[],excludeSessionId=null,bodyweightKg=null,formula='epley'}={}){
     const history=historicalObservations({sessions,excludeSessionId,bodyweightKg,formula}),issues=[];
-    (Array.isArray(entries)?entries:[]).forEach(raw=>{
+    const bestEntries=strengthModel.groupedEntries(entries).map(group=>strengthModel.bestSet(group.entries,{bodyweightKg,formula})?.entry).filter(Boolean);
+    bestEntries.forEach(raw=>{
       const candidate=estimateEntry(raw,{bodyweightKg,formula});if(!candidate)return;const baseline=history.filter(item=>item.key===candidate.key).sort((a,b)=>a.date.localeCompare(b.date));
       if(baseline.length<MINIMUM_BASELINE_OBSERVATIONS)return;const reference=Math.max(...baseline.map(item=>item.value)),delta=candidate.value-reference,relative=reference>0?delta/reference:0;
       if(delta<OUTLIER_MINIMUM_DELTA_KG||relative<OUTLIER_RELATIVE_THRESHOLD)return;

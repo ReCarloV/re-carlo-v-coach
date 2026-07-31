@@ -1,10 +1,11 @@
 (function(root,factory){
   const todayModel=typeof module!=='undefined'&&module.exports?require('./today-model.js'):root.rcTodayModel;
   const exerciseCatalog=typeof module!=='undefined'&&module.exports?require('./exercise-catalog-model.js'):root.rcExerciseCatalogModel;
-  const api=factory(todayModel,exerciseCatalog);
+  const strengthModel=typeof module!=='undefined'&&module.exports?require('./strength-performance-model.js'):root.rcStrengthPerformanceModel;
+  const api=factory(todayModel,exerciseCatalog,strengthModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcWorkoutModeModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(todayModel,exerciseCatalog){
+})(typeof globalThis!=='undefined'?globalThis:this,function(todayModel,exerciseCatalog,strengthModel){
   'use strict';
 
   const VERSION='1.0.0';
@@ -46,10 +47,7 @@
   function restText(value){const text=String(value||'').trim();return text?`Recupero ${text}`:'';}
   function actualStrengthBlocks(session){
     const rows=Array.isArray(session?.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[];
-    return rows.map((item,index)=>{
-      const external=/trazioni|weighted (?:pull|chin)/i.test(String(item.exercise||'')),load=Number(item.loadKg),reps=Number(item.reps),rpe=Number(item.rpe);
-      return{kind:'exercise',eyebrow:`Set ${index+1}`,title:item.exercise||'Esercizio principale',metrics:[Number.isFinite(load)?`${external?'+':''}${load.toLocaleString('it-IT',{maximumFractionDigits:1})} kg`:'Carico non registrato',Number.isFinite(reps)?`${reps} rep`:'',Number.isFinite(rpe)?`RPE ${rpe.toLocaleString('it-IT',{maximumFractionDigits:1})}`:''].filter(Boolean),exerciseMeta:exerciseCatalog?.describeExercise?.(item.exercise),actual:true};
-    });
+    return (strengthModel?.groupedEntries?.(rows)||[]).map(group=>({kind:'exercise',eyebrow:`${group.entries.length} ${group.entries.length===1?'serie registrata':'serie registrate'}`,title:group.label,metrics:group.entries.map((item,index)=>`S${index+1} · ${group.externalLoad?'+':''}${item.loadKg.toLocaleString('it-IT',{maximumFractionDigits:1})} kg × ${item.reps}${item.rpe!==undefined?` · RPE ${item.rpe.toLocaleString('it-IT')}`:''}`),exerciseMeta:exerciseCatalog?.describeExercise?.(group.label),actual:true}));
   }
   function strengthBlocks(session){
     if(performed(session))return actualStrengthBlocks(session);
