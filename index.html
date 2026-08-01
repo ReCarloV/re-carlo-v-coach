@@ -51,7 +51,7 @@
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark"><img src="icons/brand-logo.png" alt=""></span><div><strong>RE CARLO V</strong><small>Personal Coach</small></div></div>
+      <div class="brand"><span class="brand-mark"><img src="icons/icon-192.png" alt=""></span><div><strong>RE CARLO V</strong><small>Personal Coach</small></div></div>
       <nav>
         <button class="nav active" data-view="today" aria-label="Oggi"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"></path></svg></span><span class="nav-label">Oggi</span></button>
         <button class="nav" data-view="workout" aria-label="Allenamento"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"></path></svg></span><span class="nav-label">Allenamento</span></button>
@@ -104,7 +104,7 @@
 
       <section class="view" id="goals">
         <div class="section-head goals-head"><div><small>PERIODIZZAZIONE</small></div><button class="primary small" id="add-goal" type="button">+ Nuovo obiettivo</button></div>
-        <article class="goal-empty panel" id="goal-empty" hidden><span class="goal-empty-icon"><img src="icons/brand-logo.png" alt=""></span><h2>Nessun obiettivo programmato</h2><p class="muted">Aggiungi una gara o un test per collegare countdown, calendario e periodizzazione.</p><button class="primary" id="goal-empty-add" type="button">Aggiungi il primo obiettivo</button></article>
+        <article class="goal-empty panel" id="goal-empty" hidden><span class="goal-empty-icon"><img src="icons/icon-192.png" alt=""></span><h2>Nessun obiettivo programmato</h2><p class="muted">Aggiungi una gara o un test per collegare countdown, calendario e periodizzazione.</p><button class="primary" id="goal-empty-add" type="button">Aggiungi il primo obiettivo</button></article>
         <div id="goal-content" hidden>
           <article class="goal-hero" id="goal-hero" aria-live="polite">
             <div class="goal-hero-main"><div class="goal-badges"><span id="goal-current-priority">PRIORITÀ A</span><span id="goal-current-type">MARATONA</span></div><h2 id="goal-current-name">—</h2><p id="goal-current-target">—</p><button class="goal-edit-link" id="edit-current-goal" type="button">Modifica obiettivo</button></div>
@@ -237,7 +237,7 @@
         </div>
         <article class="panel cloud-sync-panel" id="cloud-sync-panel" aria-live="polite">
           <div class="cloud-sync-copy">
-            <div class="cloud-sync-symbol"><span><img src="icons/brand-logo.png" alt=""></span><i id="cloud-sync-dot"></i></div>
+            <div class="cloud-sync-symbol"><span><img src="icons/icon-192.png" alt=""></span><i id="cloud-sync-dot"></i></div>
             <div><small>CLOUD PERSONALE</small><h2 id="cloud-sync-title">Sincronizzazione automatica</h2><p class="muted" id="cloud-sync-detail">La copia locale resta intatta mentre il cloud mantiene allineati i dispositivi.</p><span class="cloud-sync-meta" id="cloud-sync-meta">Non configurato</span></div>
           </div>
           <div class="cloud-sync-actions">
@@ -391,7 +391,7 @@
 
       <section class="view" id="profile">
         <div class="profile-hero panel">
-          <label class="avatar" title="Carica una foto"><input id="photo-input" type="file" accept="image/*"><img id="avatar-image" alt=""><span id="avatar-placeholder"><img src="icons/brand-logo.png" alt=""></span></label>
+          <label class="avatar" title="Carica una foto"><input id="photo-input" type="file" accept="image/*"><img id="avatar-image" alt=""><span id="avatar-placeholder"><img src="icons/icon-192.png" alt=""></span></label>
           <div><small><span id="profile-nickname">RE CARLO V</span> · ATLETA IBRIDO</small><h1 id="profile-name">Configura il profilo</h1><p class="muted" id="profile-summary">Dati atleta non ancora inseriti</p><label class="upload" for="photo-input">Carica foto profilo</label></div>
           <div class="profile-actions"><button class="primary small" id="edit-profile">Modifica profilo</button><div class="level"><small>LIVELLO</small><strong id="profile-level">DA CONFIGURARE</strong></div></div>
         </div>
@@ -741,74 +741,74 @@
     </form>
   </div>
   <div id="toast">Salvato sul dispositivo</div>
-  <script src="data-store.js"></script>
-  <script src="fasting-tracker-model.js"></script>
-  <script src="tab-coordination-model.js"></script>
-  <script src="tab-coordination.js"></script>
-  <script src="activity-import-model.js"></script>
-  <script src="plan-import-model.js"></script>
-  <script src="whoop-import-model.js"></script>
-  <script src="whoop-api-model.js"></script>
-  <script src="reconciliation-model.js"></script>
-  <script src="training-zones-model.js"></script>
-  <script src="session-prescription-model.js"></script>
-  <script src="symptom-recency-model.js"></script>
-  <script src="safety-screen-model.js"></script>
-  <script src="skip-reason-model.js"></script>
-  <script src="recovery-trend-model.js"></script>
-  <script src="device-freshness-model.js"></script>
-  <script src="event-demand-model.js"></script>
-  <script src="event-programming-model.js"></script>
-  <script src="training-role-model.js"></script>
-  <script src="goal-transition-model.js"></script>
-  <script src="microcycle-prescription-model.js"></script>
-  <script src="goals-model.js"></script>
-  <script src="coach-methodology-model.js"></script>
-  <script src="evidence-watch-model.js"></script>
-  <script src="race-coach-model.js"></script>
-  <script src="phase-constraints-model.js"></script>
-  <script src="weekly-plan-adjustment-model.js"></script>
-  <script src="adaptive-application-model.js"></script>
-  <script src="athlete-metrics-model.js"></script>
-  <script src="cloud-sync-model.js"></script>
-  <script src="calendar-feed-model.js"></script>
-  <script src="cloud-config.js"></script>
-  <script src="app.js"></script>
-  <script src="selectors.js"></script>
-  <script src="pbs.js"></script>
-  <script src="strength-performance-model.js"></script>
-  <script src="exercise-catalog-model.js"></script>
-  <script src="strength-reliability-model.js"></script>
-  <script src="profile.js"></script>
-  <script src="session-selection-model.js"></script>
-  <script src="plan-view-model.js"></script>
-  <script src="execution-evidence-model.js"></script>
-  <script src="sessions.js"></script>
-  <script src="goals.js"></script>
-  <script src="bodymap.js"></script>
-  <script src="checkin-model.js"></script>
-  <script src="checkins.js"></script>
-  <script src="progression-tolerance-model.js"></script>
-  <script src="adaptive-engine.js"></script>
-  <script src="today-model.js"></script>
-  <script src="workout-mode-model.js"></script>
-  <script src="today.js"></script>
-  <script src="fasting-tracker.js"></script>
-  <script src="workout-mode.js"></script>
-  <script src="weekly-recap-model.js"></script>
-  <script src="recap.js"></script>
-  <script src="generator.js"></script>
-  <script src="demo-data-model.js"></script>
-  <script src="demo-data.js"></script>
-  <script src="data-import.js"></script>
-  <script src="plan-import.js"></script>
-  <script src="whoop-import.js"></script>
-  <script src="vendor/supabase-2.110.5.min.js"></script>
-  <script src="cloud-sync.js"></script>
-  <script src="calendar-integration.js"></script>
-  <script src="whoop-live-sync.js"></script>
-  <script src="evidence-watch.js"></script>
-  <script src="reconciliation.js"></script>
-  <script src="pwa.js"></script>
+  <script defer src="data-store.js"></script>
+  <script defer src="fasting-tracker-model.js"></script>
+  <script defer src="tab-coordination-model.js"></script>
+  <script defer src="tab-coordination.js"></script>
+  <script defer src="activity-import-model.js"></script>
+  <script defer src="plan-import-model.js"></script>
+  <script defer src="whoop-import-model.js"></script>
+  <script defer src="whoop-api-model.js"></script>
+  <script defer src="reconciliation-model.js"></script>
+  <script defer src="training-zones-model.js"></script>
+  <script defer src="session-prescription-model.js"></script>
+  <script defer src="symptom-recency-model.js"></script>
+  <script defer src="safety-screen-model.js"></script>
+  <script defer src="skip-reason-model.js"></script>
+  <script defer src="recovery-trend-model.js"></script>
+  <script defer src="device-freshness-model.js"></script>
+  <script defer src="event-demand-model.js"></script>
+  <script defer src="event-programming-model.js"></script>
+  <script defer src="training-role-model.js"></script>
+  <script defer src="goal-transition-model.js"></script>
+  <script defer src="microcycle-prescription-model.js"></script>
+  <script defer src="goals-model.js"></script>
+  <script defer src="coach-methodology-model.js"></script>
+  <script defer src="evidence-watch-model.js"></script>
+  <script defer src="race-coach-model.js"></script>
+  <script defer src="phase-constraints-model.js"></script>
+  <script defer src="weekly-plan-adjustment-model.js"></script>
+  <script defer src="adaptive-application-model.js"></script>
+  <script defer src="athlete-metrics-model.js"></script>
+  <script defer src="cloud-sync-model.js"></script>
+  <script defer src="calendar-feed-model.js"></script>
+  <script defer src="cloud-config.js"></script>
+  <script defer src="app.js"></script>
+  <script defer src="selectors.js"></script>
+  <script defer src="pbs.js"></script>
+  <script defer src="strength-performance-model.js"></script>
+  <script defer src="exercise-catalog-model.js"></script>
+  <script defer src="strength-reliability-model.js"></script>
+  <script defer src="profile.js"></script>
+  <script defer src="session-selection-model.js"></script>
+  <script defer src="plan-view-model.js"></script>
+  <script defer src="execution-evidence-model.js"></script>
+  <script defer src="sessions.js"></script>
+  <script defer src="goals.js"></script>
+  <script defer src="bodymap.js"></script>
+  <script defer src="checkin-model.js"></script>
+  <script defer src="checkins.js"></script>
+  <script defer src="progression-tolerance-model.js"></script>
+  <script defer src="adaptive-engine.js"></script>
+  <script defer src="today-model.js"></script>
+  <script defer src="workout-mode-model.js"></script>
+  <script defer src="today.js"></script>
+  <script defer src="fasting-tracker.js"></script>
+  <script defer src="workout-mode.js"></script>
+  <script defer src="weekly-recap-model.js"></script>
+  <script defer src="recap.js"></script>
+  <script defer src="generator.js"></script>
+  <script defer src="demo-data-model.js"></script>
+  <script defer src="demo-data.js"></script>
+  <script defer src="data-import.js"></script>
+  <script defer src="plan-import.js"></script>
+  <script defer src="whoop-import.js"></script>
+  <script defer src="vendor/supabase-2.110.5.min.js"></script>
+  <script defer src="cloud-sync.js"></script>
+  <script defer src="calendar-integration.js"></script>
+  <script defer src="whoop-live-sync.js"></script>
+  <script defer src="evidence-watch.js"></script>
+  <script defer src="reconciliation.js"></script>
+  <script defer src="pwa.js"></script>
 </body>
 </html>
