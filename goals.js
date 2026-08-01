@@ -3,7 +3,7 @@
   const model=window.rcGoalsModel,coachModel=window.rcRaceCoachModel,eventModel=window.rcEventDemandModel,programmingModel=window.rcEventProgrammingModel,transitionModel=window.rcGoalTransitionModel,store=window.rcDataStore;if(!model||!store)return;
   const form=document.getElementById('goal-form'),modal=document.getElementById('goal-modal'),goalKey=window.rcDataStoreCore?.DATASETS?.goals?.key||'rc-goals-v1';
   let goals=[];
-  let coachAuditCollapsed=false;
+  let coachAuditCollapsed=Boolean(window.matchMedia&&window.matchMedia('(max-width: 620px)').matches);
 
   function localDate(){const now=new Date();return model.iso(now);}
   function element(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}

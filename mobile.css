@@ -84,3 +84,20 @@
   .mobile-more-menu>[data-mobile-view] strong,.mobile-more-menu>[data-mobile-view] small{display:block}.mobile-more-menu>[data-mobile-view] strong{font-size:12px}.mobile-more-menu>[data-mobile-view] small{margin-top:3px;color:var(--muted);font-size:9px}
   .mobile-more-menu>[data-mobile-view].active{border-color:var(--blue);box-shadow:inset 3px 0 var(--blue)}
 }
+
+@media(max-width:900px) and (orientation:landscape) and (max-height:500px){
+  main{padding-top:10px}
+  main>header{margin:-10px -14px 8px;padding:7px 14px}
+  main>header small{display:none}
+  main>header h1{font-size:20px}
+  #plan>.section-head{margin-bottom:6px}
+  #plan>.section-head>div:first-child,#plan .plan-availability-line{display:none}
+  #plan .plan-actions{width:100%;gap:6px;justify-content:flex-end}
+  #plan .plan-actions button{min-height:44px;padding:8px 10px}
+  #plan .plan-view-button,#plan .calendar-nav-button,#plan .calendar-today{min-height:44px}
+  #plan .calendar-nav-button{min-width:44px}
+  #plan .plan-view-toolbar{margin:0 0 5px;gap:8px}
+  #plan .plan-month-summary{gap:5px;margin-bottom:5px}
+  #plan .plan-month-summary>span{padding:5px 8px}
+  #plan .calendar-status-legend{margin:-2px 0 5px}
+}

@@ -123,6 +123,8 @@ html[data-theme="light"] ::selection{background:rgba(8,115,237,.2);color:#10243d
   .strength-max-cards,.strength-max-form{grid-template-columns:repeat(auto-fit,minmax(125px,1fr))}
 }
 @media(max-width:900px){
+  body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+  .sidebar nav{margin-top:0}
   main{overflow:visible}
   .nav:hover{transform:none}
   .nav.active{box-shadow:none}
@@ -135,6 +137,11 @@ html[data-theme="light"] ::selection{background:rgba(8,115,237,.2);color:#10243d
 @media(max-width:620px){
   body{font-size:13.5px}
   main>header h1{font-size:24px}
+  .icon-button,#mobile-more-close{width:44px;height:44px;flex:0 0 44px}
+  :where(.plan-actions button,.plan-view-button,.calendar-nav-button,.calendar-today,.day-actions button,.modal-actions button,.panel-collapse-toggle){min-height:44px}
+  .plan-actions button.primary.small,.plan-actions button.ghost.small{min-height:44px}
+  .panel-collapse-toggle{min-height:44px}
+  .calendar-nav-button{min-width:44px}
   .panel,.metrics article{border-radius:14px}
   .form-grid,.goal-form-grid{grid-template-columns:1fr}
   .form-grid .full,.goal-form-wide{grid-column:auto}
