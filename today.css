@@ -20,5 +20,6 @@
 .week-bars>div:last-child .week-bar-tooltip{right:0;left:auto;transform:translate(0,-4px)}
 .week-bars>div:hover .week-bar-tooltip,.week-bars>div:focus-visible .week-bar-tooltip{opacity:1;transform:translate(-50%,0)}
 .week-bars>div:first-child:hover .week-bar-tooltip,.week-bars>div:first-child:focus-visible .week-bar-tooltip,.week-bars>div:last-child:hover .week-bar-tooltip,.week-bars>div:last-child:focus-visible .week-bar-tooltip{transform:translate(0,0)}
+@media(max-width:620px){.week-bar-tooltip{display:none}}
 .week-legend i.performed{width:8px;height:8px;border:1px solid #67a4ff;background:#2878ff;box-shadow:0 0 0 1px rgba(40,120,255,.16)}
 .today-prescription>div[class*="intensity-"]{position:relative;overflow:hidden;border-left:4px solid var(--intensity)}.today-prescription>div[class*="intensity-"] small{color:var(--intensity)}

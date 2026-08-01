@@ -143,6 +143,7 @@ html[data-theme="light"] ::selection{background:rgba(8,115,237,.2);color:#10243d
   .modal-actions>span{display:none}
   .modal-actions>*{min-width:0;width:100%}
   .session-actions .danger,.goal-modal-actions .danger,.outcome-actions .danger{grid-column:1/-1}
+  .session-actions>.primary:last-child{grid-column:1/-1}
   .theme-choice-group{grid-template-columns:1fr}
   .strength-max-cards,.strength-max-form{grid-template-columns:1fr 1fr}
   .profile-actions{gap:10px}
