@@ -138,7 +138,7 @@
     if(recent.maxPain>=3)reasons.push(`Dolore massimo registrato negli ultimi 7 giorni: ${recent.maxPain}/10.`);
     if(recent.painSkips)reasons.push(`${recent.painSkips} sedut${recent.painSkips===1?'a':'e'} non svolt${recent.painSkips===1?'a':'e'} per dolore.`);
     if(recent.fatigueSkips)reasons.push(`${recent.fatigueSkips} sedut${recent.fatigueSkips===1?'a':'e'} non svolt${recent.fatigueSkips===1?'a':'e'} per fatica o recupero insufficiente.`);
-    if(recent.hardSessions)reasons.push(`${recent.hardSessions} sedut${recent.hardSessions===1?'a':'e'} con sforzo superiore al previsto.`);
+    if(recent.hardSessions)reasons.push(`Segnale di carico: ${recent.hardSessions} sedut${recent.hardSessions===1?'a':'e'} con RPE ≥8 o confronto “più impegnativa del previsto”.`);
     if(loadRatio!==null&&Math.abs(loadRatio-1)>.15)reasons.push(`Carico degli ultimi 7 giorni ${loadRatio>1?'superiore':'inferiore'} del ${Math.round(Math.abs(loadRatio-1)*100)}% rispetto ai 7 precedenti.`);
     if(recent.strengthVolumeKnown&&recent.strengthVolumeRatio!==null&&Math.abs(recent.strengthVolumeRatio-1)>=.15)reasons.push(`Forza: ${recent.strengthActualSets}/${recent.strengthPlannedSets} serie principali registrate rispetto al programmato. Il dato descrive il volume svolto, senza modificare da solo il piano.`);
     if(preSummary.weeklyLevel==='reduce')reasons.push('Check-in contestuali distinti, o corroborati dagli esiti, suggeriscono una riduzione del carico.');

@@ -93,7 +93,7 @@ input[type="range"]{min-height:28px}
 .settings-section-head{margin-top:6px}
 .methodology-details summary,.body-history summary,.whoop-manual-import summary,.goal-event-details summary,.goal-coach-method-details summary,.goal-programming-details summary{border-radius:8px;transition:background-color .15s ease,color .15s ease}
 .methodology-details summary:hover,.body-history summary:hover,.whoop-manual-import summary:hover,.goal-event-details summary:hover,.goal-coach-method-details summary:hover,.goal-programming-details summary:hover{background:rgba(67,120,184,.09);color:#b8d6fa}
-#toast{z-index:140;border:1px solid rgba(255,255,255,.2);border-radius:11px;box-shadow:0 16px 40px rgba(0,0,0,.3)}
+#toast{z-index:140;pointer-events:none;border:1px solid rgba(255,255,255,.2);border-radius:11px;box-shadow:0 16px 40px rgba(0,0,0,.3)}
 
 html[data-theme="light"]{
   --control-bg:#fff;

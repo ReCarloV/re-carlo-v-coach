@@ -116,7 +116,7 @@
     if(skipSignals.planning)reasons.push(`${skipSignals.planning} sedut${skipSignals.planning===1?'a':'e'} modificat${skipSignals.planning===1?'a':'e'} per programma o sostenibilità.`);
     if(fatigueSkips)reasons.push(`${fatigueSkips} sedut${fatigueSkips===1?'a':'e'} non svolt${fatigueSkips===1?'a':'e'} per fatica o recupero.`);
     if(painSkips||maxPain>=3)reasons.push(`Dolore massimo disponibile: ${maxPain}/10.`);
-    const harder=performedSessions.filter(item=>item.outcome?.execution==='harder'||number(item.outcome?.rpe)>=8).length;if(harder)reasons.push(`${harder} sedut${harder===1?'a è':'e sono'} risultat${harder===1?'a':'e'} più impegnativ${harder===1?'a':'e'} del previsto.`);
+    const demanding=performedSessions.filter(item=>item.outcome?.execution==='harder'||number(item.outcome?.rpe)>=8).length;if(demanding)reasons.push(`Segnale di carico: ${demanding} sedut${demanding===1?'a':'e'} con RPE ≥8 o confronto “più impegnativa del previsto”.`);
     if(strengthVolume.knownSessions&&strengthVolume.ratio!==null&&Math.abs(strengthVolume.ratio-1)>=.15)reasons.push(`Forza: ${strengthVolume.actualSets}/${strengthVolume.plannedSets} serie principali svolte rispetto al programma.`);
     if(analysis.recovery?.usable&&['caution','protect'].includes(analysis.recovery.level))reasons.push(`WHOOP: ${analysis.recovery.reasons.join(' ')}`);
     if(!preCheckins.length&&performedSessions.length)reasons.push('Nessun check-in soggettivo disponibile per questa settimana.');
