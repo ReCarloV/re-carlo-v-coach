@@ -37,6 +37,7 @@
   function iso(date){return`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
   function dateAtNoon(value){return new Date(`${value}T12:00:00`);}
   function addDays(value,days){const date=dateAtNoon(value);date.setDate(date.getDate()+days);return iso(date);}
+  function mondayFor(value){const date=dateAtNoon(value),day=date.getDay()||7;date.setDate(date.getDate()-day+1);return iso(date);}
   function daysBetween(from,to){return Math.round((dateAtNoon(to)-dateAtNoon(from))/DAY_MS);}
   function round(value,digits=1){const factor=10**digits;return Math.round((Number(value)||0)*factor)/factor;}
   function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
@@ -66,6 +67,42 @@
     const today=input.today,start=addDays(today,-27),sessions=(Array.isArray(input.sessions)?input.sessions:[]).filter(item=>active(item)&&item.category!=='recovery'&&range(item.date,start,today)&&(item.date<today||item.outcome));const recorded=sessions.filter(item=>item.outcome),key=sessions.filter(item=>item.priority==='essential'),keyRecorded=key.filter(item=>item.outcome);
     const adherence=recorded.length?recorded.reduce((sum,item)=>sum+executionCredit(item),0)/recorded.length:null,keyAdherence=keyRecorded.length?keyRecorded.reduce((sum,item)=>sum+executionCredit(item),0)/keyRecorded.length:null;
     return{start,end:today,due:sessions.length,recorded:recorded.length,missing:sessions.length-recorded.length,coverage:sessions.length?recorded.length/sessions.length:null,adherence,keyDue:key.length,keyRecorded:keyRecorded.length,keyAdherence};
+  }
+  function mean(values){const valid=values.map(Number).filter(Number.isFinite);return valid.length?valid.reduce((sum,value)=>sum+value,0)/valid.length:null;}
+  function trendDirection(recent,previous,threshold){
+    if(recent===null||previous===null)return{key:'unknown',label:'Non confrontabile',delta:null};
+    const delta=recent-previous;if(Math.abs(delta)<threshold)return{key:'stable',label:'Stabile',delta};
+    return delta>0?{key:'up',label:'In aumento',delta}:{key:'down',label:'In calo',delta};
+  }
+  function readinessWeek(start,sessions=[]){
+    const end=addDays(start,6),due=sessions.filter(item=>active(item)&&item.category!=='recovery'&&item.priority!=='optional'&&range(item.date,start,end)&&!(item.outcome?.status==='skipped'&&item.outcome?.skipReason==='program-change'));
+    const recorded=due.filter(item=>item.outcome),performedSessions=recorded.filter(performed),loads=performedSessions.map(item=>Number(item.outcome?.sessionLoad)).filter(value=>Number.isFinite(value)&&value>0),minutes=performedSessions.map(item=>Number(item.outcome?.actualDurationMin)).filter(value=>Number.isFinite(value)&&value>0),runs=performedSessions.filter(isRun),runKm=runs.map(item=>Number(item.outcome?.actualDistanceKm)).filter(value=>Number.isFinite(value)&&value>0),plannedLongs=due.filter(isLong),completedLongs=performedSessions.filter(isLong),longKm=completedLongs.map(item=>Number(item.outcome?.actualDistanceKm)).filter(value=>Number.isFinite(value)&&value>0);
+    return{start,end,due:due.length,recorded:recorded.length,coverage:due.length?recorded.length/due.length:null,adherence:due.length?due.reduce((sum,item)=>sum+executionCredit(item),0)/due.length:null,performed:performedSessions.length,load:loads.length?round(loads.reduce((sum,value)=>sum+value,0),0):null,loadCoverage:performedSessions.length?loads.length/performedSessions.length:0,minutes:minutes.length?round(minutes.reduce((sum,value)=>sum+value,0),0):null,runs:runs.length,runKm:round(runKm.reduce((sum,value)=>sum+value,0),1),plannedLongs:plannedLongs.length,completedLongs:completedLongs.length,longestKm:longKm.length?round(Math.max(...longKm),1):null,hybrid:performedSessions.filter(item=>['hyrox','metcon'].includes(item.category)).length,strength:performedSessions.filter(item=>item.category==='strength').length,swims:performedSessions.filter(item=>item.category==='swimming').length,rides:performedSessions.filter(item=>item.category==='cycling').length,qualifies:due.length>=2&&recorded.length/due.length>=.75};
+  }
+  function specificReadiness(goal,weeks){
+    const total=field=>weeks.reduce((sum,item)=>sum+(Number(item[field])||0),0),longest=weeks.map(item=>item.longestKm).filter(Number.isFinite).sort((a,b)=>b-a)[0]||null;
+    if(['marathon','half-marathon','running'].includes(goal?.type)){
+      const planned=total('plannedLongs'),done=total('completedLongs'),km=round(total('runKm'),1),runs=total('runs');
+      return{label:'SPECIFICITÀ CORSA',value:planned?`${done}/${planned} lunghi`:`${runs} corse`,note:`${km} km registrati${longest?` · lungo max ${longest} km`:''}`};
+    }
+    if(goal?.type==='triathlon')return{label:'COPERTURA MULTISPORT',value:`${total('swims')} · ${total('rides')} · ${total('runs')}`,note:'nuoto · bici · corsa realmente svolti'};
+    if(['hyrox','obstacle','athx'].includes(goal?.type))return{label:'SPECIFICITÀ IBRIDA',value:`${total('hybrid')} hybrid · ${total('runs')} run`,note:`${total('strength')} sedute di forza registrate`};
+    if(goal?.type==='cycling')return{label:'SPECIFICITÀ BICI',value:`${total('rides')} sedute`,note:`${total('minutes')} minuti complessivi registrati`};
+    if(goal?.type==='strength-test')return{label:'SPECIFICITÀ FORZA',value:`${total('strength')} sedute`,note:`${total('minutes')} minuti complessivi registrati`};
+    return{label:'LAVORO SPECIFICO',value:`${total('performed')} sedute`,note:'esecuzioni registrate nelle quattro settimane'};
+  }
+  function raceReadinessTrend(input={}){
+    const today=input.today||iso(new Date()),goal=input.goal||null,currentWeek=mondayFor(today),allSessions=Array.isArray(input.sessions)?input.sessions:[],observed=[];
+    for(let offset=8;offset>=1;offset-=1){const week=readinessWeek(addDays(currentWeek,-offset*7),allSessions);if(week.due)observed.push(week);}
+    const qualifying=observed.filter(item=>item.qualifies),selected=qualifying.slice(-4),latest=selected.at(-1)||null,recentEnough=Boolean(latest&&latest.end>=addDays(currentWeek,-14)),available=selected.length===4&&recentEnough;
+    const calibration={requiredWeeks:4,observedWeeks:observed.length,qualifyingWeeks:qualifying.length,recentEnough,progress:Math.min(4,qualifying.length),requirements:[]};
+    if(qualifying.length<4)calibration.requirements.push(`Servono ancora ${4-qualifying.length} settiman${4-qualifying.length===1?'a':'e'} chius${4-qualifying.length===1?'a':'e'} con almeno 2 sedute dovute e il 75% degli esiti registrati.`);
+    if(qualifying.length>=4&&!recentEnough)calibration.requirements.push('Le settimane complete disponibili sono troppo lontane: registra una settimana recente per riattivare il confronto.');
+    const incomplete=observed.filter(item=>!item.qualifies);if(incomplete.length)calibration.requirements.push(`${incomplete.length} settiman${incomplete.length===1?'a recente non raggiunge':'e recenti non raggiungono'} la copertura minima.`);
+    if(!available)return{available:false,label:'Calibrazione in corso',calibration,weeks:observed.slice(-4),guardrail:'Nessun punteggio di readiness viene stimato finché la base reale non è sufficiente.'};
+    const previous=selected.slice(0,2),recent=selected.slice(2),previousAdherence=mean(previous.map(item=>item.adherence)),recentAdherence=mean(recent.map(item=>item.adherence)),loadCoverage=mean(selected.map(item=>item.loadCoverage)),previousLoad=loadCoverage!==null&&loadCoverage>=.75?mean(previous.map(item=>item.load)):null,recentLoad=loadCoverage!==null&&loadCoverage>=.75?mean(recent.map(item=>item.load)):null;
+    const adherenceTrend=trendDirection(recentAdherence,previousAdherence,.05),loadTrend=trendDirection(recentLoad,previousLoad,Math.max(20,(previousLoad||0)*.1));
+    return{available:true,label:'Trend disponibili',calibration,weeks:selected,adherence:{recent:recentAdherence,previous:previousAdherence,...adherenceTrend},load:{recent:recentLoad,previous:previousLoad,coverage:loadCoverage,...loadTrend},specific:specificReadiness(goal,selected),guardrail:'Sono trend descrittivi delle registrazioni, non un voto di forma né un’autorizzazione automatica a progredire.'};
   }
   function futurePlan(input={}){
     const today=input.today,goalDate=input.goal?.date||addDays(today,27),days=Math.max(1,Math.min(28,daysBetween(today,goalDate)+1)),end=addDays(today,days-1),sessions=(Array.isArray(input.sessions)?input.sessions:[]).filter(item=>active(item)&&!item.outcome&&range(item.date,today,end)&&item.date<=goalDate),raceRuns=sessions.filter(item=>isRun(item)&&item.details?.runType==='Race'),runs=sessions.filter(item=>isRun(item)&&item.details?.runType!=='Race'),knownRuns=runs.filter(item=>Number(item.details?.distanceKm)>0),longs=runs.filter(isLong),quality=runs.filter(isQuality),strength=sessions.filter(item=>item.category==='strength'),hyrox=sessions.filter(item=>['hyrox','metcon'].includes(item.category)),weeks=days/7;
@@ -104,9 +141,9 @@
     if(readiness?.recovery?.usable)reasons.push(`WHOOP: ${readiness.recovery.label}; viene usato come segnale di recupero e non decide da solo la periodizzazione.`);
     if(plan.continuity<.75)reasons.push(`Il calendario copre ${plan.coveredWeeks}/${plan.remainingWeeks} settimane rimanenti verso la gara.`);
     if(programmingPack?.status==='pending')focus.push('Il formato è registrato, ma il pack prescrittivo non è ancora revisionato: il Coach non applica regole specialistiche non verificate.');
-    const result={today,goal,phase,pace,programming:programmingPack,observed,windows,history,plan,readiness,confidence,assessment,focus:[...new Set(focus)].slice(0,3),reasons};
+    const result={today,goal,phase,pace,programming:programmingPack,observed,windows,history,plan,readiness,readinessTrend:raceReadinessTrend({today,goal,sessions}),confidence,assessment,focus:[...new Set(focus)].slice(0,3),reasons};
     result.methodology=methodology?.contextForAudit({...result,sessions})||null;return result;
   }
 
-  return{audit,phaseFor,observedRunning,observedRunningWindow,historyQuality,futurePlan,targetPace,isLong,isQuality,addDays,daysBetween};
+  return{audit,phaseFor,observedRunning,observedRunningWindow,historyQuality,raceReadinessTrend,futurePlan,targetPace,isLong,isQuality,addDays,daysBetween,mondayFor};
 });
