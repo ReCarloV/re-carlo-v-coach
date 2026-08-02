@@ -2,10 +2,11 @@
   const todayModel=typeof module!=='undefined'&&module.exports?require('./today-model.js'):root.rcTodayModel;
   const exerciseCatalog=typeof module!=='undefined'&&module.exports?require('./exercise-catalog-model.js'):root.rcExerciseCatalogModel;
   const strengthModel=typeof module!=='undefined'&&module.exports?require('./strength-performance-model.js'):root.rcStrengthPerformanceModel;
-  const api=factory(todayModel,exerciseCatalog,strengthModel);
+  const checkinModel=typeof module!=='undefined'&&module.exports?require('./checkin-model.js'):root.rcCheckinModel;
+  const api=factory(todayModel,exerciseCatalog,strengthModel,checkinModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcWorkoutModeModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(todayModel,exerciseCatalog,strengthModel){
+})(typeof globalThis!=='undefined'?globalThis:this,function(todayModel,exerciseCatalog,strengthModel,checkinModel){
   'use strict';
 
   const VERSION='1.0.0';
@@ -44,6 +45,21 @@
     const amount=number(item.amount),unit={min:' min',km:' km',m:' m'}[item.unit]||` ${item.unit||''}`;
     return [amount?`${amount}${unit}`:'Durata libera',item.target||'Libero',item.paceHint].filter(Boolean).join(' · ');
   }
+  function targetLabel(value){
+    const text=String(value||'');
+    if(/\/km|passo|pace/i.test(text))return'PASSO';
+    if(/(^|\s)z[1-5](\s|$)|bpm|frequenza|heart\s*rate/i.test(text))return'FREQUENZA';
+    if(/watt|\bftp\b|(^|\s)\d+\s*w($|\s)|%\s*ftp/i.test(text))return'POTENZA';
+    if(/\brpe\b|\brir\b/i.test(text))return'INTENSITÀ';
+    return'TARGET';
+  }
+  function targetMetrics(item={}){
+    const amount=number(item.amount),unit={min:' min',km:' km',m:' m'}[item.unit]||` ${item.unit||''}`;
+    const duration=amount?`${amount}${unit}`:'Durata libera';
+    const values=[item.target||'Libero',item.paceHint].map(value=>String(value||'').trim()).filter(Boolean);
+    const unique=[...new Set(values)];
+    return{duration,targets:unique.map(value=>({label:targetLabel(value),value}))};
+  }
   function restText(value){const text=String(value||'').trim();return text?`Recupero ${text}`:'';}
   function actualStrengthBlocks(session){
     const rows=Array.isArray(session?.outcome?.strengthPerformance)?session.outcome.strengthPerformance:[],volumeKnown=session?.outcome?.strengthPerformanceVersion===2;
@@ -57,8 +73,8 @@
   }
   function enduranceBlocks(items=[]){
     return items.map((item,index)=>{
-      if(item.type==='repeat')return{kind:'repeat',eyebrow:'Sequenza',title:`${number(item.repeats)||1} ripetizioni`,intensity:item.intensity||item.steps?.[0]?.intensity||'tempo',steps:(item.steps||[]).map((step,stepIndex)=>({title:phaseLabels[step.phase]||`Fase ${stepIndex+1}`,value:targetText(step),intensity:step.intensity||item.intensity||'tempo'}))};
-      return{kind:'segment',eyebrow:`Blocco ${index+1}`,title:phaseLabels[item.phase]||'Blocco',value:targetText(item),intensity:item.intensity||'easy'};
+      if(item.type==='repeat')return{kind:'repeat',phase:'repeat',eyebrow:'SEQUENZA',title:`${number(item.repeats)||1} ripetizioni`,intensity:item.intensity||item.steps?.[0]?.intensity||'tempo',steps:(item.steps||[]).map((step,stepIndex)=>({phase:step.phase||'free',title:phaseLabels[step.phase]||`Fase ${stepIndex+1}`,value:targetText(step),...targetMetrics(step),intensity:step.intensity||item.intensity||'tempo'}))};
+      return{kind:'segment',phase:item.phase||'free',eyebrow:'FASE',title:phaseLabels[item.phase]||'Blocco',value:targetText(item),...targetMetrics(item),intensity:item.intensity||'easy'};
     });
   }
   function structuredBlocks(items=[]){
@@ -80,14 +96,15 @@
   }
   function nextSession(sessions,today){return sessions.filter(item=>!paused(item)&&item.date>today).sort((a,b)=>a.date.localeCompare(b.date)||(priorityRank[a.priority]??1)-(priorityRank[b.priority]??1))[0]||null;}
   function sortSessions(items){return [...items].sort((a,b)=>Number(Boolean(a.outcome))-Number(Boolean(b.outcome))||(priorityRank[a.priority]??1)-(priorityRank[b.priority]??1)||String(a.startTime||'09:00').localeCompare(String(b.startTime||'09:00')));}
-  function buildSession(session){
+  function buildSession(session,options={}){
     const meta=category(session),state=status(session),outcome=session.outcome||null;
     const wasPerformed=performed(session),strength=session.category==='strength';
-    return{...session,meta,state,timeRange:timeRange(session),priorityLabel:priorityLabel[session.priority]||'Importante',performed:wasPerformed,blocks:sessionBlocks(session),...(strength?{strengthStimulus:exerciseCatalog?.sessionStimulus?.(session,{actual:wasPerformed})||null,strengthReview:wasPerformed?exerciseCatalog?.compareStrengthSession?.(session)||null:null}:{}),displayDuration:outcome?.actualDurationMin?`${outcome.actualDurationMin} min reali`:`${number(session.durationMin)} min previsti`,displayLoad:outcome?.sessionLoad?`${outcome.sessionLoad} AU`:null};
+    return{...session,meta,state,timeRange:timeRange(session),priorityLabel:priorityLabel[session.priority]||'Importante',performed:wasPerformed,preCheckin:options.preCheckin||null,blocks:sessionBlocks(session),...(strength?{strengthStimulus:exerciseCatalog?.sessionStimulus?.(session,{actual:wasPerformed})||null,strengthReview:wasPerformed?exerciseCatalog?.compareStrengthSession?.(session)||null:null}:{}),displayDuration:outcome?.actualDurationMin?`${outcome.actualDurationMin} min reali`:`${number(session.durationMin)} min previsti`,displayLoad:outcome?.sessionLoad?`${outcome.sessionLoad} AU`:null};
   }
   function buildWorkoutDay(input={}){
-    const today=input.today||iso(),all=Array.isArray(input.sessions)?input.sessions:[],todaySessions=sortSessions(all.filter(item=>item.date===today&&!paused(item))),selected=todaySessions.find(item=>item.id===input.selectedId)||todaySessions[0]||null;
-    return{version:VERSION,today,sessions:todaySessions.map(buildSession),selected:selected?buildSession(selected):null,next:nextSession(all,today)};
+    const today=input.today||iso(),all=Array.isArray(input.sessions)?input.sessions:[],preCheckins=Array.isArray(input.preCheckins)?input.preCheckins:[],todaySessions=sortSessions(all.filter(item=>item.date===today&&!paused(item))),selected=todaySessions.find(item=>item.id===input.selectedId)||todaySessions[0]||null;
+    const build=item=>buildSession(item,{preCheckin:checkinModel?.findCheckin?.(preCheckins,item.id,item.date,{fallbackGeneric:true})||null});
+    return{version:VERSION,today,sessions:todaySessions.map(build),selected:selected?build(selected):null,next:nextSession(all,today)};
   }
   function parseRestSeconds(value){
     const text=String(value||'').trim().toLowerCase();if(!text)return null;
@@ -102,5 +119,5 @@
   }
   function formatTimer(seconds){const safe=Math.max(0,Math.round(number(seconds)));return `${String(Math.floor(safe/60)).padStart(2,'0')}:${String(safe%60).padStart(2,'0')}`;}
 
-  return{VERSION,buildWorkoutDay,buildSession,sessionBlocks,timerPresets,parseRestSeconds,formatTimer,timeRange};
+  return{VERSION,buildWorkoutDay,buildSession,sessionBlocks,targetMetrics,timerPresets,parseRestSeconds,formatTimer,timeRange};
 });
