@@ -42,7 +42,7 @@
   function renderCoach(model){
     const box=document.getElementById('recap-coach');box.replaceChildren();const head=element('div','panel-head');const copy=element('div');copy.append(element('small','','LETTURA DEL COACH'),element('h2','',model.coach.title));const status=model.isCurrent?'IN CORSO':model.sessions.length?model.coach.title.toUpperCase():'NESSUN DATO';head.append(copy,element('span',`recap-status ${model.coach.tone}`,status));
     const summary=element('p','recap-coach-summary',model.coach.summary);const reasons=element('ul','recap-reasons');model.coach.reasons.forEach(reason=>reasons.append(element('li','',reason)));box.append(head,summary,reasons);
-    if(model.isCurrent&&safeDataset('weeklyCheckin',null)?.weekStart===model.weekStart){const action=element('button','ghost','Ricalcola il resto della settimana');action.type='button';action.addEventListener('click',()=>window.rcGenerator?.open?.());box.append(action);}
+    if(model.isCurrent&&model.availability){const action=element('button','ghost','Ricalcola il resto della settimana');action.type='button';action.addEventListener('click',()=>window.rcGenerator?.open?.({weekStart:model.weekStart,mode:'review'}));box.append(action);}
   }
   function statCard(label,value,note=''){const card=element('div','recap-stat');card.append(element('small','',label),element('strong','',value));if(note)card.append(element('span','',note));return card;}
   function renderVolume(model){

@@ -40,6 +40,11 @@
     const items=(Array.isArray(history)?history:[]).filter(item=>item&&item.weekStart).sort((a,b)=>a.weekStart.localeCompare(b.weekStart));
     return items.find(item=>item.weekStart===weekStart)||[...items].reverse().find(item=>item.weekStart<weekStart)||fallback||null;
   }
+  function availabilityForTarget(history,weeklyCheckin,weekStart){
+    const target=mondayFor(weekStart);const exact=(Array.isArray(history)?history:[]).find(item=>item?.weekStart&&mondayFor(item.weekStart)===target)||null;
+    if(exact)return{...exact,weekStart:target};
+    return weeklyCheckin?.weekStart&&mondayFor(weeklyCheckin.weekStart)===target?{...weeklyCheckin,weekStart:target}:null;
+  }
   function weekClosure(sessions=[]){
     const required=(Array.isArray(sessions)?sessions:[]).filter(item=>!paused(item));const recorded=required.filter(item=>Boolean(item.outcome)),pending=required.filter(item=>!item.outcome);
     return{required:required.length,recorded:recorded.length,pending,ready:pending.length===0};
@@ -136,5 +141,5 @@
     };
   }
 
-  return {buildWeeklyRecap,mondayFor,addDays,availabilityFor,executionCredit,weekClosure};
+  return {buildWeeklyRecap,mondayFor,addDays,availabilityFor,availabilityForTarget,executionCredit,weekClosure};
 });
