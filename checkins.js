@@ -120,7 +120,7 @@
     localStorage.setItem(PRE_KEY,JSON.stringify(saved.history));activeCheckin=saved.value;
     if(issueReadings.length&&(!previous||readingsChanged(previous.issueReadings,issueReadings)))window.rcBodyIssues.recordReadings(issueReadings);
     const result=document.getElementById('pre-checkin-result');result.className=`checkin-result ${activeCheckin.recommendation.level}`;result.replaceChildren();const title=document.createElement('strong');title.textContent=activeCheckin.recommendation.title;const text=document.createElement('p');text.textContent=activeCheckin.recommendation.text;result.append(title,text);result.hidden=false;
-    document.getElementById('pre-checkin-submit').textContent='Aggiorna valutazione';toast();document.dispatchEvent(new CustomEvent('rc:pre-checkin-updated',{detail:{id:activeCheckin.id,sessionId:activeCheckin.sessionId,sessionDate:activeCheckin.sessionDate}}));
+    document.getElementById('pre-checkin-submit').textContent='Aggiorna valutazione';document.dispatchEvent(new CustomEvent('rc:pre-checkin-updated',{detail:{id:activeCheckin.id,sessionId:activeCheckin.sessionId,sessionDate:activeCheckin.sessionDate}}));close(preModal);toast(`Check-in salvato · ${activeCheckin.recommendation.title}`);
   });
   document.addEventListener('rc:body-issues-updated',()=>{if(preModal.classList.contains('open'))renderIssueInputs(activeCheckin?.issueReadings||[]);});
   window.addEventListener('rc:data-restored',()=>{activeSession=null;activeCheckin=null;renderWeekly();renderIssueInputs();});

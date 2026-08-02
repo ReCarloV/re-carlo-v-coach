@@ -1,4 +1,4 @@
-const CACHE='re-carlo-v-shell-v77';
+const CACHE='re-carlo-v-shell-v78';
 const APP_SHELL=[
   './','./index.html','./manifest.webmanifest','./evidence-watch.json','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png',
   './styles.css','./mobile.css','./ui-polish.css','./theme.css','./cloud-v2.css','./experience-polish.css','./crop.css','./profile.css','./selectors.css','./pbs.css','./sessions.css','./sessions-extra.css','./post-session.css','./plan-polish.css','./plan-calendar.css','./bodymap.css','./checkins.css','./safety-screen.css','./generator.css','./today.css','./fasting-tracker.css','./workout-mode.css','./recap.css','./demo-data.css','./session-selection.css','./strength-performance.css','./strength-reliability.css','./data-import.css','./adaptive-coaching.css','./goals.css','./refinements.css','./cloud-sync.css','./calendar-integration.css','./evidence-watch.css','./tab-coordination.css',

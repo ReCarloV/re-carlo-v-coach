@@ -6,7 +6,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(zonesModel){
   'use strict';
 
-  const VERSION='1.0.0';
+  const VERSION='1.1.0';
   const PHASE_LABELS={warmup:'Riscaldamento',work:'Lavoro',recovery:'Recupero',cooldown:'Defaticamento',free:'Libero'};
   const INTENSITIES=new Set(['recovery','easy','steady','tempo','threshold','vo2','race']);
 
@@ -132,6 +132,59 @@
     if(range.intensity==='tempo'&&duration>=45)return[warm,{type:'repeat',repeats:3,intensity:'tempo',steps:[rideSegment('work',8,range.min,range.max,'tempo',ftp,range.cadence),rideSegment('recovery',3,50,60,'recovery',ftp,90)]},cool];
     return[warm,rideSegment('work',Math.max(10,duration-15),range.min,range.max,range.intensity,ftp,range.cadence),cool];
   }
+  function structuredDuration(blocks=[]){
+    if(!Array.isArray(blocks)||!blocks.length)return null;
+    let total=0,valid=true;
+    blocks.forEach(item=>{
+      if(item?.type==='repeat'){
+        const repeats=number(item.repeats);let cycle=0;
+        if(repeats<=0||!Array.isArray(item.steps)||!item.steps.length){valid=false;return;}
+        item.steps.forEach(step=>{if(step?.unit!=='min'||number(step.amount)<=0)valid=false;else cycle+=number(step.amount);});
+        total+=cycle*repeats;
+        return;
+      }
+      if(item?.unit!=='min'||number(item.amount)<=0){valid=false;return;}
+      total+=number(item.amount);
+    });
+    return valid?+total.toFixed(2):null;
+  }
+  function fitTimeBlocks(blocks=[],targetDuration){
+    const next=clone(blocks)||[],current=structuredDuration(next),target=number(targetDuration);
+    if(current===null||target<=0||Math.abs(current-target)<.01)return{blocks:next,changed:false,totalMinutes:current};
+    const elastic=[];let fixed=0;
+    next.forEach(item=>{
+      if(item.type==='repeat'){
+        const repeats=number(item.repeats);
+        item.steps.forEach(step=>{
+          const contribution=number(step.amount)*repeats;
+          if(['work','free'].includes(step.phase))elastic.push({item:step,multiplier:repeats,contribution});
+          else fixed+=contribution;
+        });
+        return;
+      }
+      const contribution=number(item.amount);
+      if(['work','free'].includes(item.phase))elastic.push({item,multiplier:1,contribution});
+      else fixed+=contribution;
+    });
+    const elasticTotal=elastic.reduce((sum,entry)=>sum+entry.contribution,0),nextElastic=target-fixed;
+    if(!elastic.length||elasticTotal<=0||nextElastic<elastic.reduce((sum,entry)=>sum+.5*entry.multiplier,0))return{blocks:next,changed:false,totalMinutes:current};
+    const factor=nextElastic/elasticTotal;
+    elastic.forEach(entry=>{entry.item.amount=+Math.max(.5,number(entry.item.amount)*factor).toFixed(2);});
+    let fitted=structuredDuration(next),residual=target-number(fitted);
+    if(Math.abs(residual)>=.01){
+      const last=elastic[elastic.length-1],amount=number(last.item.amount)+residual/last.multiplier;
+      if(amount>=.5)last.item.amount=+amount.toFixed(2);
+    }
+    fitted=structuredDuration(next);
+    return{blocks:next,changed:Math.abs(number(fitted)-current)>=.01,totalMinutes:fitted};
+  }
+  function adaptDuration(session,targetDuration){
+    const target=number(targetDuration),key=session?.category==='running'?'runBlocks':session?.category==='cycling'?'rideBlocks':null;
+    if(!key||!Array.isArray(session?.details?.[key])||!session.details[key].length)return{session:clone(session),changed:false,totalMinutes:null};
+    const fitted=fitTimeBlocks(session.details[key],target);
+    if(!fitted.changed||Math.abs(number(fitted.totalMinutes)-target)>=.02)return{session:clone(session),changed:false,totalMinutes:fitted.totalMinutes};
+    return{session:{...clone(session),durationMin:target,details:{...clone(session.details),[key]:fitted.blocks,prescriptionVersion:VERSION}},changed:true,totalMinutes:fitted.totalMinutes};
+  }
   function enrichSession(session,context={}){
     if(!session||session.outcome||!['running','cycling'].includes(session.category))return session;
     if(session.details?.prescriptionLocked)return session;
@@ -171,5 +224,5 @@
     return[`${number(item?.amount)}${unit}`.trim(),item?.target,item?.paceHint].filter(Boolean).join(' · ');
   }
 
-  return{VERSION,PHASE_LABELS,paceText,paceRange,paceProfile,hrContext,runPrescription,ridePrescription,enrichSession,enrichSessions,plannedBlocks,actualBlocks,inferIntensity,blockLabel,blockSummary};
+  return{VERSION,PHASE_LABELS,paceText,paceRange,paceProfile,hrContext,runPrescription,ridePrescription,structuredDuration,fitTimeBlocks,adaptDuration,enrichSession,enrichSessions,plannedBlocks,actualBlocks,inferIntensity,blockLabel,blockSummary};
 });

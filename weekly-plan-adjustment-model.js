@@ -1,8 +1,9 @@
 (function(root,factory){
-  const api=factory();
+  const prescriptionModel=typeof module!=='undefined'&&module.exports?require('./session-prescription-model.js'):root?.rcSessionPrescriptionModel;
+  const api=factory(prescriptionModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcWeeklyPlanAdjustmentModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(prescriptionModel){
   'use strict';
 
   const prescriptionFields=['date','category','title','durationMin','priority','details','notes','titleMode'];
@@ -24,7 +25,11 @@
   }
   function adaptedPrescription(session,analysis){
     const base=sourceSession(session),settings=analysis?.settings||{},instructions=[];let next=clone(base);if(isRace(base))return{base,next,instructions};const easyAerobic=base.category==='running'&&!isLong(base)&&!isQuality(base);const factor=isLong(base)?Number(settings.longFactor||1):easyAerobic?Number(settings.aerobicVolumeFactor??settings.volumeFactor??1):Number(settings.volumeFactor||1);const adaptedDuration=roundFive(Number(base.durationMin||0)*factor);
-    if(adaptedDuration!==Number(base.durationMin)){next.durationMin=adaptedDuration;const label=isLong(base)?'Lungo':easyAerobic?'Corsa facile':'Durata';instructions.push(`${label} adattat${isLong(base)?'o':'a'} da ${base.durationMin} a ${adaptedDuration} min.`);}
+    if(adaptedDuration!==Number(base.durationMin)){
+      next.durationMin=adaptedDuration;const label=isLong(base)?'Lungo':easyAerobic?'Corsa facile':'Durata';instructions.push(`${label} adattat${isLong(base)?'o':'a'} da ${base.durationMin} a ${adaptedDuration} min.`);
+      const aligned=prescriptionModel?.adaptDuration?.(next,adaptedDuration);
+      if(aligned?.changed){next=aligned.session;instructions.push(`Blocchi strutturati riallineati a ${adaptedDuration} min.`);}
+    }
     if(base.category==='strength')next.details=strengthDetails(base.details,settings,instructions);
     if(isQuality(base)&&settings.qualityMode==='controlled'){
       next.details={...(next.details||{}),runRpe:Math.min(Number(next.details?.runRpe)||6,6),adaptiveIntensity:'controlled'};instructions.push('Qualità mantenuta, ma con densità controllata e senza incremento di intensità.');
