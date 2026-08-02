@@ -6,6 +6,7 @@
 
 /* Safari can rasterize filter: drop-shadow around conic gradients as a square. */
 .today-whoop-dial{filter:none;box-shadow:0 0 18px color-mix(in srgb,var(--ring-color) 28%,transparent)}
+.today-adaptive-panel[hidden]{display:none!important}
 
 /* Week load chart: stable label row, explicit state contrast and keyboard-visible details. */
 .week-bars>div{position:relative;display:grid;grid-template-rows:minmax(0,1fr) 14px;align-items:end;gap:8px;outline:none}
