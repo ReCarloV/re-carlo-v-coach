@@ -24,7 +24,7 @@ html[data-theme="light"] .strength-session-overview,html[data-theme="light"] .st
 .workout-block.phase-recovery{--phase:#9a8cff;--phase-soft:rgba(154,140,255,.12)}
 .workout-block.phase-cooldown{--phase:#52d5ab;--phase-soft:rgba(82,213,171,.12)}
 .workout-block.phase-free{--phase:#7fa2c7;--phase-soft:rgba(127,162,199,.1)}
-.workout-block[class*="phase-"]{border-left-width:5px;border-left-color:var(--phase);background:radial-gradient(circle at 100% 0,var(--phase-soft),transparent 42%),#0d1b2d}
+.workout-block[class*="phase-"]{border-color:color-mix(in srgb,var(--phase) 42%,#263d59);border-left-width:5px;border-left-color:var(--phase);background:linear-gradient(135deg,color-mix(in srgb,var(--phase) 22%,#0d1b2d),color-mix(in srgb,var(--phase) 7%,#0d1b2d))}
 .workout-block[class*="phase-"] .workout-block-number{border-color:color-mix(in srgb,var(--phase) 58%,#263751);background:color-mix(in srgb,var(--phase) 11%,#0b1727);color:var(--phase)}
 .workout-block[class*="phase-"] .workout-block-top small{color:color-mix(in srgb,var(--phase) 76%,#c2d1e1)}
 .workout-block-performance{display:grid;grid-template-columns:minmax(125px,.36fr) minmax(0,1fr);align-items:stretch;gap:10px;margin-top:15px}
@@ -34,6 +34,9 @@ html[data-theme="light"] .strength-session-overview,html[data-theme="light"] .st
 .workout-targets,.workout-step-targets{display:flex;min-width:0;gap:8px;flex-wrap:wrap}
 .workout-target{min-width:125px;flex:1;border-color:color-mix(in srgb,var(--intensity) 42%,#304966);background:color-mix(in srgb,var(--intensity) 9%,#0b1727)}
 .workout-target strong{margin-top:5px;color:#f1f6ff;font-size:14px;font-variant-numeric:tabular-nums;line-height:1.2}
+.workout-target.has-zone{border-color:color-mix(in srgb,var(--zone-color) 72%,#304966);background:linear-gradient(145deg,color-mix(in srgb,var(--zone-color) 24%,#0b1727),color-mix(in srgb,var(--zone-color) 10%,#0b1727));box-shadow:inset 0 0 18px color-mix(in srgb,var(--zone-color) 9%,transparent)}
+.workout-target.has-zone small{color:color-mix(in srgb,var(--zone-color) 82%,#dce9f7)}
+.workout-target.has-zone strong{color:color-mix(in srgb,var(--zone-color) 56%,#fff)}
 .workout-repeat-steps{gap:9px}
 .workout-step{grid-template-columns:minmax(105px,.55fr) minmax(95px,.38fr) minmax(140px,1fr);align-items:stretch;padding:11px 12px}
 .workout-step-label{display:flex;align-items:center;gap:9px;min-width:0}
@@ -44,11 +47,14 @@ html[data-theme="light"] .strength-session-overview,html[data-theme="light"] .st
 .workout-step-targets{align-items:stretch}
 .workout-step-targets .workout-target{min-width:105px;padding:8px 10px}
 .workout-step-targets .workout-target strong{font-size:11px;text-align:left}
-html[data-theme="light"] .workout-block[class*="phase-"]{background:radial-gradient(circle at 100% 0,var(--phase-soft),transparent 42%),#f8fafc}
+html[data-theme="light"] .workout-block[class*="phase-"]{border-color:color-mix(in srgb,var(--phase) 48%,#cbd9e6);border-left-color:var(--phase);background:linear-gradient(135deg,color-mix(in srgb,var(--phase) 19%,#fff),color-mix(in srgb,var(--phase) 7%,#fff))}
 html[data-theme="light"] .workout-block[class*="phase-"] .workout-block-number{background:color-mix(in srgb,var(--phase) 11%,#fff)}
 html[data-theme="light"] .workout-block-duration,html[data-theme="light"] .workout-target{border-color:#c8d7e5;background:rgba(255,255,255,.82)}
 html[data-theme="light"] .workout-block-duration strong,html[data-theme="light"] .workout-target strong,html[data-theme="light"] .workout-step-duration strong{color:#213b55}
 html[data-theme="light"] .workout-step-label span{color:#344f68}
 html[data-theme="light"] .workout-step-duration{border-color:#cbd8e5}
 html[data-theme="light"] .workout-actions-card .workout-link{color:#236cb5}
+html[data-theme="light"] .workout-target.has-zone{border-color:color-mix(in srgb,var(--zone-color) 58%,#c8d7e5);background:linear-gradient(145deg,color-mix(in srgb,var(--zone-color) 18%,#fff),color-mix(in srgb,var(--zone-color) 8%,#fff))}
+html[data-theme="light"] .workout-target.has-zone small{color:color-mix(in srgb,var(--zone-color) 82%,#24405b)}
+html[data-theme="light"] .workout-target.has-zone strong{color:color-mix(in srgb,var(--zone-color) 74%,#172f48)}
 @media(max-width:620px){.workout-block-performance{grid-template-columns:1fr}.workout-block-duration{min-height:70px}.workout-block-duration strong{font-size:28px}.workout-targets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.workout-target{min-width:0;padding:10px}.workout-target strong{font-size:12px}.workout-step{grid-template-columns:minmax(0,1fr) auto;gap:9px}.workout-step-duration{border-left:0;text-align:right}.workout-step-duration strong{grid-column:auto;text-align:right}.workout-step-targets{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.workout-step-targets .workout-target strong{grid-column:auto;text-align:left}}

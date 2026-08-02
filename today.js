@@ -7,6 +7,13 @@
   let adaptiveCollapsed=false;
 
   function element(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}
+  function todayTargetChip(target){const chip=element('span','today-target');const color=window.rcTrainingZonesModel?.zoneColor?.(target.zone,'hr');if(color){chip.classList.add('has-zone');chip.style.setProperty('--zone-color',color);}chip.append(element('small','',target.label),element('strong','',target.value));return chip;}
+  function todayPrescriptionBlock(block){
+    const card=element('div',`today-prescription-block${block.phase?` phase-${block.phase}`:''}${block.intensity?` intensity-${block.intensity}`:''}`);card.append(element('small','today-prescription-label',block.label.toUpperCase()));
+    if(block.duration){const metrics=element('span','today-prescription-metrics');const duration=element('span','today-prescription-duration');duration.append(element('small','','DURATA'),element('strong','',block.duration));const targets=element('span','today-prescription-targets');(block.targets||[]).forEach(target=>targets.append(todayTargetChip(target)));metrics.append(duration,targets);card.append(metrics);}
+    else if(block.steps?.length){const steps=element('span','today-repeat-steps');block.steps.forEach((step,index)=>{const row=element('span',`today-repeat-step phase-${step.phase||'free'}`);const label=element('span','today-repeat-label');label.append(element('b','',String(index+1)),element('strong','',step.label));const duration=element('span','today-repeat-duration',step.duration);const targets=element('span','today-repeat-targets');(step.targets||[]).forEach(target=>targets.append(todayTargetChip(target)));row.append(label,duration,targets);steps.append(row);});card.append(steps);}
+    else card.append(element('strong','',block.value||'Da definire'));return card;
+  }
   function safeDataset(name,fallback){try{return window.rcDataStore?.getDataset(name)??fallback;}catch(_){return fallback;}}
   function currentModel(){
     const input={sessions:window.rcSessions?.getAll?.()||safeDataset('sessions',[]),preCheckins:window.rcCheckins?.getHistory?.()||safeDataset('preSessionCheckins',[]),bodyIssues:window.rcBodyIssues?.all?.()||safeDataset('bodyIssues',[]),whoopCycles:safeDataset('whoopCycles',[]),whoopSleeps:safeDataset('whoopSleeps',[]),whoopImportBatches:safeDataset('whoopImportBatches',[])};
@@ -58,7 +65,7 @@
     const session=model.primary;const execution=model.execution;const head=element('div','panel-head');const copy=element('div');const tags=element('div','today-session-tags');tags.append(element('span',`tag ${model.primaryTag.css}`,model.primaryTag.label));if(execution?.adapted)tags.append(element('span',`tag adjustment ${execution.mode}`,execution.mode==='stop'?'ALLENAMENTO SOSPESO':execution.mode==='replace'?'SOSTITUZIONE ODIERNA':'VERSIONE ADATTATA'));copy.append(tags,element('h2','',execution?.title||session.title));
     const edit=element('button','ghost','Modifica');edit.type='button';edit.addEventListener('click',()=>window.rcSessions.openEditor(session.id));head.append(copy,edit);
     const summary=element('p','muted',execution?.adapted?`${execution.mode==='stop'?`“${session.title}” resta nel piano ma non viene prescritta oggi`:execution.mode==='replace'?`In sostituzione di “${session.title}”`:`Adattata da ${session.durationMin} a ${execution.effectiveDurationMin} min`} · il piano originale resta nello storico`:model.primarySummary);
-    const prescription=element('div','prescription today-prescription');model.prescription.forEach(block=>{const card=element('div',block.intensity?`intensity-${block.intensity}`:'');card.append(element('small','',block.label.toUpperCase()),element('strong','',block.value||'Da definire'));prescription.append(card);});
+    const prescription=element('div','prescription today-prescription');model.prescription.forEach(block=>prescription.append(todayPrescriptionBlock(block)));
     const note=element('div',`coach-note ${toneClass[model.coachNote.tone]||''}`.trim());note.id='today-coach-note';note.append(element('strong','',model.coachNote.title));if(model.coachNote.text)note.append(element('p','',model.coachNote.text));
     const actions=element('div','today-session-actions');const primaryAction=element('button','primary');primaryAction.type='button';
     if(session.outcome){primaryAction.textContent='Apri registrazione';primaryAction.addEventListener('click',()=>window.rcSessions.openOutcome(session.id));}

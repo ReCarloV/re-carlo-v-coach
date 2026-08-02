@@ -57,8 +57,8 @@
     const amount=number(item.amount),unit={min:' min',km:' km',m:' m'}[item.unit]||` ${item.unit||''}`;
     const duration=amount?`${amount}${unit}`:'Durata libera';
     const values=[item.target||'Libero',item.paceHint].map(value=>String(value||'').trim()).filter(Boolean);
-    const unique=[...new Set(values)];
-    return{duration,targets:unique.map(value=>({label:targetLabel(value),value}))};
+    const unique=[...new Set(values)],zone=values.join(' ').match(/\bZ([1-5])\b/i)?.[0]?.toUpperCase()||null;
+    return{duration,targets:unique.map(value=>({label:targetLabel(value),value,...(zone?{zone}:{})}))};
   }
   function restText(value){const text=String(value||'').trim();return text?`Recupero ${text}`:'';}
   function actualStrengthBlocks(session){

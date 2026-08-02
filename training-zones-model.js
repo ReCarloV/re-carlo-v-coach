@@ -72,6 +72,10 @@
     const result=hrZones(options),number=Number(String(zone||'').replace(/\D/g,'')),item=result.zones[number-1];
     return item?`${item.id} · ${item.min}–${item.max} bpm`:null;
   }
+  function zoneColor(zone,type='hr'){
+    const number=Number(String(zone||'').match(/\bZ(\d)\b/i)?.[1]),colors=type==='ftp'?FTP_COLORS:HR_COLORS;
+    return Number.isInteger(number)&&number>=1&&number<=colors.length?colors[number-1]:null;
+  }
 
-  return {HR_METHODS,FTP_METHODS,hrZones,ftpZones,hrTarget,normalizedCustomUpper};
+  return {HR_METHODS,FTP_METHODS,hrZones,ftpZones,hrTarget,zoneColor,normalizedCustomUpper};
 });
