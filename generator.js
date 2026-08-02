@@ -384,7 +384,7 @@
   document.getElementById('generator-close').addEventListener('click',close);
   document.getElementById('generator-cancel').addEventListener('click',close);
   document.getElementById('generator-restore').addEventListener('click',()=>{if(!proposal||!window.confirm('Ripristinare le prescrizioni originali del programma Excel per questa settimana? Esiti e sedute manuali resteranno invariati.'))return;window.rcSessions.restoreWeekAdjustments(proposal.weekly.weekStart);close();toast();});
-  document.getElementById('generator-confirm').addEventListener('click',()=>{if(!proposal)return;const sessions=applicationModel?.markSessions?applicationModel.markSessions(proposal.sessions,proposal.analysis,proposal.weekly.weekStart,new Date()):proposal.sessions;window.rcSessions.replaceWeek(proposal.weekly.weekStart,sessions);close();toast();});
+  document.getElementById('generator-confirm').addEventListener('click',()=>{if(!proposal)return;const now=new Date(),receipt=applicationModel?.applicationFor?.(proposal.analysis,proposal.weekly.weekStart,now)||null,sessions=applicationModel?.markSessions?applicationModel.markSessions(proposal.sessions,proposal.analysis,proposal.weekly.weekStart,now):proposal.sessions;window.rcSessions.replaceWeek(proposal.weekly.weekStart,sessions,{coachApplication:receipt});close();toast();});
   document.addEventListener('rc:weekly-checkin-updated',()=>setTimeout(openProposal,0));
   window.rcGenerator={build,open:openProposal};
 })();

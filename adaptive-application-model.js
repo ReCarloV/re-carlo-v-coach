@@ -73,8 +73,11 @@
     return changed.length?changed:['analysis-changed'];
   }
   function phaseReceipt(analysis){const context=analysis?.phaseConstraints;return context?{version:context.version||null,goalId:context.goal?.id||null,phaseKey:context.phase?.key||null,label:context.phase?.label||null}:null;}
+  function applicationFor(analysis,weekStart,now=new Date()){
+    const appliedAt=now instanceof Date?now.toISOString():new Date(now).toISOString();return{version:3,weekStart,appliedAt,signature:signatureFor(analysis),level:analysis?.level||'steady',confidence:analysis?.confidence||'low',phase:phaseReceipt(analysis),basis:basisFor(analysis)};
+  }
   function markSessions(sessions,analysis,weekStart,now=new Date()){
-    const appliedAt=now instanceof Date?now.toISOString():new Date(now).toISOString();const application={version:3,weekStart,appliedAt,signature:signatureFor(analysis),level:analysis?.level||'steady',confidence:analysis?.confidence||'low',phase:phaseReceipt(analysis),basis:basisFor(analysis)};
+    const application=applicationFor(analysis,weekStart,now);
     return(Array.isArray(sessions)?sessions:[]).map(session=>({...clone(session),coachApplication:{...application}}));
   }
   function applicationState(sessions,analysis,weekStart,options={}){
@@ -83,5 +86,5 @@
     const analysisChanged=latest.signature!==signature,analysisReasons=analysisChanged?changedBasis(latest.basis,basisFor(analysis)):[],staleReasons=reviewRequired?['key-outcome',...analysisReasons]:analysisReasons;return{applied:!analysisChanged&&!reviewRequired,stale:analysisChanged||reviewRequired,application:clone(latest),signature,reviewRequired,reviewTrigger:reviewRequired?review.trigger:null,remainingCount:review.remainingCount,staleReason:staleReasons[0]||null,staleReasons};
   }
 
-  return{signatureFor,markSessions,applicationState,stableAnalysis,basisFor,changedBasis,isKeySession,isKeyOutcome,pendingOutcomeReview};
+  return{signatureFor,applicationFor,markSessions,applicationState,stableAnalysis,basisFor,changedBasis,isKeySession,isKeyOutcome,pendingOutcomeReview};
 });
