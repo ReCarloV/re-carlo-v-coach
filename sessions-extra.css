@@ -25,3 +25,16 @@
 .ride-workout-builder{padding:14px;border:1px solid #223854;border-radius:11px;background:#081422}.profile-derived-badge{padding:5px 8px;border:1px solid #2d5f91;border-radius:999px;color:#8fc1ff;font-size:8px;font-weight:850;letter-spacing:.08em}.ride-workout-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px}
 .endurance-block{min-width:0;padding:11px 12px;border:1px solid color-mix(in srgb,var(--intensity) 45%,#20344c);border-left:4px solid var(--intensity);border-radius:9px;background:#0d1c2f}.endurance-block small,.endurance-block strong{display:block}.endurance-block small{color:var(--intensity);font-size:8px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}.endurance-block strong{margin-top:5px;color:#e8f2ff;font-size:11px;line-height:1.4}.endurance-block.repeat{grid-column:span 2}.ride-repeat-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:7px;margin-top:9px}.endurance-block.compact{padding:8px;background:#091525}
 @media(max-width:700px){.ride-workout-rows{grid-template-columns:1fr}.endurance-block.repeat{grid-column:auto}.ride-repeat-steps{grid-template-columns:1fr}.profile-derived-badge{display:none}}
+
+/* Colori coerenti con Oggi e Allenamento anche nell'editor del Piano */
+:where(.run-segment,.endurance-block).phase-warmup{--phase:#4bc5f3}
+:where(.run-segment,.endurance-block).phase-work,:where(.run-repeat,.endurance-block).phase-repeat{--phase:#4f83ff}
+:where(.run-segment,.endurance-block).phase-recovery{--phase:#9a8cff}
+:where(.run-segment,.endurance-block).phase-cooldown{--phase:#52d5ab}
+:where(.run-segment,.endurance-block).phase-free{--phase:#7fa2c7}
+.run-segment[class*="phase-"],.endurance-block[class*="phase-"]{border-color:color-mix(in srgb,var(--phase) 42%,#20344c);border-left-color:var(--phase);background:linear-gradient(135deg,color-mix(in srgb,var(--phase) 20%,#0d1c2f),color-mix(in srgb,var(--phase) 6%,#0d1c2f))}
+.run-repeat{--phase:#4f83ff;border-color:color-mix(in srgb,var(--phase) 42%,#35577e);border-left-color:var(--phase);background:linear-gradient(135deg,color-mix(in srgb,var(--phase) 17%,#0d1d31),color-mix(in srgb,var(--phase) 5%,#0d1d31))}
+.run-segment.has-zone .run-target-value :is(input,select),.endurance-block.has-zone{border-color:color-mix(in srgb,var(--zone-color) 68%,#263a54);box-shadow:inset 0 0 18px color-mix(in srgb,var(--zone-color) 8%,transparent)}
+.run-segment.has-zone .run-target-value :is(input,select){background:color-mix(in srgb,var(--zone-color) 15%,#07111f);color:color-mix(in srgb,var(--zone-color) 48%,#fff)}
+.run-segment.has-zone .pace-stepper button{border-color:color-mix(in srgb,var(--zone-color) 58%,#35577e);background:color-mix(in srgb,var(--zone-color) 13%,#132b49);color:color-mix(in srgb,var(--zone-color) 55%,#fff)}
+.run-segment.has-zone .run-derived-hint,.endurance-block.has-zone small{color:color-mix(in srgb,var(--zone-color) 80%,#dce9f7)}

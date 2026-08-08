@@ -57,7 +57,8 @@
     const amount=number(item.amount),unit={min:' min',km:' km',m:' m'}[item.unit]||` ${item.unit||''}`;
     const duration=amount?`${amount}${unit}`:'Durata libera';
     const values=[item.target||'Libero',item.paceHint].map(value=>String(value||'').trim()).filter(Boolean);
-    const unique=[...new Set(values)],zone=values.join(' ').match(/\bZ([1-5])\b/i)?.[0]?.toUpperCase()||null;
+    const inferredZone={recovery:'Z1',easy:'Z2',steady:'Z3',tempo:'Z3',threshold:'Z4',vo2:'Z5'}[item.intensity];
+    const unique=[...new Set(values)],zone=values.join(' ').match(/\bZ([1-5])\b/i)?.[0]?.toUpperCase()||inferredZone||null;
     return{duration,targets:unique.map(value=>({label:targetLabel(value),value,...(zone?{zone}:{})}))};
   }
   function restText(value){const text=String(value||'').trim();return text?`Recupero ${text}`:'';}
@@ -113,11 +114,47 @@
     const seconds=text.match(/(\d+)\s*(?:sec|s|\")/);if(seconds)return Number(seconds[1]);
     return null;
   }
+  function durationMinutes(value){
+    const text=String(value||'').toLowerCase(),clock=text.match(/\b(\d{1,2})\s*:\s*(\d{2})\b/);if(clock)return(Number(clock[1])*60+Number(clock[2]))/60;
+    const minutes=[...text.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:min(?:uti?)?|['’])/g)].map(match=>Number(match[1].replace(',','.'))).filter(value=>value>0);
+    return minutes.length?minutes[minutes.length-1]:null;
+  }
+  function protocolDuration(session,protocol){
+    const details=session?.details||{},blocks=Array.isArray(details.metconStructuredBlocks)?details.metconStructuredBlocks:[],sources=[session?.title,session?.notes,...blocks.flatMap(item=>[item.name,item.volume,item.target])].filter(Boolean);
+    const name=protocol==='amrap'?'amrap':protocol==='emom'?'e(?:very\s+minute\s+on\s+the\s+minute|mom)':'(?:time\s*cap|cap)';
+    for(const source of sources){
+      const text=String(source),after=text.match(new RegExp(`\\b${name}\\b(?:\\s*(?:da|di|for|of)?\\s*)(\\d+(?:[.,]\\d+)?)\\s*(?:min(?:uti?)?|['’])`,'i')),before=text.match(new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*(?:min(?:uti?)?|['’])\\s*(?:di\\s*)?\\b${name}\\b`,'i'));
+      const minutes=Number((after?.[1]||before?.[1]||'').replace(',','.'));if(minutes>0)return Math.round(minutes*60);
+    }
+    if(['amrap','emom'].includes(protocol)){
+      const matching=blocks.find(item=>new RegExp(name,'i').test(`${item.name||''} ${item.volume||''} ${item.target||''}`))||blocks[0],minutes=durationMinutes(`${matching?.name||''} ${matching?.volume||''}`);
+      if(minutes>0)return Math.round(minutes*60);
+    }
+    return null;
+  }
+  function timerConfig(session){
+    if(!session)return null;const details=session.details||{},category=session.category;
+    const blockKey={strength:'strengthBlocks',swimming:'swimStructuredBlocks',hyrox:'hyroxStructuredBlocks',metcon:'metconStructuredBlocks'}[category],blocks=Array.isArray(details[blockKey])?details[blockKey]:[];
+    const restValues=blocks.map(item=>number(item.restSec)||parseRestSeconds(item.rest)).filter(seconds=>seconds>=15&&seconds<=600);
+    const uniqueRest=[...new Set(restValues)].sort((a,b)=>a-b).map(seconds=>({seconds,label:formatTimer(seconds),kind:'recovery'}));
+    if(category==='metcon'){
+      const format=`${details.metconType||''} ${session.title||''}`.toLowerCase(),protocol=/amrap/.test(format)?'amrap':/emom|every minute/.test(format)?'emom':/for time|time cap/.test(format)?'cap':null;
+      if(protocol){const seconds=protocolDuration(session,protocol);if(seconds)return{title:protocol==='amrap'?'TIMER AMRAP':protocol==='emom'?'TIMER EMOM':'TIME CAP',note:protocol==='emom'?'Durata complessiva del blocco EMOM programmato.':'Durata del protocollo programmato.',presets:[{seconds,label:`${protocol==='amrap'?'AMRAP':protocol==='emom'?'EMOM':'CAP'} · ${formatTimer(seconds)}`,kind:'work'}]};}
+      if(uniqueRest.length)return{title:'TIMER METCON',note:'Recuperi presenti nella struttura della seduta.',presets:uniqueRest};
+      return null;
+    }
+    if(category==='strength'&&uniqueRest.length)return{title:'TIMER RECUPERO',note:'Sono mostrati soltanto i recuperi programmati negli esercizi di oggi.',presets:uniqueRest};
+    if(category==='hyrox'&&uniqueRest.length)return{title:'TIMER HYROX',note:'Recuperi previsti tra blocchi e stazioni.',presets:uniqueRest};
+    if(category==='swimming'&&uniqueRest.length)return{title:'TIMER NUOTO',note:'Recuperi previsti tra le serie.',presets:uniqueRest};
+    if(category==='test'){
+      const recovery=String(details.testProtocol||'').match(/recuper\w*\s*(?:di|da)?\s*(\d+(?:[.,]\d+)?)\s*(min(?:uti?)?|s(?:ec)?)/i);if(recovery){const seconds=/^min/i.test(recovery[2])?Math.round(Number(recovery[1].replace(',','.'))*60):Math.round(Number(recovery[1].replace(',','.')));if(seconds>=15&&seconds<=1800)return{title:'TIMER TEST',note:'Recupero indicato nel protocollo del test.',presets:[{seconds,label:formatTimer(seconds),kind:'recovery'}]};}
+    }
+    return null;
+  }
   function timerPresets(session){
-    const values=[90,150];sessionBlocks(session||{}).forEach(item=>{const parsed=parseRestSeconds(item.rest);if(parsed&&parsed>=15&&parsed<=600)values.push(parsed);});
-    return [...new Set(values)].sort((a,b)=>a-b);
+    return(timerConfig(session)?.presets||[]).map(item=>item.seconds);
   }
   function formatTimer(seconds){const safe=Math.max(0,Math.round(number(seconds)));return `${String(Math.floor(safe/60)).padStart(2,'0')}:${String(safe%60).padStart(2,'0')}`;}
 
-  return{VERSION,buildWorkoutDay,buildSession,sessionBlocks,targetMetrics,timerPresets,parseRestSeconds,formatTimer,timeRange};
+  return{VERSION,buildWorkoutDay,buildSession,sessionBlocks,targetMetrics,timerConfig,timerPresets,parseRestSeconds,formatTimer,timeRange};
 });

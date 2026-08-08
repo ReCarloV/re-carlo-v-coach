@@ -105,7 +105,7 @@
   function segmentMetrics(segment={}){
     const amount=number(segment.amount),unit={min:' min',km:' km',m:' m'}[segment.unit]||` ${segment.unit||''}`;
     const values=[segment.target||'libero',segment.paceHint].map(value=>String(value||'').trim()).filter(Boolean);
-    const zone=values.join(' ').match(/\bZ([1-5])\b/i)?.[0]?.toUpperCase()||null;
+    const zone=values.join(' ').match(/\bZ([1-5])\b/i)?.[0]?.toUpperCase()||{recovery:'Z1',easy:'Z2',steady:'Z3',tempo:'Z3',threshold:'Z4',vo2:'Z5'}[segment.intensity]||null;
     return{duration:amount?`${amount}${unit}`:'Durata libera',targets:[...new Set(values)].map(value=>({label:segmentTargetLabel(value),value,...(zone?{zone}:{})}))};
   }
   function prescriptionFor(session) {
