@@ -7,7 +7,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(goalsModel,programming){
   'use strict';
 
-  const VERSION='1.2.0';
+  const VERSION='1.3.0';
   const DAY_MS=86400000;
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const dateAtNoon=value=>new Date(`${value}T12:00:00`);
@@ -49,12 +49,12 @@
     let hash=2166136261;for(let index=0;index<source.length;index++){hash^=source.charCodeAt(index);hash=Math.imul(hash,16777619);}return`macro-${(hash>>>0).toString(16).padStart(8,'0')}`;
   }
   function build(input={}){
-    const today=input.today||iso(new Date()),allGoals=(Array.isArray(input.goals)?input.goals:[]).filter(item=>item?.status!=='cancelled'),goals=allGoals.filter(item=>item.status==='planned'&&item.date>=today),sessions=Array.isArray(input.sessions)?input.sessions:[],history=Array.isArray(input.availabilityHistory)?input.availabilityHistory:[];
-    const athleteState=input.athleteState||null;if(!goals.length)return{version:VERSION,signature:stableSignature(allGoals,history,athleteState),weeks:[],startWeek:null,endDate:null};
-    const startWeek=input.startWeek?mondayFor(input.startWeek):addDays(mondayFor(today),7),endDate=goals.map(item=>item.date).sort().at(-1),stateAnchor=athleteState?.capacity?.usable?Number(athleteState.capacity.longestRunningMinutes)||0:0,anchorMinutes=stateAnchor||recentLongAnchor(sessions,today),weeks=[],maxWeeks=Math.max(1,Math.min(104,Number(input.maxWeeks)||104));
+    const today=input.today||iso(new Date()),allGoals=(Array.isArray(input.goals)?input.goals:[]).filter(item=>item?.status!=='cancelled'),primaryGoals=allGoals.filter(item=>item.status==='planned'&&item.priority==='A'&&item.date>=today).sort((a,b)=>a.date.localeCompare(b.date)),sessions=Array.isArray(input.sessions)?input.sessions:[],history=Array.isArray(input.availabilityHistory)?input.availabilityHistory:[];
+    const athleteState=input.athleteState||null;if(!primaryGoals.length)return{version:VERSION,signature:stableSignature(allGoals,history,athleteState),weeks:[],startWeek:null,endDate:null};
+    const startWeek=input.startWeek?mondayFor(input.startWeek):addDays(mondayFor(today),7),endDate=primaryGoals.map(item=>item.date).sort().at(-1),stateAnchor=athleteState?.capacity?.usable?Number(athleteState.capacity.longestRunningMinutes)||0:0,anchorMinutes=stateAnchor||recentLongAnchor(sessions,today),weeks=[],maxWeeks=Math.max(1,Math.min(104,Number(input.maxWeeks)||104));
     let cursor=startWeek,runningWeekIndex=0;
     while(cursor<=endDate&&weeks.length<maxWeeks){
-      const goal=goalsModel?.classifyGoals?.(allGoals,cursor)?.current||goals.filter(item=>item.date>=cursor).sort((a,b)=>a.date.localeCompare(b.date))[0]||null;if(!goal)break;
+      const goal=primaryGoals.find(item=>item.date>=cursor)||null;if(!goal)break;
       const declaredAvailability=availabilityForGoal(goal,history,input.fallbackAvailability),availability=calibratedAvailability(declaredAvailability,athleteState,weeks.length),pack=programming?.packFor?.(goal)||null,phase=programming?.phaseFor?.(goal,cursor)||null,longTargetMinutes=longTargetFor({phaseKey:phase?.key,weekIndex:runningWeekIndex,availability,anchorMinutes,family:pack?.family});
       weeks.push({weekStart:cursor,weekEnd:addDays(cursor,6),goalId:goal.id,goalName:goal.name,goalDate:goal.date,packKey:pack?.key||null,packLabel:pack?.label||'Pack da definire',packFamily:pack?.family||null,phaseKey:phase?.key||null,phaseLabel:phase?.label||'Fase da definire',availability:{...availability,...(longTargetMinutes?{plannedLongMinutes:longTargetMinutes}:{})}});
       if(pack?.family==='running')runningWeekIndex++;cursor=addDays(cursor,7);

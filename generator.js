@@ -331,7 +331,7 @@
   }
   function ensureBaselinePlan(options={}){
     if(!macrocycleModel||!window.rcSessions?.replaceBaselinePlan)return{changed:false};const current=window.rcSessions.getAll(),existing=current.filter(item=>item.baselinePlan&&!item.outcome),result=buildBaselinePlan(options),signature=result.plan?.signature||null;
-    const stale=existing.some(item=>item.baselinePlan?.version!==2||item.baselinePlan?.signature!==signature);
+    const stale=existing.some(item=>item.baselinePlan?.version!==2);
     if(existing.length&&!options.force&&!stale)return{changed:false,reason:'already-current',...result};
     if(!result.plan?.weeks?.length){
       if(options.force&&existing.length){const fromDate=addDays(mondayFor(localDate()),7);window.rcSessions.replaceBaselinePlan([],{fromDate,signature:result.plan?.signature||null});return{changed:true,reason:'no-goals',...result};}
@@ -391,8 +391,10 @@
   document.getElementById('generator-cancel').addEventListener('click',close);
   document.getElementById('generator-confirm').addEventListener('click',()=>{if(!proposal)return;const now=new Date(),receipt=applicationModel?.applicationFor?.(proposal.analysis,proposal.weekly.weekStart,now)||null,sessions=applicationModel?.markSessions?applicationModel.markSessions(proposal.sessions,proposal.analysis,proposal.weekly.weekStart,now):proposal.sessions;window.rcSessions.replaceWeek(proposal.weekly.weekStart,sessions,{coachApplication:receipt});close();toast();});
   document.addEventListener('rc:weekly-checkin-updated',()=>setTimeout(openProposal,0));
-  document.addEventListener('rc:goals-updated',()=>setTimeout(()=>ensureBaselinePlan({force:true}),0));
+  document.addEventListener('rc:goals-updated',event=>{
+    if(['goal-created','goal-inferred-from-plan'].includes(event.detail?.reason))setTimeout(()=>ensureBaselinePlan({force:true}),0);
+  });
   document.addEventListener('rc:sessions-updated',event=>{if(['outcome-saved','outcome-deleted','outcome-date-corrected'].includes(event.detail?.reason))setTimeout(()=>ensureBaselinePlan({force:true}),0);});
-  window.rcGenerator={build,open:openProposal,buildBaselinePlan,ensureBaselinePlan};
+  window.rcGenerator={build,open:openProposal,buildBaselinePlan,ensureBaselinePlan,regenerateBaselinePlan:()=>ensureBaselinePlan({force:true})};
   setTimeout(()=>{ensureBaselinePlan();document.dispatchEvent(new CustomEvent('rc:generator-ready'));},0);
 })();
