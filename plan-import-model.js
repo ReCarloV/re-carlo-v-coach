@@ -106,9 +106,10 @@
   function strengthBlocks(plan){
     const result=[];for(const segment of text(plan).split(';').map(item=>item.trim()).filter(Boolean)){if(/split squat|goblet squat|bulgarian/i.test(segment))continue;const lift=liftDefinitions.find(item=>item.pattern.test(segment));if(!lift||result.some(item=>item.name===lift.name))continue;const scheme=segment.match(/(\d+)\s*[x×]\s*(\d+)/i);result.push({name:lift.name,sets:scheme?.[1]||'',reps:scheme?.[2]||'',target:segment,rest:''});}return result;
   }
+  function strengthAccessories(plan){return text(plan).split(';').map(item=>item.trim()).filter(Boolean).filter(segment=>!liftDefinitions.some(item=>item.pattern.test(segment))).join('; ');}
   function sessionDetails(row,category){
     if(category==='running')return{runType:runTypeFor(row),distanceKm:number(row.plannedKm),runTarget:'free',hrZone:'',paceMin:0,paceSec:0,runRpe:0,runBlocks:[]};
-    if(category==='strength')return{strengthFocus:strengthFocusFor(row),targetRir:'',strengthBlocks:strengthBlocks(row.plan),strengthAccessories:text(row.plan)};
+    if(category==='strength')return{strengthFocus:strengthFocusFor(row),targetRir:'',strengthBlocks:strengthBlocks(row.plan),strengthAccessories:strengthAccessories(row.plan)};
     if(category==='cycling')return{rideType:/recuper|facile/i.test(`${row.session} ${row.plan}`)?'Recovery ride':'Endurance ride',powerSource:'FC / RPE',ftpMin:null,ftpMax:null,cadence:null};
     return{recoveryType:/cammin/i.test(`${row.session} ${row.plan}`)?'Camminata':'Cardio rigenerante'};
   }
@@ -139,7 +140,21 @@
   function parsePlannerMatrix(matrix,options={}){
     if(!Array.isArray(matrix)||matrix.length<2)fail('EMPTY_PLANNER','Il foglio Planner non contiene sedute.');const columns=plannerColumns(matrix[0]);const importedAt=(options.now instanceof Date?options.now:new Date(options.now||Date.now())).toISOString();const raw=[];
     matrix.slice(1).forEach((row,index)=>{const session=text(rowValue(row,columns.session));if(!session)return;const plannedMin=number(rowValue(row,columns.plannedMin));if(plannedMin===null||plannedMin<=0)fail('INVALID_PLAN_ROW',`Alla riga ${index+2} manca una durata pianificata valida.`);raw.push({rowNumber:index+2,week:number(rowValue(row,columns.week)),weekLabel:text(rowValue(row,columns.weekLabel)),phase:text(rowValue(row,columns.phase)),priority:number(rowValue(row,columns.priority)),session,type:text(rowValue(row,columns.type)),plannedKm:number(rowValue(row,columns.plannedKm)),plannedMin,plan:text(rowValue(row,columns.plan)),coachNotes:text(rowValue(row,columns.coachNotes)),status:text(rowValue(row,columns.status)),actualDate:excelSerialDate(rowValue(row,columns.actualDate)),actualKm:number(rowValue(row,columns.actualKm)),actualMin:number(rowValue(row,columns.actualMin)),avgPace:text(rowValue(row,columns.avgPace)),avgHr:number(rowValue(row,columns.avgHr)),pain:number(rowValue(row,columns.pain)),rpe:number(rowValue(row,columns.rpe)),notes:text(rowValue(row,columns.notes))});});
-    if(!raw.length)fail('EMPTY_PLANNER','Il foglio Planner non contiene sedute.');const year=detectYear(raw,options.sourceName);assignDates(raw,year);const sessions=raw.map(row=>{const category=categoryFor(row);const notes=[row.plan?`Piano: ${row.plan}`:'',row.coachNotes?`Coach: ${row.coachNotes}`:'',row.phase?`Fase: ${row.phase}`:'',row.avgPace?`Passo Excel: ${row.avgPace}`:'',row.avgHr!==null?`FC media Excel: ${row.avgHr} bpm`:''].filter(Boolean).join('\n');return{id:`excel-plan:${year}:w${pad(row.week)}:p${pad(row.priority)}`,date:row.date,category,title:cleanTitle(row.session),durationMin:row.plannedMin,priority:priorityFor(row),details:sessionDetails(row,category),notes,outcome:outcomeFor(row,row.date,importedAt),titleMode:'custom',planImport:{provider:'excel',sourceName:String(options.sourceName||'Piano Excel'),sheet:'Planner',row:row.rowNumber,week:row.week,weekLabel:row.weekLabel,phase:row.phase,originalTitle:row.session,importedAt},createdAt:importedAt,updatedAt:importedAt};});const dates=sessions.map(item=>item.date).sort();return{sessions,year,rows:raw.length,completed:sessions.filter(item=>item.outcome?.status==='completed').length,partial:sessions.filter(item=>item.outcome?.status==='partial').length,skipped:sessions.filter(item=>item.outcome?.status==='skipped').length,earliestDate:dates[0],latestDate:dates.at(-1)};
+    if(!raw.length)fail('EMPTY_PLANNER','Il foglio Planner non contiene sedute.');const year=detectYear(raw,options.sourceName);assignDates(raw,year);const sessions=raw.map(row=>{const category=categoryFor(row);const reference={plan:row.plan,coachNotes:row.coachNotes,phase:row.phase,averagePace:row.avgPace,averageHr:row.avgHr===null?'':`${row.avgHr} bpm`};return{id:`excel-plan:${year}:w${pad(row.week)}:p${pad(row.priority)}`,date:row.date,category,title:cleanTitle(row.session),durationMin:row.plannedMin,priority:priorityFor(row),details:sessionDetails(row,category),notes:'',outcome:outcomeFor(row,row.date,importedAt),titleMode:'custom',planImport:{provider:'excel',sourceName:String(options.sourceName||'Piano Excel'),sheet:'Planner',row:row.rowNumber,week:row.week,weekLabel:row.weekLabel,phase:row.phase,originalTitle:row.session,importedAt,reference},createdAt:importedAt,updatedAt:importedAt};});const dates=sessions.map(item=>item.date).sort();return{sessions,year,rows:raw.length,completed:sessions.filter(item=>item.outcome?.status==='completed').length,partial:sessions.filter(item=>item.outcome?.status==='partial').length,skipped:sessions.filter(item=>item.outcome?.status==='skipped').length,earliestDate:dates[0],latestDate:dates.at(-1)};
+  }
+  function isRaceSession(session){return session?.details?.runType==='Race'||/(^|\s)gara(?:\s|[-–:]|$)|race day|competition/i.test(`${session?.title||''} ${session?.planImport?.originalTitle||''}`);}
+  function wasEditedAfterImport(session){const imported=Date.parse(session?.planImport?.importedAt||''),updated=Date.parse(session?.updatedAt||'');return Number.isFinite(imported)&&Number.isFinite(updated)&&updated-imported>60000;}
+  function retireImportedPlan(sessions=[],options={}){
+    const today=options.today||dateKey(new Date().getFullYear(),new Date().getMonth()+1,new Date().getDate()),archivedIds=[],archivedSessions=[],detachedIds=[],historicalIds=[];
+    const next=(Array.isArray(sessions)?sessions:[]).flatMap(session=>{
+      if(!session?.planImport)return[session];
+      if(session.outcome||session.date<today){historicalIds.push(session.id);return[{...session,planImport:{...session.planImport,retired:true}}];}
+      if(session.coachApplication||session.adaptiveAdjustment||wasEditedAfterImport(session)){
+        const{planImport,...kept}=session;detachedIds.push(session.id);return[{...kept,externalPlanReference:{...planImport,retired:true},...(session.coachApplication||session.adaptiveAdjustment?{generated:true}:{})}];
+      }
+      archivedIds.push(session.id);archivedSessions.push({...session,planImport:{...session.planImport,retired:true},archivedExternalPlan:true,archiveReason:isRaceSession(session)?'goal-race-replaced':'external-plan-retired'});return[];
+    });
+    return{sessions:next,changed:Boolean(archivedIds.length||detachedIds.length||historicalIds.some(id=>!sessions.find(item=>item.id===id)?.planImport?.retired)),archivedIds,archivedSessions,detachedIds,historicalIds};
   }
   function comparable(session){return JSON.stringify({date:session.date,category:session.category,title:session.title,durationMin:session.durationMin,priority:session.priority,details:session.details,notes:session.notes,outcome:session.outcome?{...session.outcome,updatedAt:undefined}:null});}
   function buildPlanImportPreview(incoming,existing=[]){
@@ -148,5 +163,5 @@
     return{total:incoming.length,newSessions,duplicates,conflicts,merged:[...existing,...newSessions].sort((a,b)=>a.date.localeCompare(b.date)||a.title.localeCompare(b.title,'it'))};
   }
 
-  return{PlanImportError,decodeXml,parseSharedStrings,parseWorksheetXml,worksheetPath,excelSerialDate,weekStart,weekEnd,parsePlannerMatrix,readPlanWorkbook,buildPlanImportPreview,assignDates,migrateImportedRaceDate};
+  return{PlanImportError,decodeXml,parseSharedStrings,parseWorksheetXml,worksheetPath,excelSerialDate,weekStart,weekEnd,parsePlannerMatrix,readPlanWorkbook,buildPlanImportPreview,assignDates,migrateImportedRaceDate,retireImportedPlan};
 });

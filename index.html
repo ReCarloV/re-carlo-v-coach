@@ -282,12 +282,6 @@
             </div>
             <details class="whoop-manual-import"><summary>Importazione manuale da ZIP</summary><div class="import-safety"><span>✓ 4 tabelle controllate</span><span>✓ Duplicati esclusi</span><span>✓ Importazione annullabile</span></div><div class="import-source-actions"><label class="ghost file-button" for="whoop-import-input">Scegli ZIP WHOOP</label><input id="whoop-import-input" type="file" accept=".zip,application/zip"><small id="whoop-import-status" role="status" aria-live="polite">Nessun file selezionato.</small></div></details>
           </article>
-          <article class="panel import-source-card plan-source" id="external-plan-settings-panel" data-settings-disclosure>
-            <div class="import-source-head"><div class="source-logo plan">P</div><div><small>IMPORTAZIONE OPZIONALE</small><h2>Programmazione esterna</h2></div><span class="source-status optional">Opzionale</span></div>
-            <p class="muted">Per piani <code>.xlsx</code> preparati altrove.</p>
-            <div class="import-safety"><span>✓ Base esterna, non obbligatoria</span><span>✓ Anteprima prima del salvataggio</span><span>✓ Adattabile dal Coach</span></div>
-            <div class="import-source-actions"><label class="ghost file-button plan-button" for="plan-import-input">Scegli file Excel</label><input id="plan-import-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><small id="plan-import-status" role="status" aria-live="polite">Nessun file selezionato. Il piano attuale resta invariato fino alla conferma.</small></div>
-          </article>
         </div>
         <div class="data-snapshot-note" id="data-snapshot-note"><strong id="data-connection-note-title">Importazioni manuali</strong><span id="data-connection-note-text">Strava e WHOOP sono fotografie locali, non connessioni continue. Oggi mostra i dati dispositivo soltanto quando la fotografia contiene una rilevazione realmente recente.</span></div>
 
@@ -313,18 +307,6 @@
           </div>
           <div class="import-preview-note" id="whoop-preview-note"></div>
           <div class="modal-actions"><button class="ghost" id="whoop-preview-cancel" type="button">Annulla</button><button class="primary whoop-button" id="whoop-import-confirm" type="button">Importa dati nuovi</button></div>
-        </article>
-
-        <article class="panel import-preview plan-preview" id="plan-import-preview" hidden aria-live="polite">
-          <div class="panel-head"><div><small>CONTROLLO DELLA PROGRAMMAZIONE</small><h2 id="plan-preview-title">Anteprima piano Excel</h2><p class="muted" id="plan-preview-summary"></p></div><button class="icon-button" id="plan-preview-close" type="button" aria-label="Chiudi anteprima piano">×</button></div>
-          <div class="import-preview-metrics">
-            <span class="new"><strong id="plan-preview-new">0</strong><small>Nuove sedute</small></span>
-            <span><strong id="plan-preview-existing">0</strong><small>Già presenti</small></span>
-            <span class="conflict"><strong id="plan-preview-conflicts">0</strong><small>Preservate</small></span>
-            <span><strong id="plan-preview-completed">0</strong><small>Già svolte nel file</small></span>
-          </div>
-          <div class="import-preview-note" id="plan-preview-note"></div>
-          <div class="modal-actions"><button class="ghost" id="plan-preview-cancel" type="button">Annulla</button><button class="primary plan-button" id="plan-import-confirm" type="button">Aggiungi le sedute al Piano</button></div>
         </article>
 
         <div class="data-analysis-grid">
@@ -464,7 +446,7 @@
       <div class="generator-alert" id="generator-alert" hidden></div>
       <div class="generator-preview" id="generator-preview"></div>
       <div class="generator-rationale" id="generator-rationale"></div>
-      <div class="modal-actions"><button class="ghost" id="generator-restore" type="button" hidden>Ripristina piano Excel</button><button class="ghost" id="generator-cancel" type="button">Annulla</button><button class="primary" id="generator-confirm" type="button">Conferma e aggiorna il Piano</button></div>
+      <div class="modal-actions"><button class="ghost" id="generator-cancel" type="button">Annulla</button><button class="primary" id="generator-confirm" type="button">Conferma e aggiorna il Piano</button></div>
     </div>
   </div>
   <div class="session-modal" id="session-modal" aria-hidden="true">
@@ -479,6 +461,11 @@
         <label>Ora di inizio<input name="startTime" id="session-start-time" type="time" step="60" value="09:00" required><small class="field-hint" id="session-end-time">Fine calcolata automaticamente</small></label>
         <label>Priorità<select name="priority"><option value="essential">Essenziale</option><option value="important">Importante</option><option value="optional">Opzionale</option></select></label>
       </div>
+
+      <section class="session-prescription-source" id="session-prescription-source" hidden>
+        <div><small>PRESCRIZIONE ATTIVA</small><strong id="session-prescription-authority">Coach Re Carlo V</strong><p id="session-prescription-authority-note">I blocchi strutturati sotto sono la seduta ufficiale.</p></div>
+        <details id="session-external-reference" hidden><summary>Archivio del vecchio piano iniziale</summary><div id="session-external-reference-body"></div></details>
+      </section>
 
       <section class="session-fields" data-session-category="running">
         <h3>Parametri corsa</h3><div class="form-grid">
@@ -550,7 +537,7 @@
         <h3>Parametri recupero</h3><div class="form-grid"><label>Modalità<select name="recoveryType" data-title-source><option>Riposo completo</option><option>Mobilità</option><option>Camminata</option><option>Cardio rigenerante</option><option>Fisioterapia / trattamento</option></select></label></div>
       </section>
 
-      <label class="session-notes">Note e indicazioni<textarea name="notes" rows="3" placeholder="Indicazioni tecniche, vincoli o obiettivo della seduta"></textarea></label>
+      <label class="session-notes">Note personali o vincoli <span class="field-hint">Non sostituiscono i blocchi della seduta</span><textarea name="notes" rows="3" placeholder="Es. disponibilità, setup o indicazioni manuali da ricordare"></textarea></label>
       <p class="session-save-feedback" id="session-save-feedback" role="alert" hidden></p>
       <div class="modal-actions session-actions"><button class="danger" id="delete-session" type="button">Elimina</button><button class="ghost" id="session-outcome" type="button" hidden>Registra</button><span></span><button class="ghost" type="button" id="session-cancel">Annulla</button><button class="primary" type="submit">Salva seduta</button></div>
     </form>
@@ -801,7 +788,6 @@
   <script defer src="demo-data-model.js"></script>
   <script defer src="demo-data.js"></script>
   <script defer src="data-import.js"></script>
-  <script defer src="plan-import.js"></script>
   <script defer src="whoop-import.js"></script>
   <script defer src="vendor/supabase-2.110.5.min.js"></script>
   <script defer src="cloud-sync.js"></script>

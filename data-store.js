@@ -18,7 +18,7 @@
   'use strict';
 
   const APP_NAME = 'Re Carlo V Personal Coach';
-  const BACKUP_VERSION = 11;
+  const BACKUP_VERSION = 12;
   const MAX_PROFILE_PHOTO_BYTES = 2 * 1024 * 1024;
   const sessionCategories = new Set(['running','swimming','cycling','strength','hyrox','metcon','test','recovery']);
   const sessionPriorities = new Set(['essential','important','optional']);
@@ -37,6 +37,7 @@
     hrZones: { key:'rc-hr-zones', version:1, kind:'json', fallback:null },
     profilePhoto: { key:'rc-profile-photo', version:1, kind:'raw', fallback:null },
     sessions: { key:'rc-training-sessions-v1', version:1, kind:'json', fallback:[] },
+    retiredPlanSessions: { key:'rc-retired-plan-sessions-v1', version:1, kind:'json', fallback:[] },
     weeklyCheckin: { key:'rc-weekly-checkin-v1', version:1, kind:'json', fallback:null },
     weeklyAvailabilityHistory: { key:'rc-weekly-availability-history-v1', version:1, kind:'json', fallback:[] },
     preSessionCheckins: { key:'rc-pre-session-checkins-v1', version:1, kind:'json', fallback:[] },
@@ -185,6 +186,14 @@
     });
   }
 
+  function validPlanReference(reference){
+    if(!isObject(reference))return false;const allowed=new Set(['plan','coachNotes','phase','averagePace','averageHr']);
+    return Object.entries(reference).every(([key,value])=>allowed.has(key)&&typeof value==='string'&&value.length<=5000);
+  }
+  function validPlanProvenance(source){
+    return isObject(source)&&source.provider==='excel'&&typeof source.sourceName==='string'&&source.sourceName.trim()&&source.sheet==='Planner'&&Number.isInteger(Number(source.row))&&Number(source.row)>=2&&Number.isInteger(Number(source.week))&&Number(source.week)>=1&&typeof source.weekLabel==='string'&&source.weekLabel.trim()&&typeof source.phase==='string'&&typeof source.originalTitle==='string'&&source.originalTitle.trim()&&isTimestamp(source.importedAt)&&(!owns(source,'retired')||typeof source.retired==='boolean')&&(!owns(source,'reference')||validPlanReference(source.reference));
+  }
+
   function validateSession(session) {
     if (!isObject(session)) invalid('INVALID_SESSIONS','Una seduta del backup non è valida.');
     if (typeof session.id !== 'string' || !session.id.trim() || !isDateKey(session.date) || !sessionCategories.has(session.category) || typeof session.title !== 'string' || !session.title.trim()) invalid('INVALID_SESSIONS','Una seduta contiene identificativo, data, categoria o titolo non validi.');
@@ -197,10 +206,13 @@
     if(owns(session.details,'strengthBlocks')&&!validateWorkoutBlocks(session.details.strengthBlocks,{strength:true}))invalid('INVALID_SESSIONS','La prescrizione dei carichi di forza non è valida.');
     [['swimStructuredBlocks','nuoto'],['hyroxStructuredBlocks','HYROX'],['metconStructuredBlocks','Metcon']].forEach(([field,label])=>{if(owns(session.details,field)&&!validateWorkoutBlocks(session.details[field]))invalid('INVALID_SESSIONS',`La struttura ${label} non è valida.`);});
     if (owns(session,'notes') && typeof session.notes !== 'string') invalid('INVALID_SESSIONS','Le note di una seduta non sono valide.');
+    if(owns(session,'rationale')&&(typeof session.rationale!=='string'||session.rationale.length>5000))invalid('INVALID_SESSIONS','La motivazione della prescrizione non è valida.');
+    if(owns(session,'generatorVersion')&&(!Number.isInteger(Number(session.generatorVersion))||Number(session.generatorVersion)<1))invalid('INVALID_SESSIONS','La versione del generatore della seduta non è valida.');
     if (owns(session,'titleMode') && !['auto','custom'].includes(session.titleMode)) invalid('INVALID_SESSIONS','La modalità del titolo di una seduta non è valida.');
     if(owns(session,'planImport')){
-      const source=session.planImport;if(!isObject(source)||source.provider!=='excel'||typeof source.sourceName!=='string'||!source.sourceName.trim()||source.sheet!=='Planner'||!Number.isInteger(Number(source.row))||Number(source.row)<2||!Number.isInteger(Number(source.week))||Number(source.week)<1||typeof source.weekLabel!=='string'||!source.weekLabel.trim()||typeof source.phase!=='string'||typeof source.originalTitle!=='string'||!source.originalTitle.trim()||!isTimestamp(source.importedAt))invalid('INVALID_SESSIONS','La provenienza del piano Excel non è valida.');
+      if(!validPlanProvenance(session.planImport))invalid('INVALID_SESSIONS','La provenienza storica del vecchio piano non è valida.');
     }
+    if(owns(session,'externalPlanReference')&&!validPlanProvenance(session.externalPlanReference))invalid('INVALID_SESSIONS','Il riferimento storico del vecchio piano non è valido.');
     if(owns(session,'adaptiveAdjustment')){
       const adjustment=session.adaptiveAdjustment,source=adjustment?.source;
       if(!isObject(adjustment)||adjustment.version!==1||!['active','paused'].includes(adjustment.status)||!['protect','reduce','steady','progress'].includes(adjustment.level)||!['low','medium','high'].includes(adjustment.confidence)||!isTimestamp(adjustment.preparedAt)||!Array.isArray(adjustment.instructions)||adjustment.instructions.length>20||adjustment.instructions.some(item=>typeof item!=='string'||!item.trim()))invalid('INVALID_SESSIONS','L’adattamento settimanale non è valido.');
@@ -548,6 +560,7 @@
       case 'profilePhoto':
         return validateProfilePhoto(value);
       case 'sessions':
+      case 'retiredPlanSessions':
         if (!Array.isArray(value)) throw new DataStoreError('INVALID_SESSIONS', 'L’elenco delle sedute non è valido.');
         value.forEach(validateSession);
         return value;
@@ -615,7 +628,7 @@
   function prepareFullBackup(backup) {
     const sourceVersion=Number(backup.backupVersion);
     if (sourceVersion > BACKUP_VERSION) throw new DataStoreError('FUTURE_BACKUP', 'Questo backup è stato creato da una versione più recente dell’app.');
-    if (![3,4,5,6,7,8,9,10,BACKUP_VERSION].includes(sourceVersion) || !isObject(backup.data)) throw new DataStoreError('UNSUPPORTED_BACKUP', 'Versione del backup non supportata.');
+    if (![3,4,5,6,7,8,9,10,11,BACKUP_VERSION].includes(sourceVersion) || !isObject(backup.data)) throw new DataStoreError('UNSUPPORTED_BACKUP', 'Versione del backup non supportata.');
     const rawProfile = entryValue(backup.data,'profile');
     const profile = normalizeProfile(rawProfile);
     const weeklyCheckin=entryValue(backup.data,'weeklyCheckin');
@@ -624,6 +637,7 @@
       hrZones:entryValue(backup.data,'hrZones'),
       profilePhoto:entryValue(backup.data,'profilePhoto'),
       sessions:normalizeSessions(entryValue(backup.data,'sessions')),
+      retiredPlanSessions:sourceVersion>=12?normalizeSessions(entryValue(backup.data,'retiredPlanSessions')):[],
       weeklyCheckin,
       weeklyAvailabilityHistory:sourceVersion>=4
         ? entryValue(backup.data,'weeklyAvailabilityHistory')
@@ -757,7 +771,7 @@
         result.warnings.push('sessions');
         result.migrated=result.migrated.filter(item=>item!=='sessions');
       }
-      ['hrZones','profilePhoto','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','evidenceReviews','fastingRecords','reconciliationCutoff','goals','planView','uiTheme','cloudSyncCursor'].forEach(name=>{
+      ['hrZones','profilePhoto','retiredPlanSessions','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','evidenceReviews','fastingRecords','reconciliationCutoff','goals','planView','uiTheme','cloudSyncCursor'].forEach(name=>{
         try {
           const definition=datasets[name];const raw=storage.getItem(definition.key);
           if(raw===null)return;
@@ -798,6 +812,7 @@
         hrZones:{version:datasets.hrZones.version,value:read('hrZones')},
         profilePhoto:{version:datasets.profilePhoto.version,value:read('profilePhoto')},
         sessions:{version:datasets.sessions.version,value:normalizeSessions(read('sessions'))},
+        retiredPlanSessions:{version:datasets.retiredPlanSessions.version,value:normalizeSessions(read('retiredPlanSessions'))},
         weeklyCheckin:{version:datasets.weeklyCheckin.version,value:read('weeklyCheckin')},
         weeklyAvailabilityHistory:{version:datasets.weeklyAvailabilityHistory.version,value:read('weeklyAvailabilityHistory')},
         preSessionCheckins:{version:datasets.preSessionCheckins.version,value:read('preSessionCheckins')},
@@ -830,6 +845,7 @@
         sourceVersion:prepared.sourceVersion,
         exportedAt:prepared.exportedAt,
         sessions:Array.isArray(values.sessions) ? values.sessions.length : null,
+        retiredPlanSessions:Array.isArray(values.retiredPlanSessions) ? values.retiredPlanSessions.length : null,
         weeklyAvailabilityWeeks:Array.isArray(values.weeklyAvailabilityHistory) ? values.weeklyAvailabilityHistory.length : null,
         preSessionCheckins:Array.isArray(values.preSessionCheckins) ? values.preSessionCheckins.length : null,
         bodyIssues:Array.isArray(values.bodyIssues) ? values.bodyIssues.length : null,

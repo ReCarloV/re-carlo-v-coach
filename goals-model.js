@@ -49,8 +49,8 @@
     else if(goal.type==='triathlon'){durationMin=duration||variant?.sessionDurationMin||180;details={testType:variant?.label||'Triathlon',testRpe:10,testProtocol:[variant?.formatSummary,goal.target].filter(Boolean).join(' · ')};}
     else if(goal.type==='athx'){durationMin=duration||variant?.sessionDurationMin||150;details={testType:variant?.label||'ATHX',testRpe:10,testProtocol:[variant?.formatSummary,goal.target].filter(Boolean).join(' · ')};}
     else if(goal.type==='strength-test'){details={testType:'Strength test',testRpe:10,testProtocol:goal.target||''};}
-    const context=[variant?.label,goal.target?`target: ${goal.target}`:'',goal.notes].filter(Boolean).join(' · ');
-    return{id:`goal-session:${goal.id}`,goalId:goal.id,goalGenerated:true,goalSyncedAt:goal.updatedAt||stamp,date:goal.date,category,title:goal.name,durationMin,priority,details,notes:`Evento creato automaticamente dall’obiettivo${context?` · ${context}`:''}.`,outcome:null,titleMode:'custom',createdAt:stamp,updatedAt:stamp};
+    const context=[variant?.label,goal.target?`target: ${goal.target}`:''].filter(Boolean).join(' · ');
+    return{id:`goal-session:${goal.id}`,goalId:goal.id,goalGenerated:true,goalSyncedAt:goal.updatedAt||stamp,date:goal.date,category,title:goal.name,durationMin,priority,details,rationale:`Evento gara creato dall’obiettivo${context?` · ${context}`:''}.`,notes:String(goal.notes||'').trim(),generatorVersion:4,outcome:null,titleMode:'custom',createdAt:stamp,updatedAt:stamp};
   }
   function restoreGoalSubstitution(sessions=[],goalId,options={}){
     const removedIds=[];
@@ -86,8 +86,7 @@
     return{current,upcoming:future.filter(item=>item!==current).sort((a,b)=>a.date.localeCompare(b.date)||sortPlanned(a,b)),awaitingResult:list.filter(item=>item.status==='planned'&&item.date<today).sort((a,b)=>b.date.localeCompare(a.date)),history:list.filter(item=>item.status!=='planned').sort((a,b)=>b.date.localeCompare(a.date)||b.updatedAt.localeCompare(a.updatedAt))};
   }
   function currentPhase(goal,sessions=[],today=localToday()){
-    if(!goal)return null;const relevant=(Array.isArray(sessions)?sessions:[]).filter(item=>item.planImport?.phase&&item.date<=goal.date).sort((a,b)=>a.date.localeCompare(b.date));if(!relevant.length){const coachPhase=programmingModel?.phaseFor?.(goal,today);return coachPhase?{label:coachPhase.label,week:null,weekLabel:`${coachPhase.days} giorni alla gara`,date:today,source:'coach',pack:coachPhase.pack}:null;}
-    const next=relevant.find(item=>item.date>=today),selected=next||relevant.at(-1);return{label:selected.planImport.phase,week:selected.planImport.week,weekLabel:selected.planImport.weekLabel,date:selected.date};
+    if(!goal)return null;const coachPhase=programmingModel?.phaseFor?.(goal,today);return coachPhase?{label:coachPhase.label,week:null,weekLabel:`${coachPhase.days} giorni alla gara`,date:today,source:'coach',pack:coachPhase.pack}:null;
   }
   function weeklyProgress(goal,sessions=[],today=localToday()){
     const start=mondayFor(today),end=addDays(start,6);const week=(Array.isArray(sessions)?sessions:[]).filter(item=>item.date>=start&&item.date<=end&&(!goal||item.date<=goal.date));const active=week.filter(activeSession),done=active.filter(performed),runs=active.filter(item=>item.category==='running'),doneRuns=done.filter(item=>item.category==='running');

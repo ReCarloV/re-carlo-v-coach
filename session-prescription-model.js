@@ -6,13 +6,62 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(zonesModel){
   'use strict';
 
-  const VERSION='1.1.0';
+  const VERSION='1.2.0';
   const PHASE_LABELS={warmup:'Riscaldamento',work:'Lavoro',recovery:'Recupero',cooldown:'Defaticamento',free:'Libero'};
   const INTENSITIES=new Set(['recovery','easy','steady','tempo','threshold','vo2','race']);
+  const LEGACY_NOTE_FIELDS={piano:'plan',coach:'coachNotes',fase:'phase','passo excel':'averagePace','fc media excel':'averageHr'};
+  const MAIN_STRENGTH_PATTERN=/\b(?:trap(?:\s+bar)?|rdl|romanian\s+deadlift|deadlift|stacco|back\s+squat|front\s+squat|squat|bench(?:\s+press)?|panca|pull[- ]?up|chin[- ]?up|trazioni|military(?:\s+press)?)\b/i;
 
   function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value));}
   function number(value,fallback=0){const parsed=Number(value);return Number.isFinite(parsed)?parsed:fallback;}
   function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
+  function cleanText(value){return String(value??'').trim();}
+  function parsedLegacyNotes(value){
+    const reference={},personal=[];
+    cleanText(value).split(/\r?\n/).map(line=>line.trim()).filter(Boolean).forEach(line=>{
+      const match=line.match(/^([^:]+):\s*(.*)$/),field=match&&LEGACY_NOTE_FIELDS[match[1].trim().toLowerCase()];
+      if(field)reference[field]=match[2].trim();else personal.push(line);
+    });
+    return{reference,personal:personal.join('\n')};
+  }
+  function legacyPlanReference(session={}){
+    const provenance=session.planImport||session.externalPlanReference||{},stored=provenance.reference&&typeof provenance.reference==='object'?provenance.reference:{};
+    return{...parsedLegacyNotes(session.notes).reference,...clone(stored)};
+  }
+  function rationaleFor(session={}){
+    const adaptive=Array.isArray(session.adaptiveAdjustment?.instructions)?session.adaptiveAdjustment.instructions.join(' '):'';
+    if(cleanText(adaptive))return cleanText(adaptive);
+    if(cleanText(session.rationale))return cleanText(session.rationale);
+    if((session.generated===true||session.goalGenerated===true)&&cleanText(session.notes))return cleanText(session.notes);
+    return'';
+  }
+  function personalNotes(session={}){
+    const parsed=parsedLegacyNotes(session.notes),notes=cleanText(parsed.personal),rationale=cleanText(rationaleFor(session));
+    if(!notes||notes===rationale)return'';
+    return notes;
+  }
+  function structuredPrescriptionKey(session={}){
+    const details=session.details||{},map={running:'runBlocks',cycling:'rideBlocks',swimming:'swimStructuredBlocks',strength:'strengthBlocks',hyrox:'hyroxStructuredBlocks',metcon:'metconStructuredBlocks'};
+    const key=map[session.category];return key&&Array.isArray(details[key])&&details[key].length?key:null;
+  }
+  function prescriptionAuthority(session={}){
+    if(session.outcome)return{key:'recorded',label:'Registrazione effettiva',detail:'Per una seduta conclusa fanno fede i dati realmente registrati.'};
+    if(session.goalGenerated)return{key:'goal',label:'Obiettivo gara',detail:'Data e formato derivano dall’obiettivo salvato.'};
+    if(session.generated===true||session.coachApplication||session.adaptiveAdjustment)return{key:'coach',label:'Coach Re Carlo V',detail:'I blocchi strutturati sono la prescrizione ufficiale della seduta.'};
+    if(session.planImport&&structuredPrescriptionKey(session))return{key:'coach-bootstrap',label:'Coach Re Carlo V',detail:'I blocchi strutturati sono attivi; il vecchio Excel è soltanto archivio.'};
+    return{key:'manual',label:'Programmazione manuale',detail:'La seduta usa i parametri salvati nel Piano.'};
+  }
+  function accessoryOnly(value){return cleanText(value).split(';').map(item=>item.trim()).filter(Boolean).filter(item=>!MAIN_STRENGTH_PATTERN.test(item)).join('; ');}
+  function normalizeSessionContent(session={}){
+    const next=clone(session),reference=legacyPlanReference(next),legacyKeys=Object.keys(reference).filter(key=>cleanText(reference[key]));
+    if(next.planImport&&legacyKeys.length)next.planImport={...next.planImport,reference:Object.fromEntries(legacyKeys.map(key=>[key,cleanText(reference[key])]))};
+    const oldNotes=cleanText(next.notes),generatedRationale=(next.generated===true||next.goalGenerated===true)&&!cleanText(next.rationale)?oldNotes:'';
+    if(generatedRationale)next.rationale=generatedRationale;
+    next.notes=personalNotes(next);
+    const archivedPlan=cleanText(reference.plan),accessories=cleanText(next.details?.strengthAccessories);
+    if(next.category==='strength'&&archivedPlan&&accessories===archivedPlan)next.details={...next.details,strengthAccessories:accessoryOnly(archivedPlan)};
+    return next;
+  }
   function paceText(seconds){const safe=Math.round(clamp(number(seconds,300),150,900));return`${Math.floor(safe/60)}:${String(safe%60).padStart(2,'0')}/km`;}
   function paceRange(minSeconds,maxSeconds){return`${paceText(minSeconds).replace('/km','')}–${paceText(maxSeconds)}`;}
   function pbSeconds(pb){return number(pb?.hours)*3600+number(pb?.minutes)*60+number(pb?.seconds);}
@@ -83,7 +132,7 @@
     const details=session?.details||{},profile=context.profile||{},pace=paceProfile(profile,context.goals),hr=hrContext(profile,context.hrZones);
     if(details.runType==='Race')return[];
     if(Array.isArray(details.runBlocks)&&details.runBlocks.length)return enrichRunBlocks(details.runBlocks,profile,pace,hr);
-    const duration=clamp(number(session?.durationMin,45),20,360),distance=number(details.distanceKm),text=`${session?.title||''} ${session?.notes||''} ${session?.planImport?.originalTitle||''}`.toLowerCase();
+    const duration=clamp(number(session?.durationMin,45),20,360),distance=number(details.distanceKm),text=`${session?.title||''} ${session?.planImport?.originalTitle||''}`.toLowerCase();
     const z1=zoneTarget(hr,'Z1'),z2=zoneTarget(hr,'Z2'),z3=zoneTarget(hr,'Z3');
     const base={targetSource:source(profile,pace,'athlete-profile')};
     const warm=(unit='min',amount=10)=>segment('warmup',unit,amount,'hr',z1,'recovery',{paceHint:paceRange(...pace.recovery),...base});
@@ -224,5 +273,5 @@
     return[`${number(item?.amount)}${unit}`.trim(),item?.target,item?.paceHint].filter(Boolean).join(' · ');
   }
 
-  return{VERSION,PHASE_LABELS,paceText,paceRange,paceProfile,hrContext,runPrescription,ridePrescription,structuredDuration,fitTimeBlocks,adaptDuration,enrichSession,enrichSessions,plannedBlocks,actualBlocks,inferIntensity,blockLabel,blockSummary};
+  return{VERSION,PHASE_LABELS,paceText,paceRange,paceProfile,hrContext,runPrescription,ridePrescription,structuredDuration,fitTimeBlocks,adaptDuration,enrichSession,enrichSessions,plannedBlocks,actualBlocks,inferIntensity,blockLabel,blockSummary,parsedLegacyNotes,legacyPlanReference,personalNotes,rationaleFor,structuredPrescriptionKey,prescriptionAuthority,normalizeSessionContent};
 });

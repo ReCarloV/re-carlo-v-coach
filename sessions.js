@@ -71,10 +71,15 @@
   }
   function load() {
     try {
-      const stored=JSON.parse(localStorage.getItem(STORAGE_KEY)),migrated=(Array.isArray(stored)?stored:structuredClone(defaults)).map(migrateSession);
-      const enriched=prescriptionModel?.enrichSessions?.(migrated,{...prescriptionContext(),today:localDate(),generatedOnly:true});
-      if(enriched?.changed)localStorage.setItem(STORAGE_KEY,JSON.stringify(enriched.sessions));
-      return enriched?.sessions||migrated;
+      const stored=JSON.parse(localStorage.getItem(STORAGE_KEY)),source=Array.isArray(stored)?stored:structuredClone(defaults),migrated=source.map(migrateSession).map(item=>prescriptionModel?.normalizeSessionContent?.(item)||item),retired=window.rcPlanImportModel?.retireImportedPlan?.(migrated,{today:localDate()})||{sessions:migrated,changed:false};
+      let active=retired.sessions,retirementChanged=retired.changed;
+      if(retired.archivedSessions?.length){
+        try{const store=window.rcDataStore;if(!store)throw new Error('Archivio dati non disponibile');const existing=store.getDataset('retiredPlanSessions'),byId=new Map(existing.map(item=>[item.id,item]));retired.archivedSessions.forEach(item=>byId.set(item.id,item));store.setDataset('retiredPlanSessions',[...byId.values()]);}
+        catch(_){active=migrated;retirementChanged=false;}
+      }
+      const enriched=prescriptionModel?.enrichSessions?.(active,{...prescriptionContext(),today:localDate(),generatedOnly:true}),next=enriched?.sessions||active,changed=retirementChanged||enriched?.changed||JSON.stringify(source)!==JSON.stringify(next);
+      if(changed)localStorage.setItem(STORAGE_KEY,JSON.stringify(next));
+      return next;
     }
     catch (_) { return structuredClone(defaults).map(migrateSession); }
   }
@@ -109,7 +114,7 @@
   function isPaused(session){return session?.adaptiveAdjustment?.status==='paused'&&!session.outcome;}
   function canRecordOutcome(session) { return Boolean(session?.date) && session.date <= localDate()&&!isPaused(session); }
   function outcomeLockedMessage(session) {
-    if(isPaused(session))return'La seduta è sospesa dalla proposta adattiva. Ripristina il piano Excel o modifica la seduta prima di registrarla.';
+    if(isPaused(session))return'La seduta è sospesa dalla proposta adattiva. Ripristina la prescrizione precedente o modifica la seduta prima di registrarla.';
     const date = new Date(`${session.date}T12:00:00`);
     return `Il check-in post-allenamento sarà disponibile dal ${date.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})}.`;
   }
@@ -283,7 +288,7 @@
       const day = document.createElement('strong'); day.textContent = String(date.getDate()).padStart(2,'0'); dateBox.append(weekday,day);
       const content = document.createElement('div'); content.className = 'day-session';
       const tag = document.createElement('span'); tag.className = `tag ${meta.css}`; tag.textContent = meta.label;
-      const text = document.createElement('div'); const title = document.createElement('h3'); title.textContent = session.title;if(session.demoDataset){const demo=document.createElement('span');demo.className='demo-badge';demo.textContent='DEMO';title.append(demo);}else if(session.planImport){const source=document.createElement('span');source.className='demo-badge';source.textContent='EXCEL';title.append(source);}if(session.adaptiveAdjustment){const adjusted=document.createElement('span');adjusted.className=`adaptive-badge ${paused?'paused':'active'}`;adjusted.textContent=paused?'SOSPESA':'ADATTATA';title.append(adjusted);}
+      const text = document.createElement('div'); const title = document.createElement('h3'); title.textContent = session.title;if(session.demoDataset){const demo=document.createElement('span');demo.className='demo-badge';demo.textContent='DEMO';title.append(demo);}else if(session.planImport){const source=document.createElement('span');source.className='demo-badge';source.textContent='STORICO';title.append(source);}if(session.adaptiveAdjustment){const adjusted=document.createElement('span');adjusted.className=`adaptive-badge ${paused?'paused':'active'}`;adjusted.textContent=paused?'SOSPESA':'ADATTATA';title.append(adjusted);}
       const summary = document.createElement('p'); summary.textContent = targetText(session); text.append(title,summary);
       if(session.adaptiveAdjustment?.instructions?.length){const rationale=document.createElement('p');rationale.className='adaptive-session-note';rationale.textContent=session.adaptiveAdjustment.instructions.join(' ');text.append(rationale);}
       if(session.outcome){const result=document.createElement('p');result.className=`outcome-result ${session.outcome.status}`;result.textContent=outcomeSummary(session);text.append(result);}
@@ -299,7 +304,7 @@
       const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'edit-session'; edit.textContent = 'Modifica'; edit.addEventListener('click', () => open(session));
       actions.append(priority);if(!selectionMode)actions.append(record,edit); article.append(dateBox,content,actions); schedule.append(article);
     });
-    if (!ordered.length) { const empty = document.createElement('div'); empty.className = 'schedule-empty'; const period=planView==='calendar'?calendarCursor.toLocaleDateString('it-IT',{month:'long',year:'numeric'}):planViewModel.weekLabel(listWeekStart).replace(/^Settimana /,'la settimana ');const message=document.createElement('span');message.textContent=`Nessuna seduta programmata per ${period}.`;empty.append(message);if(!sessions.length){const actions=document.createElement('div');actions.className='schedule-empty-actions';const coachPlan=document.createElement('button');coachPlan.type='button';coachPlan.className='primary small';coachPlan.textContent='Crea il piano con il Coach';coachPlan.addEventListener('click',()=>document.getElementById('open-weekly-checkin')?.click());const externalPlan=document.createElement('button');externalPlan.type='button';externalPlan.className='ghost';externalPlan.textContent='Importa un piano esterno';externalPlan.addEventListener('click',()=>{window.rcNavigation?.show?.('data');setTimeout(()=>document.querySelector('.plan-source')?.scrollIntoView({behavior:'smooth',block:'center'}),0);});actions.append(coachPlan,externalPlan);empty.append(actions);}schedule.append(empty); }
+    if (!ordered.length) { const empty = document.createElement('div'); empty.className = 'schedule-empty'; const period=planView==='calendar'?calendarCursor.toLocaleDateString('it-IT',{month:'long',year:'numeric'}):planViewModel.weekLabel(listWeekStart).replace(/^Settimana /,'la settimana ');const message=document.createElement('span');message.textContent=`Nessuna seduta programmata per ${period}.`;empty.append(message);const actions=document.createElement('div');actions.className='schedule-empty-actions';const coachPlan=document.createElement('button');coachPlan.type='button';coachPlan.className='primary small';coachPlan.textContent='Prepara con il Coach';coachPlan.addEventListener('click',()=>document.getElementById('open-weekly-checkin')?.click());actions.append(coachPlan);empty.append(actions);schedule.append(empty); }
     renderPeriodSummary(periodSessions);
     renderSelectionBar(periodSessions);
     applyPlanView();
@@ -457,12 +462,19 @@
     if (session) {
       const values = { ...session, ...(session.details || {}) };
       Object.entries(values).forEach(([name,value]) => { const field = form.elements.namedItem(name); if (field && value !== undefined && value !== null) field.value = value; });
+      form.elements.notes.value=prescriptionModel?.personalNotes?.(session)||'';
       form.elements.startTime.value=calendarFeedModel?.startTime?.(session.startTime)||'09:00';
       titleMode = session.titleMode || 'custom';
     } else {
       titleMode = 'auto';
     }
-    hydrateBuilders(session); toggleFields(); updateSuggestedTitle(!session);updateSessionEndTime(); modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
+    renderPrescriptionSource(session);hydrateBuilders(session); toggleFields(); updateSuggestedTitle(!session);updateSessionEndTime(); modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
+  }
+
+  function renderPrescriptionSource(session){
+    const panel=document.getElementById('session-prescription-source');if(!panel)return;panel.hidden=!session;if(!session)return;
+    const authority=prescriptionModel?.prescriptionAuthority?.(session)||{label:'Programmazione salvata',detail:'I parametri sotto definiscono la seduta.'};document.getElementById('session-prescription-authority').textContent=authority.label;document.getElementById('session-prescription-authority-note').textContent=authority.detail;
+    const reference=prescriptionModel?.legacyPlanReference?.(session)||{},details=document.getElementById('session-external-reference'),body=document.getElementById('session-external-reference-body'),labels={plan:'Schema originale',coachNotes:'Nota originale',phase:'Fase originale',averagePace:'Passo registrato',averageHr:'FC registrata'},rows=Object.entries(labels).filter(([key])=>String(reference[key]||'').trim());details.hidden=!rows.length;body.replaceChildren();rows.forEach(([key,label])=>{const row=document.createElement('p');const strong=document.createElement('strong');strong.textContent=label;const span=document.createElement('span');span.textContent=reference[key];row.append(strong,span);body.append(row);});
   }
 
   function updateSessionEndTime(){
@@ -733,7 +745,11 @@
       const category = data.get('category'); let session = {
         id:id || (crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`), date:data.get('date'), category,
         title:data.get('title').trim(),durationMin:Number(data.get('durationMin')),startTime:calendarFeedModel?.startTime?.(String(data.get('startTime')||''))||'09:00',priority:data.get('priority'),details:detailsFromForm(data,category),
-        notes:data.get('notes').trim(),outcome:existing?.outcome||null,titleMode,createdAt:existing?.createdAt || new Date().toISOString(),updatedAt:new Date().toISOString(),...(existing?.planImport?{planImport:existing.planImport}:{}),...(existing?.goalId?{goalId:existing.goalId}:{}),...(existing?.goalGenerated?{goalGenerated:true}:{}),...(existing?.goalSyncedAt?{goalSyncedAt:existing.goalSyncedAt}:{})
+        notes:data.get('notes').trim(),outcome:existing?.outcome||null,titleMode,createdAt:existing?.createdAt || new Date().toISOString(),updatedAt:new Date().toISOString(),
+        ...(existing?.rationale?{rationale:existing.rationale}:{}),...(existing?.generated?{generated:true}:{}),...(existing?.generatorVersion?{generatorVersion:existing.generatorVersion}:{}),
+        ...(existing?.planImport?{planImport:existing.planImport}:{}),...(existing?.externalPlanReference?{externalPlanReference:existing.externalPlanReference}:{}),
+        ...(existing?.adaptiveAdjustment?{adaptiveAdjustment:existing.adaptiveAdjustment}:{}),...(existing?.coachApplication?{coachApplication:existing.coachApplication}:{}),...(existing?.goalSubstitution?{goalSubstitution:existing.goalSubstitution}:{}),
+        ...(existing?.goalId?{goalId:existing.goalId}:{}),...(existing?.goalGenerated?{goalGenerated:true}:{}),...(existing?.goalSyncedAt?{goalSyncedAt:existing.goalSyncedAt}:{})
       };
       session=prescriptionModel?.enrichSession?.(session,prescriptionContext())||session;
       if (existing) sessions = sessions.map(item => item.id === id ? session : item); else sessions.push(session);

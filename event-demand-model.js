@@ -389,6 +389,7 @@
     return list.map(clone);
   }
   function profileFor(goal={}){
+    if(!goal)return null;
     goal=goal||{};
     const familyKey=familyForType(goal.type),base=familyKey?families[familyKey]:null,variant=variantFor(goal);
     if(base){
