@@ -194,7 +194,7 @@
     return isObject(source)&&source.provider==='excel'&&typeof source.sourceName==='string'&&source.sourceName.trim()&&source.sheet==='Planner'&&Number.isInteger(Number(source.row))&&Number(source.row)>=2&&Number.isInteger(Number(source.week))&&Number(source.week)>=1&&typeof source.weekLabel==='string'&&source.weekLabel.trim()&&typeof source.phase==='string'&&typeof source.originalTitle==='string'&&source.originalTitle.trim()&&isTimestamp(source.importedAt)&&(!owns(source,'retired')||typeof source.retired==='boolean')&&(!owns(source,'reference')||validPlanReference(source.reference));
   }
   function validBaselinePlan(source){
-    return isObject(source)&&source.version===1&&/^macro-[0-9a-f]{8}$/.test(String(source.signature||''))&&typeof source.goalId==='string'&&source.goalId.trim()&&typeof source.goalName==='string'&&source.goalName.trim()&&isDateKey(source.weekStart)&&(source.phaseKey===null||typeof source.phaseKey==='string')&&typeof source.phaseLabel==='string'&&source.phaseLabel.trim()&&isTimestamp(source.generatedAt);
+    return isObject(source)&&[1,2].includes(source.version)&&/^macro-[0-9a-f]{8}$/.test(String(source.signature||''))&&typeof source.goalId==='string'&&source.goalId.trim()&&typeof source.goalName==='string'&&source.goalName.trim()&&isDateKey(source.weekStart)&&(source.phaseKey===null||typeof source.phaseKey==='string')&&typeof source.phaseLabel==='string'&&source.phaseLabel.trim()&&isTimestamp(source.generatedAt);
   }
 
   function validateSession(session) {
