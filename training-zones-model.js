@@ -77,5 +77,26 @@
     return Number.isInteger(number)&&number>=1&&number<=colors.length?colors[number-1]:null;
   }
 
-  return {HR_METHODS,FTP_METHODS,hrZones,ftpZones,hrTarget,zoneColor,normalizedCustomUpper};
+  function explicitZone(value,max=7){
+    const number=Number(String(value||'').match(/\bZ(\d)\b/i)?.[1]);
+    return Number.isInteger(number)&&number>=1&&number<=max?`Z${number}`:null;
+  }
+  function ftpZoneFromTarget(value,method='coggan7'){
+    const explicit=explicitZone(value,7);if(explicit)return explicit;
+    const match=String(value||'').match(/(\d+(?:[.,]\d+)?)\s*(?:[–—-]\s*(\d+(?:[.,]\d+)?)\s*)?%\s*FTP/i);if(!match)return null;
+    const min=Number(match[1].replace(',','.')),max=Number((match[2]||match[1]).replace(',','.')),midpoint=(min+max)/2;
+    const upper=method==='coggan5'?[55,75,90,105,Infinity]:[55,75,90,105,120,Infinity,Infinity];
+    const index=upper.findIndex(value=>midpoint<=value);return `Z${Math.max(0,index)+1}`;
+  }
+  function zoneForTarget(value,{type='hr',intensity='',phase='',linkedZone=null,ftpMethod='coggan7'}={}){
+    const linked=explicitZone(linkedZone,type==='ftp'?7:5);if(linked)return linked;
+    const explicit=explicitZone(value,type==='ftp'?7:5);if(explicit)return explicit;
+    if(type==='ftp'){
+      const ftpZone=ftpZoneFromTarget(value,ftpMethod);if(ftpZone)return ftpZone;
+    }
+    if(['warmup','recovery','cooldown'].includes(phase))return'Z1';
+    return{recovery:'Z1',easy:'Z2',steady:'Z3',tempo:'Z3',threshold:'Z4',vo2:'Z5',race:'Z4'}[intensity]||null;
+  }
+
+  return {HR_METHODS,FTP_METHODS,hrZones,ftpZones,hrTarget,zoneColor,explicitZone,ftpZoneFromTarget,zoneForTarget,normalizedCustomUpper};
 });

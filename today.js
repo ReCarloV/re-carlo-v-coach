@@ -7,7 +7,7 @@
   let adaptiveCollapsed=false;
 
   function element(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}
-  function todayTargetChip(target){const chip=element('span','today-target');const color=window.rcTrainingZonesModel?.zoneColor?.(target.zone,'hr');if(color){chip.classList.add('has-zone');chip.style.setProperty('--zone-color',color);}chip.append(element('small','',target.label),element('strong','',target.value));return chip;}
+  function todayTargetChip(target){const chip=element('span','today-target');const color=window.rcTrainingZonesModel?.zoneColor?.(target.zone,target.zoneType||'hr');if(color){chip.classList.add('has-zone');chip.dataset.zone=target.zone;chip.style.setProperty('--zone-color',color);}chip.append(element('small','',target.label),element('strong','',target.value));return chip;}
   function todayPrescriptionBlock(block){
     const card=element('div',`today-prescription-block${block.phase?` phase-${block.phase}`:''}${block.intensity?` intensity-${block.intensity}`:''}`);card.append(element('small','today-prescription-label',block.label.toUpperCase()));
     if(block.duration){const metrics=element('span','today-prescription-metrics');const duration=element('span','today-prescription-duration');duration.append(element('small','','DURATA'),element('strong','',block.duration));const targets=element('span','today-prescription-targets');(block.targets||[]).forEach(target=>targets.append(todayTargetChip(target)));metrics.append(duration,targets);card.append(metrics);}

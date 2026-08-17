@@ -5,10 +5,11 @@
   const freshnessModel=typeof module!=='undefined'&&module.exports?require('./device-freshness-model.js'):root.rcDeviceFreshnessModel;
   const applicationModel=typeof module!=='undefined'&&module.exports?require('./adaptive-application-model.js'):root.rcAdaptiveApplicationModel;
   const strengthModel=typeof module!=='undefined'&&module.exports?require('./strength-performance-model.js'):root.rcStrengthPerformanceModel;
-  const api = factory(symptomModel,skipReasonModel,recoveryModel,freshnessModel,applicationModel,strengthModel);
+  const zonesModel=typeof module!=='undefined'&&module.exports?require('./training-zones-model.js'):root.rcTrainingZonesModel;
+  const api = factory(symptomModel,skipReasonModel,recoveryModel,freshnessModel,applicationModel,strengthModel,zonesModel);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.rcTodayModel = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (symptomModel,skipReasonModel,recoveryModel,freshnessModel,applicationModel,strengthModel) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (symptomModel,skipReasonModel,recoveryModel,freshnessModel,applicationModel,strengthModel,zonesModel) {
   'use strict';
 
   const categoryMeta = {
@@ -105,8 +106,9 @@
   function segmentMetrics(segment={}){
     const amount=number(segment.amount),unit={min:' min',km:' km',m:' m'}[segment.unit]||` ${segment.unit||''}`;
     const values=[segment.target||'libero',segment.paceHint].map(value=>String(value||'').trim()).filter(Boolean);
-    const zone=values.join(' ').match(/\bZ([1-5])\b/i)?.[0]?.toUpperCase()||{recovery:'Z1',easy:'Z2',steady:'Z3',tempo:'Z3',threshold:'Z4',vo2:'Z5'}[segment.intensity]||null;
-    return{duration:amount?`${amount}${unit}`:'Durata libera',targets:[...new Set(values)].map(value=>({label:segmentTargetLabel(value),value,...(zone?{zone}:{})}))};
+    const zoneType=segment.targetType==='ftp'||/%\s*FTP|\bwatt\b|\b\d+\s*W\b/i.test(segment.target||'')?'ftp':'hr';
+    const zone=zonesModel?.zoneForTarget?.(segment.target,{type:zoneType,intensity:segment.intensity,phase:segment.phase})||null;
+    return{duration:amount?`${amount}${unit}`:'Durata libera',targets:[...new Set(values)].map(value=>({label:segmentTargetLabel(value),value,...(zone?{zone,zoneType}:{})}))};
   }
   function prescriptionFor(session) {
     const details=session.details||{};

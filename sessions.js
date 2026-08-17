@@ -367,9 +367,22 @@
     renderBuilder('hyrox',Array.isArray(d.hyroxStructuredBlocks)?d.hyroxStructuredBlocks:legacyRows(d.hyroxBlocks,'hyrox'));
     renderBuilder('metcon',Array.isArray(d.metconStructuredBlocks)?d.metconStructuredBlocks:legacyRows(d.metconBlocks,'metcon'));
   }
+  function enduranceZoneMeta(item={},targetValue=item.target){
+    const intensity=prescriptionModel?.inferIntensity?.(item)||'easy',zoneType=item.targetType==='ftp'||/%\s*FTP|\bwatt\b|\b\d+\s*W\b/i.test(targetValue||'')?'ftp':'hr',ftpMethod=athleteProfile()?.ftpZoneMethod||'coggan7';
+    const zone=window.rcTrainingZonesModel?.zoneForTarget?.(targetValue,{type:zoneType,intensity,phase:item.phase,ftpMethod})||null,color=window.rcTrainingZonesModel?.zoneColor?.(zone,zoneType)||null;
+    return{zone,zoneType,color,intensity};
+  }
+  function setZoneVisual(node,meta,enabled=true){
+    if(!node)return;const active=Boolean(enabled&&meta?.color);node.classList.toggle('has-zone',active);if(active){node.dataset.zone=meta.zone;node.style.setProperty('--zone-color',meta.color);}else{delete node.dataset.zone;node.style.removeProperty('--zone-color');}
+  }
+  function enduranceZoneChip(label,value,meta,className='endurance-zone-chip'){
+    const chip=document.createElement('span');chip.className=className;setZoneVisual(chip,meta,Boolean(value));const small=document.createElement('small');small.textContent=label;const strong=document.createElement('strong');strong.textContent=value;chip.append(small,strong);return chip;
+  }
+  function enduranceTargetLabel(item={}){return item.targetType==='ftp'?'POTENZA':item.targetType==='pace'?'PASSO':item.targetType==='hr'?'FREQUENZA':/\bRPE\b/i.test(item.target||'')?'INTENSITÀ':'TARGET';}
   function enduranceBlockVisual(item,compact=false){
-    const model=prescriptionModel,intensity=model?.inferIntensity?.(item)||'easy',phase=item.type==='repeat'?'repeat':item.phase||'free';const holder=document.createElement('div');holder.className=`endurance-block phase-${phase} intensity-${intensity}${compact?' compact':''}`;const zone=String(item.target||'').match(/\bZ[1-5]\b/i)?.[0]?.toUpperCase()||{recovery:'Z1',easy:'Z2',steady:'Z3',tempo:'Z3',threshold:'Z4',vo2:'Z5'}[intensity],color=window.rcTrainingZonesModel?.zoneColor?.(zone,'hr');if(color){holder.classList.add('has-zone');holder.style.setProperty('--zone-color',color);}
+    const model=prescriptionModel,intensity=model?.inferIntensity?.(item)||'easy',phase=item.type==='repeat'?'repeat':item.phase||'free';const holder=document.createElement('div');holder.className=`endurance-block phase-${phase} intensity-${intensity}${compact?' compact':''}`;
     const label=document.createElement('small');label.textContent=model?.blockLabel?.(item)||'Blocco';const value=document.createElement('strong');value.textContent=model?.blockSummary?.(item)||'Da definire';holder.append(label,value);
+    if(item.target){const metrics=document.createElement('div');metrics.className='endurance-block-zone';metrics.append(enduranceZoneChip(enduranceTargetLabel(item),item.target,enduranceZoneMeta(item)));holder.append(metrics);}
     return holder;
   }
   function renderRideBuilder(blocks=[]){
@@ -395,7 +408,7 @@
   function styleRunSegment(row){
     const phase=row.querySelector('[data-run-field="phase"]')?.value||'free',target=row.querySelector('[data-run-field="target"]')?.value||'',base=row.dataset.baseIntensity||'easy',inferred=prescriptionModel?.inferIntensity?.({phase,target}),intensity=['warmup','recovery','cooldown'].includes(phase)?'recovery':/\bZ[1-5]\b/i.test(target)?inferred:base||inferred||'easy';
     ['warmup','work','recovery','cooldown','free'].forEach(value=>row.classList.toggle(`phase-${value}`,value===phase));['recovery','easy','steady','tempo','threshold','vo2','race'].forEach(value=>row.classList.toggle(`intensity-${value}`,value===intensity));row.dataset.intensity=intensity;
-    const zone=String(target).match(/\bZ[1-5]\b/i)?.[0]?.toUpperCase()||{recovery:'Z1',easy:'Z2',steady:'Z3',tempo:'Z3',threshold:'Z4',vo2:'Z5'}[intensity],color=window.rcTrainingZonesModel?.zoneColor?.(zone,'hr');row.classList.toggle('has-zone',Boolean(color));if(color)row.style.setProperty('--zone-color',color);else row.style.removeProperty('--zone-color');
+    const targetType=row.querySelector('[data-run-field="targetType"]')?.value||'free',meta=enduranceZoneMeta({phase,intensity,targetType,target});setZoneVisual(row.querySelector('.run-target-value'),meta,['hr','pace'].includes(targetType)&&Boolean(target));const pace=row.querySelector('.run-derived-hint');if(pace)setZoneVisual(pace,meta,true);
   }
   function runSegment(segment,onChange,onRemove) {
     const values={phase:'work',unit:'min',amount:5,targetType:'free',target:'',...segment},baseIntensity=prescriptionModel?.inferIntensity?.(values)||'easy'; const row=document.createElement('div'); row.className=`run-segment phase-${values.phase} intensity-${baseIntensity}`; row.dataset.runSegment='';row.dataset.intensity=baseIntensity;row.dataset.baseIntensity=baseIntensity;row.dataset.paceHint=values.paceHint||'';if(values.targetSource)row.dataset.targetSource=JSON.stringify(values.targetSource);
@@ -405,7 +418,7 @@
     const targetWrap=document.createElement('div'); targetWrap.className='run-target-value';
     const targetSelect=runSelect('Obiettivo','targetType',[['free','Libero'],['pace','Passo'],['hr','Frequenza cardiaca'],['rpe','RPE']],values.targetType,()=>{renderTarget();styleRunSegment(row);onChange();}); row.append(targetSelect,targetWrap);
     const actions=document.createElement('div'); actions.className='row-actions'; const remove=document.createElement('button'); remove.type='button'; remove.className='row-action remove'; remove.textContent='×'; remove.title='Rimuovi fase'; remove.addEventListener('click',onRemove); actions.append(remove); row.append(actions);
-    if(values.paceHint){const hint=document.createElement('small');hint.className='run-derived-hint';hint.textContent=`Range operativo ${values.paceHint} · derivato dal profilo`;row.append(hint);}
+    if(values.paceHint){const hint=enduranceZoneChip('PASSO DI RIFERIMENTO',values.paceHint,enduranceZoneMeta(values),'run-derived-hint');const source=document.createElement('em');source.textContent='Derivato dal profilo';hint.append(source);row.append(hint);}
     function paceSeconds(value){const match=String(value||'').match(/(\d+):(\d+)/);return match?Number(match[1])*60+Number(match[2]):300;}
     function paceText(seconds){const safe=Math.max(120,Math.min(900,seconds));return `${Math.floor(safe/60)}:${String(safe%60).padStart(2,'0')}/km`;}
     function renderTarget(){const type=row.querySelector('[data-run-field="targetType"]').value; const previous=row.querySelector('[data-run-field="target"]')?.value||values.target; targetWrap.replaceChildren(document.createTextNode('Target'));
@@ -515,13 +528,13 @@
     const input=document.createElement('input');input.type='text';input.disabled=true;input.value='Libero';return{node:input,value:()=>''};
   }
   function actualEnduranceSegmentRow(item,onUpdate){
-    const row=document.createElement('div');row.className=`endurance-actual-segment intensity-${prescriptionModel?.inferIntensity?.(item)||'easy'}`;row.classList.toggle('not-completed',item.completed===false);
+    const row=document.createElement('div');row.className=`endurance-actual-segment phase-${item.phase||'free'} intensity-${prescriptionModel?.inferIntensity?.(item)||'easy'}`;row.classList.toggle('not-completed',item.completed===false);
     const status=document.createElement('label');status.className='endurance-completed';const check=document.createElement('input');check.type='checkbox';check.checked=item.completed!==false;const statusText=document.createElement('span');statusText.textContent='Fatto';status.append(check,statusText);
     const phase=document.createElement('div');phase.className='endurance-actual-phase';const small=document.createElement('small');small.textContent=prescriptionModel?.PHASE_LABELS?.[item.phase]||'Blocco';const planned=document.createElement('span');planned.textContent=`Previsto ${item.plannedAmount??item.amount} ${item.unit||''}`;phase.append(small,planned);
     const quantity=document.createElement('label');quantity.textContent='Quantità reale';const amount=document.createElement('input');amount.type='number';amount.inputMode='decimal';amount.min='0';amount.max='1000';amount.step=item.unit==='min'?'1':'0.1';amount.value=item.amount??'';quantity.append(amount);
-    const target=document.createElement('label');target.textContent=`Target reale · ${{pace:'passo',hr:'zona HR',rpe:'RPE',ftp:'FTP',free:'libero'}[item.targetType]||'intensità'}`;let update=()=>{};const targetEditor=actualTargetEditor(item,()=>update());target.append(targetEditor.node);
-    const hint=document.createElement('small');hint.className='endurance-actual-hint';hint.textContent=item.paceHint?`Riferimento programmato ${item.paceHint}`:'Modifica solo se il blocco è cambiato.';
-    update=()=>{item.completed=check.checked;item.amount=Number(amount.value)||0;item.target=targetEditor.value().trim();row.classList.toggle('not-completed',!item.completed);statusText.textContent=item.completed?'Fatto':'Non fatto';onUpdate?.();};
+    const target=document.createElement('label');target.className='endurance-actual-target';target.append(document.createTextNode(`Target reale · ${{pace:'passo',hr:'zona HR',rpe:'RPE',ftp:'FTP',free:'libero'}[item.targetType]||'intensità'}`));let update=()=>{};const targetEditor=actualTargetEditor(item,()=>update());target.append(targetEditor.node);
+    const hint=document.createElement('span');hint.className='endurance-actual-hint';if(item.paceHint){const hintLabel=document.createElement('small');hintLabel.textContent='PASSO DI RIFERIMENTO';const hintValue=document.createElement('strong');hintValue.textContent=item.paceHint;hint.append(hintLabel,hintValue);}else hint.textContent='Modifica solo se il blocco è cambiato.';
+    update=()=>{item.completed=check.checked;item.amount=Number(amount.value)||0;item.target=targetEditor.value().trim();const meta=enduranceZoneMeta(item,item.target);setZoneVisual(target,meta,['hr','pace','ftp'].includes(item.targetType)&&Boolean(item.target));setZoneVisual(hint,meta,Boolean(item.paceHint));row.classList.toggle('not-completed',!item.completed);statusText.textContent=item.completed?'Fatto':'Non fatto';onUpdate?.();};
     check.addEventListener('change',update);amount.addEventListener('input',update);update();row.append(status,phase,quantity,target,hint);return row;
   }
   function renderEndurancePerformance(session,outcome){
@@ -529,7 +542,7 @@
     activeActualEnduranceBlocks=prescriptionModel?.actualBlocks?.(session,outcome)||[];
     activeActualEnduranceBlocks.forEach(item=>{
       if(item.type!=='repeat'){container.append(actualEnduranceSegmentRow(item));return;}
-      const repeat=document.createElement('div');repeat.className=`endurance-actual-repeat intensity-${prescriptionModel?.inferIntensity?.(item)||'tempo'}`;
+      const repeat=document.createElement('div');repeat.className=`endurance-actual-repeat phase-repeat intensity-${prescriptionModel?.inferIntensity?.(item)||'tempo'}`;
       const head=document.createElement('div');head.className='endurance-actual-repeat-head';const copy=document.createElement('div');const title=document.createElement('strong');title.textContent='Sequenza ripetuta';const planned=document.createElement('span');planned.textContent=`Prevista ${item.plannedRepeats??item.repeats}×`;copy.append(title,planned);
       const countLabel=document.createElement('label');countLabel.textContent='Ripetizioni reali';const count=document.createElement('input');count.type='number';count.inputMode='numeric';count.min='0';count.max='100';count.step='1';count.value=item.repeats??0;count.addEventListener('input',()=>{item.repeats=Number(count.value)||0;});countLabel.append(count);head.append(copy,countLabel);repeat.append(head);
       const steps=document.createElement('div');steps.className='endurance-actual-repeat-steps';(item.steps||[]).forEach(step=>steps.append(actualEnduranceSegmentRow(step)));repeat.append(steps);container.append(repeat);
@@ -606,8 +619,9 @@
       const section=outcomeRecordElement('section','outcome-record-endurance');section.append(outcomeRecordElement('small','','BLOCCHI REALMENTE SVOLTI'));
       const list=outcomeRecordElement('div','outcome-record-endurance-list');
       outcome.actualEnduranceBlocks.forEach(item=>{
-        const row=outcomeRecordElement('div',`outcome-record-endurance-block intensity-${prescriptionModel?.inferIntensity?.(item)||'easy'}${item.completed===false?' not-completed':''}`);
-        const copy=outcomeRecordElement('div');copy.append(outcomeRecordElement('strong','',prescriptionModel?.blockLabel?.(item)||'Blocco'),outcomeRecordElement('span','',prescriptionModel?.blockSummary?.(item)||'—'));
+        const row=outcomeRecordElement('div',`outcome-record-endurance-block phase-${item.type==='repeat'?'repeat':item.phase||'free'} intensity-${prescriptionModel?.inferIntensity?.(item)||'easy'}${item.completed===false?' not-completed':''}`);
+        const copy=outcomeRecordElement('div');copy.append(outcomeRecordElement('strong','',prescriptionModel?.blockLabel?.(item)||'Blocco'),outcomeRecordElement('span','',`${item.amount??''} ${item.unit||''}`.trim()||prescriptionModel?.blockSummary?.(item)||'—'));
+        const zoneMetrics=outcomeRecordElement('div','outcome-record-zone-metrics'),meta=enduranceZoneMeta(item);if(item.target)zoneMetrics.append(enduranceZoneChip(enduranceTargetLabel(item),item.target,meta));if(item.paceHint)zoneMetrics.append(enduranceZoneChip('PASSO',item.paceHint,meta));if(zoneMetrics.childElementCount)copy.append(zoneMetrics);
         const state=outcomeRecordElement('em','',item.type==='repeat'&&item.plannedRepeats!==undefined&&Number(item.repeats)!==Number(item.plannedRepeats)?`${item.repeats}× reali · ${item.plannedRepeats}× previste`:item.completed===false?'Non completato':item.plannedAmount!==undefined&&Number(item.amount)!==Number(item.plannedAmount)?`${item.amount} ${item.unit||''} reali · ${item.plannedAmount} previste`:'Come programmato');
         row.append(copy,state);list.append(row);
       });

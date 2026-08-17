@@ -9,8 +9,8 @@
   function formatDate(value){return new Date(`${value}T12:00:00`).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});}
   function button(label,className,handler){const node=element('button',className,label);node.type='button';node.addEventListener('click',handler);return node;}
   function targetChip(target,className='workout-target'){
-    const chip=element('span',className);const color=window.rcTrainingZonesModel?.zoneColor?.(target.zone,'hr');
-    if(color){chip.classList.add('has-zone');chip.style.setProperty('--zone-color',color);}
+    const chip=element('span',className);const color=window.rcTrainingZonesModel?.zoneColor?.(target.zone,target.zoneType||'hr');
+    if(color){chip.classList.add('has-zone');chip.dataset.zone=target.zone;chip.style.setProperty('--zone-color',color);}
     chip.append(element('small','',target.label),element('strong','',target.value));return chip;
   }
   const anatomyPositions={

@@ -3,10 +3,11 @@
   const exerciseCatalog=typeof module!=='undefined'&&module.exports?require('./exercise-catalog-model.js'):root.rcExerciseCatalogModel;
   const strengthModel=typeof module!=='undefined'&&module.exports?require('./strength-performance-model.js'):root.rcStrengthPerformanceModel;
   const checkinModel=typeof module!=='undefined'&&module.exports?require('./checkin-model.js'):root.rcCheckinModel;
-  const api=factory(todayModel,exerciseCatalog,strengthModel,checkinModel);
+  const zonesModel=typeof module!=='undefined'&&module.exports?require('./training-zones-model.js'):root.rcTrainingZonesModel;
+  const api=factory(todayModel,exerciseCatalog,strengthModel,checkinModel,zonesModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcWorkoutModeModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(todayModel,exerciseCatalog,strengthModel,checkinModel){
+})(typeof globalThis!=='undefined'?globalThis:this,function(todayModel,exerciseCatalog,strengthModel,checkinModel,zonesModel){
   'use strict';
 
   const VERSION='1.0.0';
@@ -57,9 +58,9 @@
     const amount=number(item.amount),unit={min:' min',km:' km',m:' m'}[item.unit]||` ${item.unit||''}`;
     const duration=amount?`${amount}${unit}`:'Durata libera';
     const values=[item.target||'Libero',item.paceHint].map(value=>String(value||'').trim()).filter(Boolean);
-    const inferredZone={recovery:'Z1',easy:'Z2',steady:'Z3',tempo:'Z3',threshold:'Z4',vo2:'Z5'}[item.intensity];
-    const unique=[...new Set(values)],zone=values.join(' ').match(/\bZ([1-5])\b/i)?.[0]?.toUpperCase()||inferredZone||null;
-    return{duration,targets:unique.map(value=>({label:targetLabel(value),value,...(zone?{zone}:{})}))};
+    const zoneType=item.targetType==='ftp'||/%\s*FTP|\bwatt\b|\b\d+\s*W\b/i.test(item.target||'')?'ftp':'hr';
+    const unique=[...new Set(values)],zone=zonesModel?.zoneForTarget?.(item.target,{type:zoneType,intensity:item.intensity,phase:item.phase})||null;
+    return{duration,targets:unique.map(value=>({label:targetLabel(value),value,...(zone?{zone,zoneType}:{})}))};
   }
   function restText(value){const text=String(value||'').trim();return text?`Recupero ${text}`:'';}
   function actualStrengthBlocks(session){
