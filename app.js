@@ -1,7 +1,7 @@
 const views = { today: 'Ciao.', workout:'Allenamento di oggi', goals:'Obiettivi e gare', plan: 'Piano adattivo', recap:'Recap settimanale', knowledge:'Knowledge', profile: 'Il tuo profilo atleta', data:'Impostazioni' };
 const transientDialogIds = [
   '#weekly-checkin-modal','#pre-checkin-modal','#generator-modal','#session-modal','#outcome-modal',
-  '#goal-modal','#profile-modal','#pb-modal','#selector-modal','#whoop-setup-modal','#cloud-sync-modal','#crop-modal'
+  '#goal-modal','#profile-modal','#pb-modal','#selector-modal','#whoop-setup-modal','#cloud-sync-modal','#crop-modal','#coach-plan-modal'
 ];
 const transientDialogSelector=transientDialogIds.join(','),openDialogSelector=transientDialogIds.map(id=>`${id}.open`).join(',');
 const mobileMoreViews=new Set(['knowledge','profile','data']);let closeMobileMore=()=>{};

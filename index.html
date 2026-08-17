@@ -116,6 +116,25 @@
             <article><span>SETTIMANA</span><strong id="goal-week-sessions">—</strong><small id="goal-week-note">Nessuna seduta</small></article>
             <article><span>CORSA PREVISTA</span><strong id="goal-week-km">—</strong><small id="goal-week-km-note">Distanza non disponibile</small></article>
           </div>
+          <article class="panel coach-exchange-panel" id="coach-exchange-panel" aria-live="polite">
+            <div class="panel-head coach-exchange-head">
+              <div><small>CODEX ↔ APP</small><h2>Piano del Coach</h2></div>
+              <span class="coach-exchange-status" id="coach-exchange-status">DA PREPARARE</span>
+            </div>
+            <p class="coach-exchange-intro">L’app raccoglie il quadro atleta; la task Elite Coach costruisce la progressione completa. Qui la importi con controllo prima di sostituire il futuro.</p>
+            <div class="coach-exchange-flow" aria-label="Flusso del piano Coach">
+              <div><i>1</i><span><strong>Esporta dossier</strong><small>Dati utili, obiettivi e storico recente</small></span></div>
+              <div><i>2</i><span><strong>Invialo al Coach</strong><small>Nella task Codex dedicata</small></span></div>
+              <div><i>3</i><span><strong>Importa piano</strong><small>Anteprima, revisioni e protezione dati</small></span></div>
+            </div>
+            <div class="coach-exchange-current" id="coach-exchange-current"></div>
+            <p class="coach-exchange-feedback" id="coach-exchange-feedback" role="status" aria-live="polite"></p>
+            <div class="coach-exchange-actions">
+              <button class="primary" id="coach-brief-export" type="button">Esporta dossier Coach</button>
+              <button class="secondary" id="coach-plan-import" type="button">Importa piano JSON</button>
+              <input id="coach-plan-file" type="file" accept="application/json,.json" hidden>
+            </div>
+          </article>
           <article class="panel goal-coach-audit" id="goal-coach-audit" aria-live="polite"></article>
           <div class="goals-grid">
             <article class="panel"><div class="panel-head"><div><small>PASSI CHIAVE</small><h2>Prossime sedute essenziali</h2></div></div><div class="goal-key-sessions" id="goal-key-sessions"></div></article>
@@ -728,8 +747,17 @@
       <div class="modal-actions"><button class="ghost" id="fasting-manual-cancel" type="button">Annulla</button><button class="primary" type="submit">Salva fasting</button></div>
     </form>
   </div>
+  <div class="coach-plan-modal" id="coach-plan-modal" role="dialog" aria-modal="true" aria-labelledby="coach-plan-modal-title" aria-hidden="true">
+    <div class="coach-plan-dialog">
+      <div class="panel-head"><div><small>REVISIONE CONTROLLATA</small><h2 id="coach-plan-modal-title">Anteprima piano Coach</h2></div><button class="icon-button" id="coach-plan-close" type="button" aria-label="Chiudi">×</button></div>
+      <div class="coach-plan-preview" id="coach-plan-preview"></div>
+      <p class="coach-plan-error" id="coach-plan-error" role="alert" hidden></p>
+      <div class="modal-actions"><button class="ghost" id="coach-plan-cancel" type="button">Annulla</button><button class="primary" id="coach-plan-confirm" type="button">Importa questa revisione</button></div>
+    </div>
+  </div>
   <div id="toast">Salvato sul dispositivo</div>
   <script defer src="data-store.js"></script>
+  <script defer src="coach-plan-exchange-model.js"></script>
   <script defer src="fasting-tracker-model.js"></script>
   <script defer src="tab-coordination-model.js"></script>
   <script defer src="tab-coordination.js"></script>
@@ -776,6 +804,7 @@
   <script defer src="execution-evidence-model.js"></script>
   <script defer src="sessions.js"></script>
   <script defer src="goals.js"></script>
+  <script defer src="coach-plan-exchange.js"></script>
   <script defer src="bodymap.js"></script>
   <script defer src="checkin-model.js"></script>
   <script defer src="checkins.js"></script>

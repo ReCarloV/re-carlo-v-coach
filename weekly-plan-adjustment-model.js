@@ -18,6 +18,14 @@
   function phaseRole(session){if(isRace(session))return'race';if(session.details?.triathlonRole)return session.details.triathlonRole;if(session.category==='swimming')return'tri-swim';if(isLong(session))return'long';if(isQuality(session))return'quality';if(session.category==='running')return'easy';if(session.category==='strength')return isLowerStrength(session)?'strength-lower':'strength-upper';return['hyrox','metcon','cycling','recovery'].includes(session.category)?session.category:'other';}
   function pauseRank(session,phaseConstraints){const priorities=phaseConstraints?.priorities;if(priorities){let score=Number(priorities[phaseRole(session)]??priorities.other??30);if(session.priority==='optional')score-=40;if(session.priority==='essential')score+=10;return score;}if(isRace(session))return 20;if(session.priority==='optional')return 0;if(session.category==='recovery')return 1;if(session.category==='cycling')return 2;if(session.category==='strength'&&!isLowerStrength(session))return 3;if(session.category==='running'&&!isQuality(session)&&!isLong(session))return 4;if(isLowerStrength(session))return 5;if(isQuality(session))return 8;if(isLong(session))return 10;return 6;}
   function samePrescription(a,b){return JSON.stringify(snapshotPrescription(a))===JSON.stringify(snapshotPrescription(b));}
+  function applyAdaptationPolicy(analysis,policy){
+    const next=clone(analysis||{level:'steady',confidence:'low',settings:{}}),settings={...(next.settings||{})};if(!policy||typeof policy!=='object')return{...next,settings};
+    const reduction=Number(policy.maxVolumeReductionPct),minimum=Number.isFinite(reduction)?Math.max(.2,1-Math.max(0,Math.min(80,reduction))/100):0;
+    ['volumeFactor','aerobicVolumeFactor','longFactor'].forEach(field=>{const value=Number(settings[field]);if(Number.isFinite(value))settings[field]=Math.min(1,Math.max(minimum,value));});
+    const safetyOverride=Boolean(settings.suspendAllTraining||settings.suspendRunning||settings.lowerBodyProtection);
+    if(policy.intensityDowngradeAllowed===false&&!safetyOverride&&settings.qualityMode==='controlled')settings.qualityMode='normal';
+    return{...next,settings};
+  }
   function strengthDetails(details,settings,instructions){
     const reduction=Math.max(0,Number(settings.strengthSetReduction)||0),targetRir=Math.max(Number(details?.targetRir)||0,Number(settings.strengthRir)||0);const next={...(details||{}),targetRir};
     if(Array.isArray(details?.strengthBlocks))next.strengthBlocks=details.strengthBlocks.map(block=>{const sets=Number(block.sets);return{...block,...(Number.isFinite(sets)&&sets>0?{sets:String(Math.max(1,sets-reduction))}:{}),target:`RIR ${targetRir}`};});
@@ -41,7 +49,7 @@
     return{base,next,instructions};
   }
   function buildAdjustment(input={}){
-    const analysis=input.analysis||{level:'steady',confidence:'low',settings:{}};const now=input.now instanceof Date?input.now.toISOString():new Date(input.now||Date.now()).toISOString();const sourceSessions=(Array.isArray(input.sessions)?input.sessions:[]).map(sourceSession);const raceCount=sourceSessions.filter(isRace).length;const target=Math.max(raceCount,Math.max(0,Math.min(sourceSessions.length,Number.isFinite(Number(input.targetCount))?Number(input.targetCount):sourceSessions.length)));const phaseConstraints=input.phaseConstraints||analysis.phaseConstraints||null;
+    const analysis=applyAdaptationPolicy(input.analysis||{level:'steady',confidence:'low',settings:{}},input.adaptationPolicy);const now=input.now instanceof Date?input.now.toISOString():new Date(input.now||Date.now()).toISOString();const sourceSessions=(Array.isArray(input.sessions)?input.sessions:[]).map(sourceSession);const raceCount=sourceSessions.filter(isRace).length;const target=Math.max(raceCount,Math.max(0,Math.min(sourceSessions.length,Number.isFinite(Number(input.targetCount))?Number(input.targetCount):sourceSessions.length)));const phaseConstraints=input.phaseConstraints||analysis.phaseConstraints||null;
     const forcedPause=new Set();if(analysis.settings?.suspendRunning)sourceSessions.filter(item=>item.category==='running').forEach(item=>forcedPause.add(item.id));
     sourceSessions.filter(isRace).forEach(item=>forcedPause.delete(item.id));const remaining=sourceSessions.filter(item=>!forcedPause.has(item.id));const extraPause=Math.max(0,remaining.length-target);[...remaining].sort((a,b)=>pauseRank(a,phaseConstraints)-pauseRank(b,phaseConstraints)||String(a.date).localeCompare(String(b.date))).slice(0,extraPause).forEach(item=>forcedPause.add(item.id));
     const sessions=sourceSessions.map(source=>{
@@ -59,5 +67,5 @@
   }
   function restoreSession(session){if(session?.goalSubstitution)return clone(session);if(!session?.adaptiveAdjustment?.source)return clone(session);const restored={...clone(session),...clone(session.adaptiveAdjustment.source)};delete restored.adaptiveAdjustment;delete restored.coachApplication;restored.updatedAt=new Date().toISOString();return restored;}
 
-  return{buildAdjustment,withScheduledDate,withInstruction,restoreSession,snapshotPrescription,sourceSession,isRace,isLong,isQuality,isLowerStrength,pauseRank,samePrescription};
+  return{buildAdjustment,applyAdaptationPolicy,withScheduledDate,withInstruction,restoreSession,snapshotPrescription,sourceSession,isRace,isLong,isQuality,isLowerStrength,pauseRank,samePrescription};
 });

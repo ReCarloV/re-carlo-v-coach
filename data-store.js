@@ -18,7 +18,7 @@
   'use strict';
 
   const APP_NAME = 'Re Carlo V Personal Coach';
-  const BACKUP_VERSION = 12;
+  const BACKUP_VERSION = 13;
   const MAX_PROFILE_PHOTO_BYTES = 2 * 1024 * 1024;
   const sessionCategories = new Set(['running','swimming','cycling','strength','hyrox','metcon','test','recovery']);
   const sessionPriorities = new Set(['essential','important','optional']);
@@ -54,6 +54,7 @@
     fastingRecords: { key:'rc-fasting-records-v1', version:1, kind:'json', fallback:[] },
     reconciliationCutoff: { key:'rc-reconciliation-cutoff-v1', version:1, kind:'raw', fallback:null },
     goals: { key:'rc-goals-v1', version:1, kind:'json', fallback:[] },
+    coachPlans: { key:'rc-coach-plans-v1', version:1, kind:'json', fallback:[] },
     planView: { key:'rc-plan-view-v1', version:1, kind:'raw', fallback:'list' },
     uiTheme: { key:'rc-ui-theme-v1', version:1, kind:'raw', fallback:'auto' },
     cloudSyncCursor: { key:'rc-cloud-sync-cursor-v1', version:1, kind:'json', fallback:null },
@@ -196,6 +197,9 @@
   function validBaselinePlan(source){
     return isObject(source)&&[1,2,3].includes(source.version)&&/^macro-[0-9a-f]{8}$/.test(String(source.signature||''))&&typeof source.goalId==='string'&&source.goalId.trim()&&typeof source.goalName==='string'&&source.goalName.trim()&&isDateKey(source.weekStart)&&(source.phaseKey===null||typeof source.phaseKey==='string')&&typeof source.phaseLabel==='string'&&source.phaseLabel.trim()&&isTimestamp(source.generatedAt);
   }
+  function validCoachSessionProvenance(source){
+    return isObject(source)&&source.version===1&&typeof source.planId==='string'&&source.planId.trim()&&Number.isInteger(Number(source.revision))&&Number(source.revision)>=1&&typeof source.goalId==='string'&&source.goalId.trim()&&isTimestamp(source.generatedAt)&&isTimestamp(source.importedAt)&&source.source==='codex';
+  }
 
   function validateSession(session) {
     if (!isObject(session)) invalid('INVALID_SESSIONS','Una seduta del backup non è valida.');
@@ -217,6 +221,7 @@
     }
     if(owns(session,'externalPlanReference')&&!validPlanProvenance(session.externalPlanReference))invalid('INVALID_SESSIONS','Il riferimento storico del vecchio piano non è valido.');
     if(owns(session,'baselinePlan')&&!validBaselinePlan(session.baselinePlan))invalid('INVALID_SESSIONS','La provenienza del piano base non è valida.');
+    if(owns(session,'coachPlan')&&!validCoachSessionProvenance(session.coachPlan))invalid('INVALID_SESSIONS','La provenienza del piano Coach non è valida.');
     if(owns(session,'baselineOrigin')&&!validBaselinePlan(session.baselineOrigin))invalid('INVALID_SESSIONS','L’origine della seduta modificata non è valida.');
     if(owns(session,'manualOverride')&&typeof session.manualOverride!=='boolean')invalid('INVALID_SESSIONS','Lo stato della modifica manuale non è valido.');
     if(owns(session,'adaptiveAdjustment')){
@@ -336,6 +341,20 @@
       if(owns(goal,'inferredFromSessionId')&&(typeof goal.inferredFromSessionId!=='string'||!goal.inferredFromSessionId.trim()))invalid('INVALID_GOALS','La provenienza di un obiettivo non è valida.');
     });
     return value;
+  }
+
+  function validateCoachPlans(value){
+    if(!Array.isArray(value)||value.length>100)invalid('INVALID_COACH_PLANS','Lo storico dei piani Coach non è valido.');
+    const ids=new Set();value.forEach(plan=>{
+      if(!isObject(plan)||typeof plan.id!=='string'||!plan.id.trim()||plan.version!==1||typeof plan.goalId!=='string'||!plan.goalId.trim()||typeof plan.goalName!=='string'||!plan.goalName.trim()||!Number.isInteger(Number(plan.revision))||Number(plan.revision)<1||!['active','superseded'].includes(plan.status)||typeof plan.author!=='string'||!plan.author.trim()||plan.source!=='codex'||!isTimestamp(plan.generatedAt)||!isTimestamp(plan.importedAt)||!isDateKey(plan.validFrom)||!isDateKey(plan.validTo)||plan.validTo<plan.validFrom)invalid('INVALID_COACH_PLANS','Un piano Coach contiene identità, revisione o intervallo non validi.');
+      if(ids.has(plan.id))invalid('INVALID_COACH_PLANS','Lo storico contiene piani Coach duplicati.');ids.add(plan.id);
+      if(plan.supersedesPlanId!==null&&plan.supersedesPlanId!==undefined&&(typeof plan.supersedesPlanId!=='string'||!plan.supersedesPlanId.trim()))invalid('INVALID_COACH_PLANS','Il riferimento alla revisione precedente non è valido.');
+      if(owns(plan,'supersededAt')&&!isTimestamp(plan.supersededAt))invalid('INVALID_COACH_PLANS','La data di sostituzione del piano Coach non è valida.');
+      if(!isObject(plan.methodology)||typeof plan.methodology.summary!=='string'||!plan.methodology.summary.trim()||!Array.isArray(plan.methodology.assumptions)||!Array.isArray(plan.methodology.evidence))invalid('INVALID_COACH_PLANS','Il metodo del piano Coach non è valido.');
+      if(!isObject(plan.adaptationPolicy)||!Number.isFinite(Number(plan.adaptationPolicy.maxVolumeReductionPct))||typeof plan.adaptationPolicy.intensityDowngradeAllowed!=='boolean'||!Array.isArray(plan.adaptationPolicy.structuralReviewTriggers))invalid('INVALID_COACH_PLANS','La politica adattiva del piano Coach non è valida.');
+      if(!Array.isArray(plan.sessionIds)||plan.sessionIds.length>500||plan.sessionIds.some(id=>typeof id!=='string'||!id.trim()))invalid('INVALID_COACH_PLANS','I riferimenti alle sedute del piano Coach non sono validi.');
+    });
+    const activeGoals=new Set();value.filter(plan=>plan.status==='active').forEach(plan=>{if(activeGoals.has(plan.goalId))invalid('INVALID_COACH_PLANS','Esistono più revisioni attive per lo stesso obiettivo.');activeGoals.add(plan.goalId);});return value;
   }
 
   function validateImportedActivities(value) {
@@ -601,6 +620,8 @@
         break;
       case 'goals':
         return validateGoals(value);
+      case 'coachPlans':
+        return validateCoachPlans(value);
       case 'planView':
         if (!['list','calendar'].includes(value)) throw new DataStoreError('INVALID_PREFERENCE', 'La preferenza del piano non è valida.');
         break;
@@ -635,7 +656,7 @@
   function prepareFullBackup(backup) {
     const sourceVersion=Number(backup.backupVersion);
     if (sourceVersion > BACKUP_VERSION) throw new DataStoreError('FUTURE_BACKUP', 'Questo backup è stato creato da una versione più recente dell’app.');
-    if (![3,4,5,6,7,8,9,10,11,BACKUP_VERSION].includes(sourceVersion) || !isObject(backup.data)) throw new DataStoreError('UNSUPPORTED_BACKUP', 'Versione del backup non supportata.');
+    if (![3,4,5,6,7,8,9,10,11,12,BACKUP_VERSION].includes(sourceVersion) || !isObject(backup.data)) throw new DataStoreError('UNSUPPORTED_BACKUP', 'Versione del backup non supportata.');
     const rawProfile = entryValue(backup.data,'profile');
     const profile = normalizeProfile(rawProfile);
     const weeklyCheckin=entryValue(backup.data,'weeklyCheckin');
@@ -660,6 +681,7 @@
       whoopImportBatches:sourceVersion>=6?entryValue(backup.data,'whoopImportBatches'):[],
       reconciliationDecisions:sourceVersion>=7?entryValue(backup.data,'reconciliationDecisions'):[],
       goals:sourceVersion>=8?entryValue(backup.data,'goals'):[],
+      coachPlans:sourceVersion>=13?entryValue(backup.data,'coachPlans'):[],
       evidenceReviews:sourceVersion>=10?entryValue(backup.data,'evidenceReviews'):[],
       fastingRecords:sourceVersion>=11?entryValue(backup.data,'fastingRecords'):[]
     };
@@ -778,7 +800,7 @@
         result.warnings.push('sessions');
         result.migrated=result.migrated.filter(item=>item!=='sessions');
       }
-      ['hrZones','profilePhoto','retiredPlanSessions','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','evidenceReviews','fastingRecords','reconciliationCutoff','goals','planView','uiTheme','cloudSyncCursor'].forEach(name=>{
+      ['hrZones','profilePhoto','retiredPlanSessions','weeklyCheckin','weeklyAvailabilityHistory','preSessionCheckins','bodyIssues','importedActivities','importBatches','whoopCycles','whoopSleeps','whoopWorkouts','whoopJournal','whoopImportBatches','reconciliationDecisions','evidenceReviews','fastingRecords','reconciliationCutoff','goals','coachPlans','planView','uiTheme','cloudSyncCursor'].forEach(name=>{
         try {
           const definition=datasets[name];const raw=storage.getItem(definition.key);
           if(raw===null)return;
@@ -835,6 +857,7 @@
         evidenceReviews:{version:datasets.evidenceReviews.version,value:read('evidenceReviews')},
         fastingRecords:{version:datasets.fastingRecords.version,value:read('fastingRecords')},
         goals:{version:datasets.goals.version,value:read('goals')},
+        coachPlans:{version:datasets.coachPlans.version,value:read('coachPlans')},
         preferences:{version:datasets.planView.version,value:{planView:read('planView'),uiTheme:read('uiTheme'),cloudSyncCursor:read('cloudSyncCursor'),reconciliationCutoff:read('reconciliationCutoff')}}
       };
       prepareFullBackup({ backupVersion:BACKUP_VERSION, data });
@@ -865,6 +888,7 @@
         evidenceReviews:Array.isArray(values.evidenceReviews) ? values.evidenceReviews.length : null,
         fastingRecords:Array.isArray(values.fastingRecords) ? values.fastingRecords.length : null,
         goals:Array.isArray(values.goals) ? values.goals.length : null,
+        coachPlans:Array.isArray(values.coachPlans) ? values.coachPlans.length : null,
         athleteName:values.profile ? [values.profile.firstName,values.profile.lastName].filter(Boolean).join(' ') : ''
       };
     }
@@ -998,6 +1022,22 @@
       const current=read('reconciliationDecisions');validateReconciliationDecisions(current);const next=current.filter(item=>item.id!==decisionId);if(next.length===current.length)throw new DataStoreError('UNKNOWN_RECONCILIATION','L’abbinamento selezionato non esiste più.');write('reconciliationDecisions',next);const detail={type:'reconciliation-removed',decisionId,removedAt:now().toISOString()};dispatch(detail);return detail;
     }
 
+    function commitCoachPlan(state){
+      if(!isObject(state))throw new DataStoreError('INVALID_COACH_PLAN','Il piano Coach da salvare non è valido.');
+      const nextSessions=clone(state.sessions),nextPlans=clone(state.coachPlans),nextRetired=clone(state.retiredPlanSessions);
+      validate('sessions',nextSessions);validate('coachPlans',nextPlans);validate('retiredPlanSessions',nextRetired);
+      const touched=new Map();
+      try{
+        remember(touched,datasets.sessions.key);write('sessions',nextSessions);
+        remember(touched,datasets.coachPlans.key);write('coachPlans',nextPlans);
+        remember(touched,datasets.retiredPlanSessions.key);write('retiredPlanSessions',nextRetired);
+      }catch(error){
+        const rollback=rollbackTouched(touched);if(!rollback.complete){const failure=new DataStoreError('ROLLBACK_INCOMPLETE',`Il piano Coach non è stato salvato e alcune chiavi devono essere verificate: ${rollback.failedKeys.join(', ')}.`);failure.failedKeys=rollback.failedKeys;throw failure;}
+        throw new DataStoreError('COACH_PLAN_WRITE_FAILED',`Importazione annullata senza modificare i dati: ${error.message||'errore di scrittura'}`);
+      }
+      const detail={type:'coach-plan-imported',planId:state.planId||null,revision:Number(state.revision)||null,added:Number(state.added)||0,replaced:Number(state.replaced)||0,importedAt:now().toISOString()};dispatch(detail);return detail;
+    }
+
     function downloadBackup() {
       if (typeof document === 'undefined' || typeof URL === 'undefined' || typeof Blob === 'undefined') throw new DataStoreError('DOWNLOAD_UNAVAILABLE', 'Il download non è disponibile in questo ambiente.');
       const snapshot = createSnapshot();
@@ -1008,11 +1048,11 @@
       return snapshot;
     }
 
-    return { bootstrap, health:()=>clone(health), getDataset:read, setDataset:write, createSnapshot, createCloudSnapshot, inspectBackup, restoreBackup, restoreCloudSnapshot, commitImportBatch, removeImportBatch, commitWhoopImportBatch, commitWhoopApiSync, removeWhoopImportBatch, saveReconciliationDecision, saveReconciliationDecisions, removeReconciliationDecision, downloadBackup };
+    return { bootstrap, health:()=>clone(health), getDataset:read, setDataset:write, createSnapshot, createCloudSnapshot, inspectBackup, restoreBackup, restoreCloudSnapshot, commitImportBatch, removeImportBatch, commitWhoopImportBatch, commitWhoopApiSync, removeWhoopImportBatch, saveReconciliationDecision, saveReconciliationDecisions, removeReconciliationDecision, commitCoachPlan, downloadBackup };
   }
 
   return {
     APP_NAME, BACKUP_VERSION, MAX_PROFILE_PHOTO_BYTES, DATASETS:datasets, ALL_KEYS:allKeys, DataStoreError,
-    create, prepareBackup, normalizeProfile, normalizeSessions, validateImportConsistency, validateWhoopConsistency, validateReconciliationDecisions, validateEvidenceReviews, validateFastingRecords
+    create, prepareBackup, normalizeProfile, normalizeSessions, validateImportConsistency, validateWhoopConsistency, validateReconciliationDecisions, validateEvidenceReviews, validateFastingRecords, validateCoachPlans
   };
 });
