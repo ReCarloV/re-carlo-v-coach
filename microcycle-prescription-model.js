@@ -30,9 +30,9 @@
     return trainingRoles?.roleFor?.(item)||item.category||'other';
   }
 
-  function runningRoles(pack,count,phaseKey){
+  function runningRoles(pack,count,phaseKey,capacity={}){
     const key=pack?.key||'',definition=pack?.definition||{},qualityLabel=definition.quality||'Qualità running',longLabel=definition.longLabel||'Lungo';
-    const short=['road-5k','road-10k'].includes(key),half=key==='road-half';
+    const short=['road-5k','road-10k'].includes(key),half=key==='road-half',observedRunningPerWeek=Number(capacity?.runningPerWeek),fourthRunReady=Number.isFinite(observedRunningPerWeek)&&observedRunningPerWeek>=3.2;
     let roles;
     if(short){
       roles=[
@@ -61,7 +61,7 @@
         [easy(),strength('strength-upper'),quality(qualityLabel),strength('strength-lower'),long(longLabel)],
         [easy(),strength('strength-upper'),quality(qualityLabel),strength('strength-lower'),cycling(),long(longLabel)]
       ][count-1];
-      if(['specific-build','specific','peak'].includes(phaseKey)&&count>=5){
+      if(['specific-build','specific','peak'].includes(phaseKey)&&count>=5&&fourthRunReady){
         roles=count===5
           ?[easy(),easy(2),quality(qualityLabel),strength(),long(longLabel)]
           :[easy(),easy(2),quality(qualityLabel),strength(),cycling(),long(longLabel)];
@@ -230,7 +230,7 @@
     let targetRoles=transition
       ?transitionRoles(transition,roleCount)
       :pack?.family==='running'
-      ?runningRoles(pack,count,phase?.key)
+      ?runningRoles(pack,count,phase?.key,input.athleteState?.capacity)
       :pack?.family==='hyrox'&&pack.status!=='pending'
         ?hyroxRoles(pack,count)
       :pack?.family==='obstacle'&&pack.status!=='pending'
@@ -267,6 +267,7 @@
     const warnings=[];
     if(transition)warnings.push(`${transition.label}: massimo ${transition.maxSessions} sedute da ${transition.maxDurationMin} minuti; ${transition.summary}`);
     if(pack?.status==='pending')warnings.push('Il formato non dispone ancora di un pack prescrittivo revisionato: il Coach usa soltanto ruoli generici e conservativi.');
+    if(pack?.key==='road-marathon'&&['specific-build','specific','peak'].includes(phase?.key)&&count>=5&&!(Number(input.athleteState?.capacity?.runningPerWeek)>=3.2))warnings.push('La quarta corsa non viene ancora inserita nel piano base: servono almeno 3,2 esposizioni running settimanali osservate; la quinta seduta resta forza di supporto.');
     if(pack?.family==='triathlon'&&count<3)warnings.push('Con meno di tre sedute la settimana non copre stabilmente nuoto, bici e corsa: il Coach mostra il limite invece di fingere una preparazione completa.');
     const weeklyCapacity=count*Math.max(0,Number(input.sessionMinutes)||0);
     if(pack?.family==='triathlon'&&pack.definition?.longCourse&&(count<5||weeklyCapacity&&weeklyCapacity<300))warnings.push('La disponibilità dichiarata è ridotta per un obiettivo long-course: il piano resta contestuale e la confidenza sulla copertura di 70.3/Full viene abbassata.');
