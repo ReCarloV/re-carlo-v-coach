@@ -193,6 +193,9 @@
   function validPlanProvenance(source){
     return isObject(source)&&source.provider==='excel'&&typeof source.sourceName==='string'&&source.sourceName.trim()&&source.sheet==='Planner'&&Number.isInteger(Number(source.row))&&Number(source.row)>=2&&Number.isInteger(Number(source.week))&&Number(source.week)>=1&&typeof source.weekLabel==='string'&&source.weekLabel.trim()&&typeof source.phase==='string'&&typeof source.originalTitle==='string'&&source.originalTitle.trim()&&isTimestamp(source.importedAt)&&(!owns(source,'retired')||typeof source.retired==='boolean')&&(!owns(source,'reference')||validPlanReference(source.reference));
   }
+  function validBaselinePlan(source){
+    return isObject(source)&&source.version===1&&/^macro-[0-9a-f]{8}$/.test(String(source.signature||''))&&typeof source.goalId==='string'&&source.goalId.trim()&&typeof source.goalName==='string'&&source.goalName.trim()&&isDateKey(source.weekStart)&&(source.phaseKey===null||typeof source.phaseKey==='string')&&typeof source.phaseLabel==='string'&&source.phaseLabel.trim()&&isTimestamp(source.generatedAt);
+  }
 
   function validateSession(session) {
     if (!isObject(session)) invalid('INVALID_SESSIONS','Una seduta del backup non è valida.');
@@ -213,6 +216,9 @@
       if(!validPlanProvenance(session.planImport))invalid('INVALID_SESSIONS','La provenienza storica del vecchio piano non è valida.');
     }
     if(owns(session,'externalPlanReference')&&!validPlanProvenance(session.externalPlanReference))invalid('INVALID_SESSIONS','Il riferimento storico del vecchio piano non è valido.');
+    if(owns(session,'baselinePlan')&&!validBaselinePlan(session.baselinePlan))invalid('INVALID_SESSIONS','La provenienza del piano base non è valida.');
+    if(owns(session,'baselineOrigin')&&!validBaselinePlan(session.baselineOrigin))invalid('INVALID_SESSIONS','L’origine della seduta modificata non è valida.');
+    if(owns(session,'manualOverride')&&typeof session.manualOverride!=='boolean')invalid('INVALID_SESSIONS','Lo stato della modifica manuale non è valido.');
     if(owns(session,'adaptiveAdjustment')){
       const adjustment=session.adaptiveAdjustment,source=adjustment?.source;
       if(!isObject(adjustment)||adjustment.version!==1||!['active','paused'].includes(adjustment.status)||!['protect','reduce','steady','progress'].includes(adjustment.level)||!['low','medium','high'].includes(adjustment.confidence)||!isTimestamp(adjustment.preparedAt)||!Array.isArray(adjustment.instructions)||adjustment.instructions.length>20||adjustment.instructions.some(item=>typeof item!=='string'||!item.trim()))invalid('INVALID_SESSIONS','L’adattamento settimanale non è valido.');
@@ -324,6 +330,7 @@
       ['target','result','notes'].forEach(field=>{if(owns(goal,field)&&typeof goal[field]!=='string')invalid('INVALID_GOALS',`Il campo ${field} di un obiettivo non è valido.`);});
       if(owns(goal,'variant')&&(typeof goal.variant!=='string'||!goal.variant.trim()||goal.variant.length>80))invalid('INVALID_GOALS','Il formato specifico di un obiettivo non è valido.');
       if(owns(goal,'distanceKm')&&(!Number.isFinite(Number(goal.distanceKm))||Number(goal.distanceKm)<=0||Number(goal.distanceKm)>1000))invalid('INVALID_GOALS','La distanza di un obiettivo non è valida.');
+      if(owns(goal,'trainingAvailability')){const item=goal.trainingAvailability,days=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];if(!isObject(item)||!Number.isInteger(Number(item.sessions))||Number(item.sessions)<1||Number(item.sessions)>6||!Number.isFinite(Number(item.sessionMinutes))||Number(item.sessionMinutes)<30||Number(item.sessionMinutes)>180||!Number.isFinite(Number(item.longRunMinutes))||Number(item.longRunMinutes)<45||Number(item.longRunMinutes)>240||!Array.isArray(item.days)||!item.days.length||item.days.some(day=>!days.includes(day))||new Set(item.days).size!==item.days.length||!['yes','maybe','no'].includes(item.weekendLong)||typeof item.constraints!=='string')invalid('INVALID_GOALS','La disponibilità abituale dell’obiettivo non è valida.');}
       if(owns(goal,'dateAuthority')&&!['manual','plan'].includes(goal.dateAuthority))invalid('INVALID_GOALS','La provenienza della data di un obiettivo non è valida.');
       ['createdAt','updatedAt'].forEach(field=>{if(!isTimestamp(goal[field]))invalid('INVALID_GOALS',`La data ${field} di un obiettivo non è valida.`);});
       if(owns(goal,'inferredFromSessionId')&&(typeof goal.inferredFromSessionId!=='string'||!goal.inferredFromSessionId.trim()))invalid('INVALID_GOALS','La provenienza di un obiettivo non è valida.');

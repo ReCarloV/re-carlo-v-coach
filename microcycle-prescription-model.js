@@ -225,7 +225,7 @@
     const goal=input.goal||null,weekStart=input.weekStart||null,count=Math.max(0,Math.min(6,Number(input.sessionCount)||0));
     const weekEnd=weekStart?addDays(weekStart,6):null,pack=programming?.packFor?.(goal)||null,phase=input.phaseConstraints?.phase||programming?.phaseFor?.(goal,weekStart)||null;
     const goals=(Array.isArray(input.goals)?input.goals:[]).filter(Boolean),locked=(Array.isArray(input.lockedSessions)?input.lockedSessions:[]).filter(Boolean);
-    const transition=transitionModel?.assess?.({activeGoal:goal,goals,weekStart,sessions:input.sessions,analysis:input.analysis})||null;
+    const transition=(input.baseline?transitionModel?.projected?.({activeGoal:goal,goals,weekStart}):transitionModel?.assess?.({activeGoal:goal,goals,weekStart,sessions:input.sessions,analysis:input.analysis}))||null;
     const roleCount=transition?Math.min(count,Number(transition.maxSessions)||count):count;
     let targetRoles=transition
       ?transitionRoles(transition,roleCount)

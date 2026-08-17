@@ -47,6 +47,7 @@
   function prescriptionAuthority(session={}){
     if(session.outcome)return{key:'recorded',label:'Registrazione effettiva',detail:'Per una seduta conclusa fanno fede i dati realmente registrati.'};
     if(session.goalGenerated)return{key:'goal',label:'Obiettivo gara',detail:'Data e formato derivano dall’obiettivo salvato.'};
+    if(session.baselinePlan)return{key:'baseline',label:'Piano base del Coach',detail:'È la traiettoria iniziale: nella settimana operativa può essere adattata usando i dati realmente raccolti.'};
     if(session.generated===true||session.coachApplication||session.adaptiveAdjustment)return{key:'coach',label:'Coach Re Carlo V',detail:'I blocchi strutturati sono la prescrizione ufficiale della seduta.'};
     if(session.planImport&&structuredPrescriptionKey(session))return{key:'coach-bootstrap',label:'Coach Re Carlo V',detail:'I blocchi strutturati sono attivi; il vecchio Excel è soltanto archivio.'};
     return{key:'manual',label:'Programmazione manuale',detail:'La seduta usa i parametri salvati nel Piano.'};

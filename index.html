@@ -622,6 +622,7 @@
         <label>Priorità<select name="priority"><option value="A">A · obiettivo principale</option><option value="B">B · gara importante</option><option value="C">C · gara preparatoria</option></select></label>
         <label>Stato<select name="status"><option value="planned">Programmata</option><option value="completed">Completata</option><option value="cancelled">Annullata</option></select></label>
         <label class="goal-form-wide">Target<input name="target" maxlength="100" placeholder="Es. completare senza dolore, migliorare il PB"></label>
+        <fieldset class="goal-form-wide goal-plan-availability"><legend>Disponibilità abituale del percorso</legend><p>Definisce il piano base fino alla gara. Le variazioni di una singola settimana restano nel check-in settimanale.</p><div class="goal-plan-availability-grid"><label>Sedute settimanali<select name="planSessions"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option><option value="6">6</option></select></label><label>Durata abituale<input name="planSessionMinutes" type="number" min="30" max="180" step="15" value="60" required></label><label>Tempo massimo lungo<input name="planLongMinutes" type="number" min="45" max="240" step="5" value="150" required></label><label>Lungo nel weekend<select name="planWeekendLong"><option value="yes">Sì</option><option value="maybe">Da confermare</option><option value="no">No</option></select></label><div class="goal-plan-days"><span>Giorni abitualmente disponibili</span><div class="day-picker"><label><input type="checkbox" name="planDays" value="Lun" checked><span>Lun</span></label><label><input type="checkbox" name="planDays" value="Mar"><span>Mar</span></label><label><input type="checkbox" name="planDays" value="Mer" checked><span>Mer</span></label><label><input type="checkbox" name="planDays" value="Gio" checked><span>Gio</span></label><label><input type="checkbox" name="planDays" value="Ven"><span>Ven</span></label><label><input type="checkbox" name="planDays" value="Sab" checked><span>Sab</span></label><label><input type="checkbox" name="planDays" value="Dom" checked><span>Dom</span></label></div></div><label class="goal-plan-constraints">Vincoli abituali<textarea name="planConstraints" rows="2" maxlength="500" placeholder="Es. lungo nel weekend, mercoledì massimo 45 minuti"></textarea></label></div></fieldset>
         <label class="goal-form-wide goal-result-field">Risultato<input name="result" maxlength="120" placeholder="Tempo, piazzamento o risultato del test"></label>
         <label class="goal-form-wide">Note<textarea name="notes" rows="3" maxlength="1000" placeholder="Contesto, strategia, cosa dovrà ricordare il coach..."></textarea></label>
       </div>
@@ -750,6 +751,7 @@
   <script defer src="goal-transition-model.js"></script>
   <script defer src="microcycle-prescription-model.js"></script>
   <script defer src="goals-model.js"></script>
+  <script defer src="macrocycle-plan-model.js"></script>
   <script defer src="coach-methodology-model.js"></script>
   <script defer src="evidence-watch-model.js"></script>
   <script defer src="race-coach-model.js"></script>

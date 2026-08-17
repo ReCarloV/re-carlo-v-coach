@@ -9,6 +9,7 @@
   const applicationModel=window.rcAdaptiveApplicationModel;
   const phaseModel=window.rcPhaseConstraintsModel;
   const microcycleModel=window.rcMicrocyclePrescriptionModel;
+  const macrocycleModel=window.rcMacrocyclePlanModel;
   const strengthReliabilityModel=window.rcStrengthReliabilityModel;
   const weeklyRecapModel=window.rcWeeklyRecapModel;
   let proposal=null;
@@ -199,7 +200,7 @@
   }
   function templateForRole(descriptor,weekly,analysis,phaseConstraints,microcycle){
     const settings=analysis.settings,declaredMinutes=Number(weekly.sessionMinutes)||60,normalMinutes=microcycle?.transition?Math.min(declaredMinutes,Number(microcycle.transition.maxDurationMin)||declaredMinutes):declaredMinutes,adaptedMinutes=roundFive(normalMinutes*settings.volumeFactor),easyMinutes=roundFive(normalMinutes*Number(settings.aerobicVolumeFactor??settings.volumeFactor??1));
-    const generated=phaseConstraints?.generated||{},maxLong=Number(weekly.longRunMinutes)||120,baseLong=Math.min(maxLong,Math.max(75,normalMinutes+30)),adaptedLong=Math.min(maxLong,roundFive(baseLong*settings.longFactor*Number(generated.longFactor||1)));
+    const generated=phaseConstraints?.generated||{},maxLong=Number(weekly.longRunMinutes)||120,baseLong=Math.min(maxLong,Number(weekly.plannedLongMinutes)||Math.max(75,normalMinutes+30)),adaptedLong=Math.min(maxLong,roundFive(baseLong*settings.longFactor*Number(generated.longFactor||1)));
     let item=null;
     if(descriptor.role==='easy')item=easyRun(easyMinutes);
     else if(descriptor.role==='quality')item=settings.lowerBodyProtection?lowImpactReplacement(adaptedMinutes):qualityRunForPack(adaptedMinutes,settings.qualityMode==='controlled',phaseConstraints);
@@ -225,7 +226,7 @@
     if(count<=0)return [];
     if(microcycle?.plannedRoles)return microcycle.plannedRoles.map(item=>templateForRole(item,weekly,analysis,phaseConstraints,microcycle)).filter(Boolean);
     const settings=analysis.settings;const normalMinutes=Number(weekly.sessionMinutes)||60;const adaptedMinutes=roundFive(normalMinutes*settings.volumeFactor);const easyMinutes=roundFive(normalMinutes*Number(settings.aerobicVolumeFactor??settings.volumeFactor??1));
-    const generated=phaseConstraints?.generated||{};const maxLong=Number(weekly.longRunMinutes)||120;const baseLong=Math.min(maxLong,Math.max(75,normalMinutes+30));const adaptedLong=Math.min(maxLong,roundFive(baseLong*settings.longFactor*Number(generated.longFactor||1)));
+    const generated=phaseConstraints?.generated||{};const maxLong=Number(weekly.longRunMinutes)||120;const baseLong=Math.min(maxLong,Number(weekly.plannedLongMinutes)||Math.max(75,normalMinutes+30));const adaptedLong=Math.min(maxLong,roundFive(baseLong*settings.longFactor*Number(generated.longFactor||1)));
     const quality=settings.lowerBodyProtection?lowImpactReplacement(adaptedMinutes):generated.qualityStyle==='recall'?qualityRecallRun(adaptedMinutes,phaseConstraints):qualityRun(adaptedMinutes,settings.qualityMode==='controlled');
     const singleStrength=settings.lowerBodyProtection?upperStrength(adaptedMinutes):fullStrength(adaptedMinutes);
     const secondStrength=settings.lowerBodyProtection?recoveryRide(adaptedMinutes,'Il secondo lavoro per gli arti inferiori lascia spazio a recupero low impact.'):settings.lowerBodyCaution?fullStrength(adaptedMinutes):lowerStrength(adaptedMinutes);
@@ -283,14 +284,15 @@
     return {sessions:assigned.sort((a,b)=>a.date.localeCompare(b.date)),warnings};
   }
   function adaptationFor(weekly,allSessions){const bodyIssues=(window.rcBodyIssues?.active?.()||[]).map(issue=>({...issue,latestPain:window.rcBodyIssues.latest(issue)}));return window.rcAdaptiveEngine.analyze({sessions:allSessions,preCheckins:parse(PRE_KEY,[]),bodyIssues,whoopCycles:window.rcDataStore?.getDataset('whoopCycles')||[],whoopSleeps:window.rcDataStore?.getDataset('whoopSleeps')||[],targetWeekStart:weekly.weekStart});}
+  function baselineAnalysis(){return{level:'steady',label:'Piano base',summary:'Traiettoria iniziale costruita dall’obiettivo e dalla disponibilità abituale; verrà adattata con i dati reali.',confidence:'low',settings:{volumeFactor:1,aerobicVolumeFactor:1,longFactor:1,sessionDelta:0,physiologySessionDelta:0,qualityMode:'normal',strengthRir:2,strengthSetReduction:0,lowerBodyProtection:false,lowerBodyCaution:false,suspendRunning:false,suspendAllTraining:false},organization:{level:'stable',total14:0},reasons:['Dose di base: nessuna risposta futura viene inventata.'],metrics:[],tolerance:null,recovery:{usable:false,level:'unavailable'}};}
   function phaseFor(weekly,allSessions,analysis){const goals=window.rcDataStore?.getDataset('goals')||[];if(!phaseModel||!window.rcGoalsModel)return{analysis,context:null,goal:null,goals};const goal=window.rcGoalsModel.classifyGoals(goals,weekly.weekStart).current;const context=phaseModel.forWeek({goal,weekStart:weekly.weekStart,sessions:allSessions,analysis});return{analysis:phaseModel.constrainAnalysis(analysis,context),context,goal,goals};}
   function build(options={}){
-    const latest=parse(WEEKLY_KEY,null),targetWeekStart=options?.weekStart?mondayFor(options.weekStart):null,stored=targetWeekStart?weeklyRecapModel?.availabilityForTarget?.(parse(WEEKLY_HISTORY_KEY,[]),latest,targetWeekStart):latest;if(!stored)return {missing:true,targetWeekStart};const weekly={...stored,weekStart:targetWeekStart||mondayFor(stored.weekStart)};
-    const dayIndex={Lun:0,Mar:1,Mer:2,Gio:3,Ven:4,Sab:5,Dom:6};const allSessions=window.rcSessions.getAll();const phaseDecision=phaseFor(weekly,allSessions,adaptationFor(weekly,allSessions)),analysis=phaseDecision.analysis,phaseConstraints=phaseDecision.context;
+    const latest=parse(WEEKLY_KEY,null),targetWeekStart=options?.weekStart?mondayFor(options.weekStart):null,stored=options.availability||(targetWeekStart?weeklyRecapModel?.availabilityForTarget?.(parse(WEEKLY_HISTORY_KEY,[]),latest,targetWeekStart):latest);if(!stored)return {missing:true,targetWeekStart};const weekly={...stored,weekStart:targetWeekStart||mondayFor(stored.weekStart)};
+    const dayIndex={Lun:0,Mar:1,Mer:2,Gio:3,Ven:4,Sab:5,Dom:6};const allSessions=Array.isArray(options.sessions)?structuredClone(options.sessions):window.rcSessions.getAll();const phaseDecision=phaseFor(weekly,allSessions,options.baseline?baselineAnalysis():adaptationFor(weekly,allSessions)),analysis=phaseDecision.analysis,phaseConstraints=phaseDecision.context;
     const selected=(weekly.days||[]).map(day=>({day,index:dayIndex[day],date:dateFor(weekly.weekStart,dayIndex[day])})).filter(item=>Number.isInteger(item.index)).sort((a,b)=>a.index-b.index);if(!selected.length)return {missingDays:true,weekly};
-    const requested=Number(weekly.sessions)||5;const readinessCount=Math.max(1,Math.min(6,requested+analysis.settings.sessionDelta)),phaseCap=Number(phaseConstraints?.limits?.maxActiveSessions)||6,adaptedCount=Math.min(readinessCount,phaseCap);const end=addDays(weekly.weekStart,6);const today=localDate();const locked=lockedSessions(allSessions,weekly.weekStart,end,today),activeLocked=locked.filter(item=>item.adaptiveAdjustment?.status!=='paused'),lockedDates=new Set(locked.map(item=>item.date));const available=selected.filter(slot=>slot.date>=today&&!lockedDates.has(slot.date));const microcycle=microcycleModel?.build({goal:phaseDecision.goal,goals:phaseDecision.goals,weekStart:weekly.weekStart,sessionCount:adaptedCount,sessionMinutes:Number(weekly.sessionMinutes)||60,longSessionMinutes:Number(weekly.longRunMinutes)||120,phaseConstraints,lockedSessions:activeLocked,sessions:allSessions,analysis})||null;
+    const requested=Number(weekly.sessions)||5;const readinessCount=Math.max(1,Math.min(6,requested+analysis.settings.sessionDelta)),phaseCap=Number(phaseConstraints?.limits?.maxActiveSessions)||6,adaptedCount=Math.min(readinessCount,phaseCap);const end=addDays(weekly.weekStart,6);const today=localDate();const locked=lockedSessions(allSessions,weekly.weekStart,end,today),activeLocked=locked.filter(item=>item.adaptiveAdjustment?.status!=='paused'),lockedDates=new Set(locked.map(item=>item.date));const available=selected.filter(slot=>slot.date>=today&&!lockedDates.has(slot.date));const microcycle=microcycleModel?.build({goal:phaseDecision.goal,goals:phaseDecision.goals,weekStart:weekly.weekStart,sessionCount:adaptedCount,sessionMinutes:Number(weekly.sessionMinutes)||60,longSessionMinutes:Number(weekly.plannedLongMinutes||weekly.longRunMinutes)||120,phaseConstraints,lockedSessions:activeLocked,sessions:allSessions,analysis,baseline:Boolean(options.baseline)})||null;
     const contractCount=Number(microcycle?.count??adaptedCount);let templates=desiredTemplates(adaptedCount,weekly,analysis,phaseConstraints,microcycle);if(!microcycle)templates=consumeLocked(templates,locked);const capacity=Math.min(templates.length,available.length);if(capacity<templates.length){const rank={essential:0,important:1,optional:2};templates=[...templates].sort((a,b)=>rank[a.priority]-rank[b.priority]||(isLong(b)?1:0)-(isLong(a)?1:0)).slice(0,capacity);}const slots=chooseSlots(available,templates.length,templates.some(isLong)),assigned=assignTemplates(templates,slots);
-    const normalMinutes=Number(weekly.sessionMinutes)||60;const baseLong=Math.min(Number(weekly.longRunMinutes)||120,Math.max(75,normalMinutes+30));const plannedLong=assigned.sessions.find(isLong)?.durationMin;
+    const normalMinutes=Number(weekly.sessionMinutes)||60;const baseLong=Math.min(Number(weekly.longRunMinutes)||120,Number(weekly.plannedLongMinutes)||Math.max(75,normalMinutes+30));const plannedLong=assigned.sessions.find(isLong)?.durationMin;
     const changes=[...(analysis.phaseDecisionChanges||[])];const adaptedMinutes=roundFive(normalMinutes*analysis.settings.volumeFactor);const easyMinutes=roundFive(normalMinutes*Number(analysis.settings.aerobicVolumeFactor??analysis.settings.volumeFactor??1));
     if(adaptedCount<readinessCount)changes.push(`La fase ${phaseConstraints.phase.label} limita la proposta a ${adaptedCount} sedute attive: non viene aggiunta fatica tardiva per riempire la disponibilità.`);
     if(analysis.organization?.level==='adapt'&&analysis.settings.physiologySessionDelta===0&&adaptedCount<requested)changes.push(`Una seduta in meno per rendere la settimana coerente con i ${analysis.organization.total14} vincoli organizzativi recenti; durata e intensità delle singole sedute restano invariate.`);
@@ -313,6 +315,25 @@
     else if(adaptedCount<requested)alerts.push(analysis.organization?.level==='adapt'&&analysis.settings.physiologySessionDelta===0?`Il coach propone temporaneamente ${adaptedCount} sedute invece di ${requested} per aumentare la fattibilità della settimana.`:adaptedCount<readinessCount?`La fase ${phaseConstraints.phase.label} limita temporaneamente il numero massimo da ${requested} a ${adaptedCount} sedute.`:`Il motore riduce temporaneamente il numero massimo da ${requested} a ${adaptedCount} sedute.`);
     if(locked.length)alerts.push(`${locked.length} voc${locked.length===1?'e protetta resta':'i protette restano'} intatt${locked.length===1?'a':'e'}: esiti, passato, sedute manuali, gare e sostituzioni dichiarate non vengono riscritti.`);
     return {weekly,sessions:assigned.sessions,lockedSessions:locked.sort((a,b)=>a.date.localeCompare(b.date)),alerts,analysis,phaseConstraints,phaseAudit,concurrentAudit,microcycle,changes,requested,adaptedCount:expectedCount};
+  }
+
+  function buildBaselinePlan(options={}){
+    if(!macrocycleModel)return{plan:null,sessions:[]};const allSessions=window.rcSessions?.getAll?.()||[],goals=window.rcDataStore?.getDataset('goals')||[],availabilityHistory=parse(WEEKLY_HISTORY_KEY,[]),plan=macrocycleModel.build({today:localDate(),goals,sessions:allSessions,availabilityHistory});
+    const generatedAt=new Date().toISOString(),sessions=[];
+    plan.weeks.forEach(week=>{
+      const proposal=build({weekStart:week.weekStart,availability:{...week.availability,weekStart:week.weekStart},sessions:allSessions,baseline:true});
+      (proposal.sessions||[]).forEach(item=>sessions.push({...item,baselinePlan:{version:1,signature:plan.signature,goalId:week.goalId,goalName:week.goalName,weekStart:week.weekStart,phaseKey:week.phaseKey,phaseLabel:week.phaseLabel,generatedAt},rationale:`Piano base · ${item.rationale||week.phaseLabel}`,notes:'',generated:true,generatorVersion:4}));
+    });
+    return{plan,sessions};
+  }
+  function ensureBaselinePlan(options={}){
+    if(!macrocycleModel||!window.rcSessions?.replaceBaselinePlan)return{changed:false};const current=window.rcSessions.getAll(),existing=current.filter(item=>item.baselinePlan&&!item.outcome);if(existing.length&&!options.force)return{changed:false,reason:'already-present'};
+    const result=buildBaselinePlan(options);
+    if(!result.plan?.weeks?.length){
+      if(options.force&&existing.length){const fromDate=addDays(mondayFor(localDate()),7);window.rcSessions.replaceBaselinePlan([],{fromDate,signature:result.plan?.signature||null});return{changed:true,reason:'no-goals',...result};}
+      return{changed:false,reason:'no-goals'};
+    }
+    window.rcSessions.replaceBaselinePlan(result.sessions,{fromDate:result.plan.startWeek,signature:result.plan.signature});return{changed:true,...result};
   }
 
   function renderAdaptation(analysis){
@@ -366,5 +387,7 @@
   document.getElementById('generator-cancel').addEventListener('click',close);
   document.getElementById('generator-confirm').addEventListener('click',()=>{if(!proposal)return;const now=new Date(),receipt=applicationModel?.applicationFor?.(proposal.analysis,proposal.weekly.weekStart,now)||null,sessions=applicationModel?.markSessions?applicationModel.markSessions(proposal.sessions,proposal.analysis,proposal.weekly.weekStart,now):proposal.sessions;window.rcSessions.replaceWeek(proposal.weekly.weekStart,sessions,{coachApplication:receipt});close();toast();});
   document.addEventListener('rc:weekly-checkin-updated',()=>setTimeout(openProposal,0));
-  window.rcGenerator={build,open:openProposal};
+  document.addEventListener('rc:goals-updated',()=>setTimeout(()=>ensureBaselinePlan({force:true}),0));
+  window.rcGenerator={build,open:openProposal,buildBaselinePlan,ensureBaselinePlan};
+  setTimeout(()=>{ensureBaselinePlan();document.dispatchEvent(new CustomEvent('rc:generator-ready'));},0);
 })();

@@ -93,6 +93,13 @@
       stages:clone(stages),sources:clone(sourceRefs)
     };
   }
+  function projected(input={}){
+    const activeGoal=input.activeGoal||input.goal||null,weekStart=input.weekStart||input.today||null,previous=previousPrimary(activeGoal,input.goals,weekStart);
+    if(!previous||!isMarathon(previous)||familyFor(activeGoal)!=='hyrox')return null;
+    const daysAfter=daysBetween(previous.date,weekStart),gapDays=daysBetween(previous.date,activeGoal.date);if(daysAfter<0||daysAfter>21||gapDays<=0)return null;
+    const stage=stages.find(item=>daysAfter>=item.fromDay&&daysAfter<=item.toDay);if(!stage)return null;
+    return{version:VERSION,status:stage.key,plannedStage:stage.key,stage:stage.key,label:stage.label,summary:stage.summary,previousGoal:clone(previous),activeGoal:clone(activeGoal),daysAfter,gapDays,relation:clone(eventDemand?.relationFor?.(previous,activeGoal,weekStart)||null),signals:null,maxSessions:stage.maxSessions,maxDurationMin:stage.maxDurationMin,specificMode:stage.specificMode,strengthMode:stage.strengthMode,exitCriteria:clone(stage.exitCriteria),sources:clone(sourceRefs),projected:true,guardrail:'Questa è la traiettoria di base. Al momento reale il passaggio di fase richiede gli esiti e i segnali previsti dal controllo adattivo.'};
+  }
   function assess(input={}){
     const activeGoal=input.activeGoal||input.goal||null,weekStart=input.weekStart||input.today||null;
     const previous=previousPrimary(activeGoal,input.goals,weekStart);
@@ -119,5 +126,5 @@
     };
   }
 
-  return{VERSION,stages:clone(stages),sources:clone(sourceRefs),previousPrimary,raceOutcome,phaseOutcomeCoverage,signalsFor,previewFor,assess,daysBetween,familyFor};
+  return{VERSION,stages:clone(stages),sources:clone(sourceRefs),previousPrimary,raceOutcome,phaseOutcomeCoverage,signalsFor,previewFor,projected,assess,daysBetween,familyFor};
 });

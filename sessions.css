@@ -6,3 +6,4 @@ html[data-theme="light"] .session-prescription-source{border-color:#a8cfc6;backg
 .session-actions{grid-template-columns:auto auto 1fr auto auto}.day-actions{justify-content:flex-end}@media(max-width:1050px){.day-actions{flex-wrap:wrap}}@media(max-width:650px){.session-actions{grid-template-columns:1fr 1fr}}
 .session-dialog input[type="number"]{color-scheme:dark}.session-dialog input[type="number"]::-webkit-inner-spin-button,.session-dialog input[type="number"]::-webkit-outer-spin-button{opacity:1;cursor:pointer}
 .session-save-feedback{margin:14px 0 0;padding:10px 12px;border:1px solid #7a3441;border-radius:8px;background:#301821;color:#ffb0bb;font-size:12px;line-height:1.4}
+.baseline-badge{border-color:#7c66d9!important;background:rgba(112,88,210,.13)!important;color:#b9a9ff!important}html[data-theme="light"] .baseline-badge{border-color:#8f7bda!important;background:#f0edff!important;color:#5d43b4!important}
