@@ -45,6 +45,10 @@
     if(!recovery)return null;
     return{level:recovery.level||'unavailable',usable:Boolean(recovery.usable),confidence:recovery.confidence||'low'};
   }
+  function longitudinalBasis(state){
+    if(!state)return null;const pain=Number(state.symptoms?.latestMax),painBand=Number.isFinite(pain)?pain>=5?'high':pain>=3?'moderate':'low':'unknown';
+    return{version:state.version||null,confidence:state.confidence||'low',progression:{allowed:Boolean(state.progression?.allowed),enoughHistory:Boolean(state.progression?.enoughHistory),dataComplete:Boolean(state.progression?.dataComplete),responseStable:Boolean(state.progression?.responseStable),symptomsStable:Boolean(state.progression?.symptomsStable)},organizationRecurring:Boolean(state.signals?.organization?.recurring),responseCaution:Boolean(state.signals?.response?.caution),symptomTrend:state.symptoms?.trend||'unknown',painBand};
+  }
   function goalBasis(context){const goal=context?.goal;if(!goal)return null;return{id:goal.id||null,type:goal.type||null,variant:goal.variant||null,priority:goal.priority||null,date:goal.date||null};}
   function phaseBasis(context){if(!context)return null;return{constraintsVersion:context.version||null,standardVersion:context.standard?.version||null,key:context.phase?.key||null};}
   function programmingBasis(context){const value=context?.programming;if(!value)return null;return{version:value.version||null,key:value.key||null,status:value.status||null,evidenceVersion:value.evidenceVersion||null,overlay:stableValue(value.overlay??null)};}
@@ -53,6 +57,7 @@
     return stableValue({
       level:analysis.level||'steady',confidence:analysis.confidence||'low',settings:settingBasis(analysis),
       recovery:recoveryBasis(analysis.recovery),tolerance:toleranceBasis(analysis.tolerance),
+      longitudinal:longitudinalBasis(analysis.athleteState||analysis.longitudinal),
       goal:goalBasis(context),phase:phaseBasis(context),programming:programmingBasis(context),limits:context?stableValue(context.limits||{}):null
     });
   }
@@ -66,6 +71,7 @@
     if(previous.confidence!==current.confidence)changed.push('confidence');
     if(!same(previous.recovery,current.recovery))changed.push('recovery');
     if(!same(previous.tolerance,current.tolerance))changed.push('tolerance');
+    if(!same(previous.longitudinal,current.longitudinal))changed.push('longitudinal');
     if(!same(previous.goal,current.goal))changed.push('goal');
     if(!same(previous.phase,current.phase))changed.push('phase');
     if(!same(previous.programming,current.programming))changed.push('programming');

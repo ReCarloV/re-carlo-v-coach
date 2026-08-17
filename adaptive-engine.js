@@ -3,6 +3,7 @@
   const symptomModel=root.rcSymptomRecencyModel;
   const skipReasonModel=root.rcSkipReasonModel;
   const recoveryModel=typeof module!=='undefined'&&module.exports?require('./recovery-trend-model.js'):root.rcRecoveryTrendModel;
+  const athleteStateModel=typeof module!=='undefined'&&module.exports?require('./athlete-state-model.js'):root.rcAthleteStateModel;
   const toleranceModel=typeof module!=='undefined'&&module.exports?require('./progression-tolerance-model.js'):root.rcProgressionToleranceModel;
   const safetyModel=typeof module!=='undefined'&&module.exports?require('./safety-screen-model.js'):root.rcSafetyScreenModel;
   const strengthModel=typeof module!=='undefined'&&module.exports?require('./strength-performance-model.js'):root.rcStrengthPerformanceModel;
@@ -110,8 +111,10 @@
   function metric(label,value,tone='neutral'){return {label,value,tone};}
   function analyze(input={}){
     const today=input.today||localDate();const sessions=Array.isArray(input.sessions)?input.sessions:[];
+    const athleteState=input.athleteState||athleteStateModel?.build?.({today,sessions,activities:input.activities,whoopWorkouts:input.whoopWorkouts,reconciliationDecisions:input.reconciliationDecisions,bodyIssues:input.bodyIssues,profile:input.profile,goals:input.goals})||null;
     const recentStart=addDays(today,-6);const recent=periodStats(sessions,recentStart,today,{openDate:input.closedThrough?null:today});const previous=periodStats(sessions,addDays(today,-13),addDays(today,-7));
-    const organization=organizationSignals(recent,previous);const body=bodySignals(input.bodyIssues,today);const preSummary=summarizeRecentPreCheckins(input.preCheckins,today);const safety=safetyModel?.summarizeRecent?.({today,preCheckins:input.preCheckins,sessions})||{active:false,count:0,events:[],symptoms:[]};const corroboration=corroboratingOutcomes(sessions,recentStart,today,preSummary);
+    let organization=organizationSignals(recent,previous);if(athleteState?.signals?.organization?.recurring&&!organization.repeated)organization={...organization,level:'adapt',repeated:true,sessionDelta:-1,longitudinal:true};organization.total28=athleteState?.signals?.organization?.count28??organization.total14;
+    const body=bodySignals(input.bodyIssues,today);const preSummary=summarizeRecentPreCheckins(input.preCheckins,today);const safety=safetyModel?.summarizeRecent?.({today,preCheckins:input.preCheckins,sessions})||{active:false,count:0,events:[],symptoms:[]};const corroboration=corroboratingOutcomes(sessions,recentStart,today,preSummary);
     const recovery=recoveryModel?recoveryModel.analyzeRecoveryTrend({today,cycles:input.whoopCycles,sleeps:input.whoopSleeps}):{level:'unavailable',label:'Non disponibile',tone:'neutral',usable:false,confidence:'low',reasons:[]};
     if(preSummary.replaceCount>=2||(preSummary.replaceCount>=1&&corroboration.fatigueSkip))preSummary.weeklyLevel='protect';
     else if(preSummary.negativeCount>=2||(preSummary.negativeCount>=1&&(corroboration.hard||corroboration.fatigueSkip)))preSummary.weeklyLevel='reduce';
@@ -120,11 +123,12 @@
     const loadRatio=baselineValid?recent.load/previous.load:null;
     const fatigueSignals=recent.hardSessions+recent.fatigueSkips;
     const combinedPain=Math.max(recent.maxPain,body.max);
-    const tolerance=toleranceModel?toleranceModel.assess({today,sessions,recent,previous,loadRatio,body,recovery,preSummary}):{status:'blocked',summary:'Controlli di tolleranza non disponibili.',checks:[],volume:{allowed:false,factor:1},long:{allowed:false,factor:1}};
+    const tolerance=toleranceModel?toleranceModel.assess({today,sessions,recent,previous,loadRatio,body,recovery,preSummary,athleteState,bodyIssues:input.bodyIssues}):{status:'blocked',summary:'Controlli di tolleranza non disponibili.',checks:[],volume:{allowed:false,factor:1},long:{allowed:false,factor:1}};
     let level='steady';
     if(safety.active||combinedPain>=5||recent.painSkips>0||recent.fatigueSkips>=2||preSummary.weeklyLevel==='protect'||(loadRatio!==null&&loadRatio>1.5))level='protect';
     else if(combinedPain>=3||fatigueSignals>=2||(loadRatio!==null&&loadRatio>1.2)||preSummary.weeklyLevel==='reduce')level='reduce';
     else if(tolerance.volume.allowed||tolerance.long.allowed)level='progress';
+    if(level==='steady'&&athleteState?.signals?.response?.caution&&(fatigueSignals>=1||combinedPain>=3||preSummary.weeklyLevel))level='reduce';
     if(recovery.usable&&recovery.level==='protect')level=(fatigueSignals||preSummary.weeklyLevel||combinedPain>=3)?'protect':level==='protect'?'protect':'reduce';
     else if(recovery.usable&&recovery.level==='caution'){
       if(level==='progress')level='steady';
@@ -144,11 +148,13 @@
     if(preSummary.weeklyLevel==='reduce')reasons.push('Check-in contestuali distinti, o corroborati dagli esiti, suggeriscono una riduzione del carico.');
     if(preSummary.weeklyLevel==='protect')reasons.push('Segnali contestuali ripetuti e corroborati suggeriscono recupero e protezione del carico.');
     if(preSummary.contextOnly)reasons.push('Un segnale contestuale isolato resta limitato alla seduta collegata e non modifica l’intera settimana.');
-    if(organization.level==='adapt')reasons.push(`${organization.total14} sedute non svolte per vincoli organizzativi negli ultimi 14 giorni: propongo una seduta in meno, senza ridurre intensità o recupero come se fosse fatica.`);
+    if(organization.level==='adapt')reasons.push(`${organization.longitudinal?organization.total28:organization.total14} sedute non svolte per vincoli organizzativi negli ultimi ${organization.longitudinal?'28':'14'} giorni: propongo una seduta in meno, senza ridurre intensità o recupero come se fosse fatica.`);
     else if(organization.level==='monitor')reasons.push('Un vincolo organizzativo recente viene registrato, ma un singolo episodio non modifica ancora il numero di sedute.');
     if(recent.planningSkips)reasons.push('Un cambio di programma o una difficoltà di sostenibilità viene trattato come informazione di pianificazione, non come fatica fisica.');
     if(recent.unrecorded)reasons.push(`${recent.unrecorded} sedut${recent.unrecorded===1?'a passata è ancora da registrare':'e passate sono ancora da registrare'}: nessuna progressione viene dedotta da questi dati mancanti.`);
     if(recovery.usable&&['caution','protect'].includes(recovery.level))reasons.push(...recovery.reasons.map(reason=>`WHOOP: ${reason}`));
+    if(athleteState?.symptoms?.trend==='rising')reasons.push(`Quadro 28 giorni: il fastidio monitorato è in aumento${athleteState.symptoms.latestZone?` (${athleteState.symptoms.latestZone})`:''}; nessuna progressione automatica.`);
+    if(athleteState?.signals?.response?.caution&&!fatigueSignals&&!combinedPain)reasons.push('Quadro 28 giorni: alcune risposte impegnative richiedono monitoraggio, ma senza un segnale recente concordante non riducono da sole il piano.');
     if(level==='progress'){
       const targets=[tolerance.volume.allowed?'volume aerobico facile':null,tolerance.long.allowed?'lungo':null].filter(Boolean);
       reasons.push(`I controlli di tolleranza autorizzano un piccolo aumento del ${targets.join(' e del ')}; intensità e forza non aumentano automaticamente.`);
@@ -177,11 +183,12 @@
       metric('Vincoli 14 gg',organization.total14?String(organization.total14):'0',organization.level==='adapt'?'warn':'neutral'),
       ...(recent.strengthVolumeKnown?[metric('Volume forza',recent.strengthPlannedSets?`${recent.strengthActualSets}/${recent.strengthPlannedSets} serie`:`${recent.strengthActualSets} serie`,recent.strengthVolumeRatio!==null&&recent.strengthVolumeRatio<.8?'warn':'neutral')]:[]),
       metric('WHOOP',recovery.label,recovery.tone),
+      ...(athleteState?[metric('Aderenza 28 gg',athleteState.mesocycle.adherence.adherence!==null?`${Math.round(athleteState.mesocycle.adherence.adherence*100)}%`:'—',athleteState.mesocycle.adherence.adherence!==null&&athleteState.mesocycle.adherence.adherence<.8?'warn':'neutral'),metric('Base 28 gg',athleteState.mesocycle.sessionsPerWeek!==null?`${athleteState.mesocycle.sessionsPerWeek} sed./sett.`:'—'),metric('Storico 84 gg',athleteState.chronic.observations?`${athleteState.chronic.observations} sedute`:'—')]:[]),
       ...(safety.active?[metric('Sicurezza','STOP','danger')]:[])
     ];
     const confidence=safety.active?'high':baselineValid?'high':recent.recorded>=3||recovery.usable?'medium':'low';
     if(safety.active){meta.label='Allenamento sospeso';meta.summary='Un segnale cardiopolmonare riferito sospende la normale prescrizione. Il Coach non formula diagnosi e richiede una valutazione sanitaria prima della ripresa.';}
-    return {level,label:meta.label,summary:meta.summary,reasons,metrics,settings,recent,previous,loadRatio,preSummary,body,organization,recovery,safety,tolerance,confidence};
+    return {level,label:meta.label,summary:meta.summary,reasons,metrics,settings,recent,previous,loadRatio,preSummary,body,organization,recovery,safety,tolerance,athleteState,longitudinal:athleteState,confidence};
   }
 
   root.rcAdaptiveEngine={analyze,periodStats,summarizeRecentPreCheckins,organizationSignals};

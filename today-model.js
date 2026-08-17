@@ -30,7 +30,7 @@
   };
   const confidenceLabels={low:'Bassa',medium:'Media',high:'Alta'};
   const staleReasonLabels={
-    decision:'la prescrizione proposta',confidence:'l’affidabilità dei dati',recovery:'il contesto di recupero',tolerance:'la tolleranza al carico',goal:'l’obiettivo attivo',phase:'la fase di preparazione',programming:'il profilo specifico della gara','pack-limits':'i limiti operativi della fase','legacy-receipt':'la ricevuta Coach precedente','analysis-changed':'i fattori della decisione'
+    decision:'la prescrizione proposta',confidence:'l’affidabilità dei dati',recovery:'il contesto di recupero',tolerance:'la tolleranza al carico',longitudinal:'il quadro atleta delle ultime 4–12 settimane',goal:'l’obiettivo attivo',phase:'la fase di preparazione',programming:'il profilo specifico della gara','pack-limits':'i limiti operativi della fase','legacy-receipt':'la ricevuta Coach precedente','analysis-changed':'i fattori della decisione'
   };
 
   function iso(date) { return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; }

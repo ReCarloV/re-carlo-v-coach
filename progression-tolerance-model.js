@@ -1,8 +1,9 @@
 (function(root,factory){
-  const api=factory();
+  const athleteStateModel=typeof module!=='undefined'&&module.exports?require('./athlete-state-model.js'):root?.rcAthleteStateModel;
+  const api=factory(athleteStateModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcProgressionToleranceModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(athleteStateModel){
   'use strict';
 
   const VERSION='1.0.0';
@@ -29,6 +30,7 @@
   function assess(input={}){
     const today=input.today||iso(new Date()),sessions=Array.isArray(input.sessions)?input.sessions:[];
     const recent=input.recent||{},previous=input.previous||{},body=input.body||{},recovery=input.recovery||{},preSummary=input.preSummary||{};
+    const athleteState=input.athleteState||athleteStateModel?.build?.({today,sessions,bodyIssues:input.bodyIssues||[]})||null;
     const recentRuns=periodRuns(sessions,addDays(today,-6),today),previousRuns=periodRuns(sessions,addDays(today,-13),addDays(today,-7));
     const runningRatio=previousRuns.minutes>0?recentRuns.minutes/previousRuns.minutes:null;
     const combinedPain=Math.max(Number(recent.maxPain)||0,Number(body.max)||0);
@@ -39,7 +41,9 @@
     const loadRatio=number(input.loadRatio),loadPassed=loadRatio!==null&&loadRatio>=.8&&loadRatio<=1.15;
     const runDosePassed=recentRuns.count>=2&&previousRuns.count>=2&&recentRuns.knownCount===recentRuns.count&&previousRuns.knownCount===previousRuns.count&&runningRatio!==null&&runningRatio>=.8&&runningRatio<=1.15;
     const whoopRequired=Boolean(recovery.usable),whoopPassed=!whoopRequired||!['caution','protect'].includes(recovery.level);
+    const longitudinalPassed=Boolean(athleteState?.progression?.allowed);
     const checks=[
+      check('longitudinal','Quadro 28 giorni',longitudinalPassed,longitudinalPassed?'Almeno 3 settimane osservate, copertura e aderenza adeguate, senza trend persistenti sfavorevoli.':athleteState?.progression?.reasons?.[0]||'Servono almeno 3 settimane osservate e una risposta longitudinale stabile.'),
       check('data','Completezza dati',dataPassed,dataPassed?'Almeno 3 esiti e copertura ≥80% in entrambe le settimane.':'Servono almeno 3 esiti, copertura ≥80% e nessuna seduta dovuta senza registrazione in entrambe le settimane.'),
       check('adherence','Continuità',adherencePassed,adherencePassed?'Aderenza ≥80% in entrambe le settimane.':'L’aderenza deve essere almeno dell’80% in entrambe le settimane.'),
       check('symptoms','Sintomi',symptomsPassed,symptomsPassed?'Dolore ≤2/10, nessuno skip per dolore e fastidi aggiornati.':'Dolore, skip per dolore o una valutazione non aggiornata richiedono mantenimento.'),
@@ -60,7 +64,7 @@
     const long=target('Lungo',longEligible,longEligible?'Il lungo recente è stato completato con risposta compatibile con una piccola progressione.':(firstFailure(commonChecks)||longCheck).detail);
     const status=volumeEligible&&longEligible?'allowed':volumeEligible||longEligible?'partial':'blocked';
     const summary=status==='allowed'?'Volume facile e lungo superano i controlli di tolleranza.':status==='partial'?'Solo uno dei due obiettivi supera tutti i controlli: l’altro resta stabile.':`Nessuna progressione automatica: ${failed?.detail||'servono più dati reali e una risposta stabile.'}`;
-    return{version:VERSION,status,summary,checks:[...checks,longCheck],volume,long,longSession:recentLong?{id:recentLong.id||null,date:recentLong.date,title:recentLong.title||'Lungo',completionRatio:longRatio,rpe:longRpe,pain:longPain}:null,running:{recentRuns:recentRuns.count,previousRuns:previousRuns.count,recentMinutes:recentRuns.minutes,previousMinutes:previousRuns.minutes,ratio:runningRatio},operationalCap:MAX_PROGRESS_FACTOR};
+    return{version:VERSION,status,summary,checks:[...checks,longCheck],volume,long,longitudinal:athleteState?{confidence:athleteState.confidence,fingerprint:athleteState.fingerprint,progression:clone(athleteState.progression)}:null,longSession:recentLong?{id:recentLong.id||null,date:recentLong.date,title:recentLong.title||'Lungo',completionRatio:longRatio,rpe:longRpe,pain:longPain}:null,running:{recentRuns:recentRuns.count,previousRuns:previousRuns.count,recentMinutes:recentRuns.minutes,previousMinutes:previousRuns.minutes,ratio:runningRatio},operationalCap:MAX_PROGRESS_FACTOR};
   }
 
   return{VERSION,MAX_PROGRESS_FACTOR,assess,isLong,completionRatio,periodRuns,clone};

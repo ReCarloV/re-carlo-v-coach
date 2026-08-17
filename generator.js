@@ -10,11 +10,13 @@
   const phaseModel=window.rcPhaseConstraintsModel;
   const microcycleModel=window.rcMicrocyclePrescriptionModel;
   const macrocycleModel=window.rcMacrocyclePlanModel;
+  const athleteStateModel=window.rcAthleteStateModel;
   const strengthReliabilityModel=window.rcStrengthReliabilityModel;
   const weeklyRecapModel=window.rcWeeklyRecapModel;
   let proposal=null;
 
   function parse(key,fallback){try{return JSON.parse(localStorage.getItem(key))||fallback;}catch(_){return fallback;}}
+  function dataset(name,fallback=[]){try{return window.rcDataStore?.getDataset(name)??fallback;}catch(_){return fallback;}}
   function iso(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
   function localDate(){return iso(new Date());}
   function dateFor(start,index){const date=new Date(`${start}T12:00:00`);date.setDate(date.getDate()+index);return iso(date);}
@@ -283,7 +285,8 @@
     remainingSlots.sort((a,b)=>a.date.localeCompare(b.date));remainingTemplates.forEach((template,index)=>{if(remainingSlots[index])assigned.push({...template,date:remainingSlots[index].date});});
     return {sessions:assigned.sort((a,b)=>a.date.localeCompare(b.date)),warnings};
   }
-  function adaptationFor(weekly,allSessions){const bodyIssues=(window.rcBodyIssues?.active?.()||[]).map(issue=>({...issue,latestPain:window.rcBodyIssues.latest(issue)}));return window.rcAdaptiveEngine.analyze({sessions:allSessions,preCheckins:parse(PRE_KEY,[]),bodyIssues,whoopCycles:window.rcDataStore?.getDataset('whoopCycles')||[],whoopSleeps:window.rcDataStore?.getDataset('whoopSleeps')||[],targetWeekStart:weekly.weekStart});}
+  function athleteStateFor(allSessions,today=localDate()){return athleteStateModel?.build?.({today,sessions:allSessions,activities:dataset('importedActivities'),whoopWorkouts:dataset('whoopWorkouts'),reconciliationDecisions:dataset('reconciliationDecisions'),bodyIssues:dataset('bodyIssues'),profile:dataset('profile',{}),goals:dataset('goals')})||null;}
+  function adaptationFor(weekly,allSessions){const bodyIssues=dataset('bodyIssues');const athleteState=athleteStateFor(allSessions);return window.rcAdaptiveEngine.analyze({sessions:allSessions,preCheckins:parse(PRE_KEY,[]),bodyIssues,whoopCycles:dataset('whoopCycles'),whoopSleeps:dataset('whoopSleeps'),whoopWorkouts:dataset('whoopWorkouts'),activities:dataset('importedActivities'),reconciliationDecisions:dataset('reconciliationDecisions'),profile:dataset('profile',{}),goals:dataset('goals'),athleteState,targetWeekStart:weekly.weekStart});}
   function baselineAnalysis(){return{level:'steady',label:'Piano base',summary:'Traiettoria iniziale costruita dall’obiettivo e dalla disponibilità abituale; verrà adattata con i dati reali.',confidence:'low',settings:{volumeFactor:1,aerobicVolumeFactor:1,longFactor:1,sessionDelta:0,physiologySessionDelta:0,qualityMode:'normal',strengthRir:2,strengthSetReduction:0,lowerBodyProtection:false,lowerBodyCaution:false,suspendRunning:false,suspendAllTraining:false},organization:{level:'stable',total14:0},reasons:['Dose di base: nessuna risposta futura viene inventata.'],metrics:[],tolerance:null,recovery:{usable:false,level:'unavailable'}};}
   function phaseFor(weekly,allSessions,analysis){const goals=window.rcDataStore?.getDataset('goals')||[];if(!phaseModel||!window.rcGoalsModel)return{analysis,context:null,goal:null,goals};const goal=window.rcGoalsModel.classifyGoals(goals,weekly.weekStart).current;const context=phaseModel.forWeek({goal,weekStart:weekly.weekStart,sessions:allSessions,analysis});return{analysis:phaseModel.constrainAnalysis(analysis,context),context,goal,goals};}
   function build(options={}){
@@ -318,13 +321,13 @@
   }
 
   function buildBaselinePlan(options={}){
-    if(!macrocycleModel)return{plan:null,sessions:[]};const allSessions=window.rcSessions?.getAll?.()||[],goals=window.rcDataStore?.getDataset('goals')||[],availabilityHistory=parse(WEEKLY_HISTORY_KEY,[]),plan=macrocycleModel.build({today:localDate(),goals,sessions:allSessions,availabilityHistory});
+    if(!macrocycleModel)return{plan:null,sessions:[]};const allSessions=window.rcSessions?.getAll?.()||[],goals=dataset('goals'),availabilityHistory=parse(WEEKLY_HISTORY_KEY,[]),athleteState=athleteStateFor(allSessions),plan=macrocycleModel.build({today:localDate(),goals,sessions:allSessions,availabilityHistory,athleteState});
     const generatedAt=new Date().toISOString(),sessions=[];
     plan.weeks.forEach(week=>{
       const proposal=build({weekStart:week.weekStart,availability:{...week.availability,weekStart:week.weekStart},sessions:allSessions,baseline:true});
       (proposal.sessions||[]).forEach(item=>sessions.push({...item,baselinePlan:{version:1,signature:plan.signature,goalId:week.goalId,goalName:week.goalName,weekStart:week.weekStart,phaseKey:week.phaseKey,phaseLabel:week.phaseLabel,generatedAt},rationale:`Piano base · ${item.rationale||week.phaseLabel}`,notes:'',generated:true,generatorVersion:4}));
     });
-    return{plan,sessions};
+    return{plan,sessions,athleteState};
   }
   function ensureBaselinePlan(options={}){
     if(!macrocycleModel||!window.rcSessions?.replaceBaselinePlan)return{changed:false};const current=window.rcSessions.getAll(),existing=current.filter(item=>item.baselinePlan&&!item.outcome);if(existing.length&&!options.force)return{changed:false,reason:'already-present'};
@@ -388,6 +391,7 @@
   document.getElementById('generator-confirm').addEventListener('click',()=>{if(!proposal)return;const now=new Date(),receipt=applicationModel?.applicationFor?.(proposal.analysis,proposal.weekly.weekStart,now)||null,sessions=applicationModel?.markSessions?applicationModel.markSessions(proposal.sessions,proposal.analysis,proposal.weekly.weekStart,now):proposal.sessions;window.rcSessions.replaceWeek(proposal.weekly.weekStart,sessions,{coachApplication:receipt});close();toast();});
   document.addEventListener('rc:weekly-checkin-updated',()=>setTimeout(openProposal,0));
   document.addEventListener('rc:goals-updated',()=>setTimeout(()=>ensureBaselinePlan({force:true}),0));
+  document.addEventListener('rc:sessions-updated',event=>{if(['outcome-saved','outcome-deleted','outcome-date-corrected'].includes(event.detail?.reason))setTimeout(()=>ensureBaselinePlan({force:true}),0);});
   window.rcGenerator={build,open:openProposal,buildBaselinePlan,ensureBaselinePlan};
   setTimeout(()=>{ensureBaselinePlan();document.dispatchEvent(new CustomEvent('rc:generator-ready'));},0);
 })();
