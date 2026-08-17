@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "status": "ok",
-  "generatedAt": "2026-08-10T10:03:35.915Z",
+  "generatedAt": "2026-08-17T08:02:49.767Z",
   "standardVersion": "1.0.0",
   "scan": {
-    "from": "2026-07-28",
-    "to": "2026-08-10",
+    "from": "2026-08-04",
+    "to": "2026-08-17",
     "windowDays": 14
   },
   "source": {
@@ -16,19 +16,19 @@
     {
       "key": "endurance",
       "label": "Endurance",
-      "resultCount": 37,
+      "resultCount": 20,
       "status": "ok"
     },
     {
       "key": "strength",
       "label": "Forza",
-      "resultCount": 27,
+      "resultCount": 6,
       "status": "ok"
     },
     {
       "key": "concurrent",
       "label": "Concurrent / hybrid",
-      "resultCount": 1,
+      "resultCount": 0,
       "status": "ok"
     },
     {
@@ -40,31 +40,31 @@
     {
       "key": "plyometric",
       "label": "Pliometria",
-      "resultCount": 12,
+      "resultCount": 6,
       "status": "ok"
     },
     {
       "key": "recovery",
       "label": "Recupero e sonno",
-      "resultCount": 134,
+      "resultCount": 70,
       "status": "ok"
     },
     {
       "key": "wearables",
       "label": "Wearable e HRV",
-      "resultCount": 47,
+      "resultCount": 31,
       "status": "ok"
     },
     {
       "key": "monitoring",
       "label": "Monitoraggio del carico",
-      "resultCount": 19,
+      "resultCount": 6,
       "status": "ok"
     },
     {
       "key": "return-to-sport",
       "label": "Return to sport",
-      "resultCount": 67,
+      "resultCount": 28,
       "status": "ok"
     }
   ],
@@ -142,6 +142,41 @@
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-07-31T11:16:53.165Z",
       "lastSeenAt": "2026-07-31T11:31:22.191Z"
+    },
+    {
+      "pmid": "42584741",
+      "title": "Recovery from Sport-Related Concussion in Athletes with Attention-Deficit/Hyperactivity Disorder: a Systematic Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42584741/",
+      "publishedAt": "2026-08-12",
+      "journal": "Neuropsychology review",
+      "authors": [
+        "Maietta JE",
+        "Luongo DA",
+        "Saperstein OD",
+        "Gaudet CE"
+      ],
+      "domains": [
+        "return-to-sport"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "synthesis",
+        "tier": "B",
+        "label": "Revisione sistematica / meta-analisi"
+      },
+      "population": {
+        "key": "direct",
+        "label": "Popolazione sportiva"
+      },
+      "practicalRelevance": "high",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
     },
     {
       "pmid": "42562364",
@@ -280,7 +315,7 @@
       "agreementWithStandard": "to-review",
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
     },
     {
       "pmid": "42228847",
@@ -389,6 +424,77 @@
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-07-31T11:16:53.165Z",
       "lastSeenAt": "2026-07-31T11:31:22.191Z"
+    },
+    {
+      "pmid": "42592956",
+      "title": "Medial Quadriceps Tendon-Femoral Ligament Reconstruction Offers Favorable Clinical Outcomes and Low Complication Rates for Recurrent Patellar Instability: A Systematic Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42592956/",
+      "publishedAt": "2026-08-13",
+      "journal": "Arthroscopy : the journal of arthroscopic & related surgery : official publication of the Arthroscopy Association of North America and the International Arthroscopy Association",
+      "authors": [
+        "Kahlon H",
+        "Blackman B",
+        "Vivekanantha P",
+        "Ranadive A",
+        "Bouchard MD",
+        "de Sa D"
+      ],
+      "domains": [
+        "return-to-sport"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "synthesis",
+        "tier": "B",
+        "label": "Revisione sistematica / meta-analisi"
+      },
+      "population": {
+        "key": "limited",
+        "label": "Applicabilità limitata"
+      },
+      "practicalRelevance": "low",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
+    },
+    {
+      "pmid": "42580253",
+      "title": "Nonlinear dose-response effects of exercise modalities on handgrip strength and functional mobility in middle-aged and older adults with sarcopenia: A Bayesian network meta-analysis.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42580253/",
+      "publishedAt": "2026-08-10",
+      "journal": "Geriatric nursing (New York, N.Y.)",
+      "authors": [
+        "Bai P",
+        "Xiong Q",
+        "Wu T"
+      ],
+      "domains": [
+        "strength"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "synthesis",
+        "tier": "B",
+        "label": "Revisione sistematica / meta-analisi"
+      },
+      "population": {
+        "key": "limited",
+        "label": "Applicabilità limitata"
+      },
+      "practicalRelevance": "low",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
     },
     {
       "pmid": "42570051",
@@ -607,6 +713,218 @@
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-07-31T11:16:53.165Z",
       "lastSeenAt": "2026-08-10T10:03:35.915Z"
+    },
+    {
+      "pmid": "42101030",
+      "title": "Clinical Performance in Critical Care Simulation under Sleep Deprivation: Effects of Power Napping in the Recovery Napping Protocol for Anesthesiologist Performance (R-NAP) Randomized Controlled Trial.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42101030/",
+      "publishedAt": "2026-08-17",
+      "journal": "Anesthesiology",
+      "authors": [
+        "Schmidt L",
+        "Genty F",
+        "Delaire T",
+        "Valero B",
+        "Rey I",
+        "Galan L"
+      ],
+      "domains": [
+        "recovery"
+      ],
+      "publicationTypes": [
+        "Journal Article"
+      ],
+      "evidenceType": {
+        "key": "controlled",
+        "tier": "C",
+        "label": "Studio controllato"
+      },
+      "population": {
+        "key": "contextual",
+        "label": "Applicabilità contestuale"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
+    },
+    {
+      "pmid": "42054860",
+      "title": "Advanced wearable electrochemical biosensors: Decoding sweat amino acids for noninvasive precision personalized health management.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42054860/",
+      "publishedAt": "2026-08-15",
+      "journal": "Biosensors & bioelectronics",
+      "authors": [
+        "Sun M",
+        "Wang A",
+        "Bo X",
+        "Ma CB",
+        "Wang J",
+        "Bai J"
+      ],
+      "domains": [
+        "wearables"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "review",
+        "tier": "C",
+        "label": "Revisione narrativa / scoping"
+      },
+      "population": {
+        "key": "contextual",
+        "label": "Applicabilità contestuale"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
+    },
+    {
+      "pmid": "42144214",
+      "title": "The exposome-sports nutrition intersection: Effects of dietary environmental contaminants on exercise performance and metabolic health.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42144214/",
+      "publishedAt": "2026-08-15",
+      "journal": "Environmental research",
+      "authors": [
+        "Wu J",
+        "Liu W",
+        "Sang X",
+        "Chen G",
+        "Zhang Y"
+      ],
+      "domains": [
+        "endurance",
+        "recovery"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "review",
+        "tier": "C",
+        "label": "Revisione narrativa / scoping"
+      },
+      "population": {
+        "key": "direct",
+        "label": "Popolazione sportiva"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
+    },
+    {
+      "pmid": "42600285",
+      "title": "Introduction: Disaster Preparedness and Emergency Management in Radiation Oncology.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42600285/",
+      "publishedAt": "2026-08-14",
+      "journal": "Seminars in radiation oncology",
+      "authors": [
+        "Jia X",
+        "Steinberg M"
+      ],
+      "domains": [
+        "recovery"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "review",
+        "tier": "C",
+        "label": "Revisione narrativa / scoping"
+      },
+      "population": {
+        "key": "contextual",
+        "label": "Applicabilità contestuale"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
+    },
+    {
+      "pmid": "42532098",
+      "title": "Design, control and medical effects of hand support exoskeletons: a survey of recent works.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42532098/",
+      "publishedAt": "2026-08-13",
+      "journal": "Medical engineering & physics",
+      "authors": [
+        "Zhou Y"
+      ],
+      "domains": [
+        "wearables"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "review",
+        "tier": "C",
+        "label": "Revisione narrativa / scoping"
+      },
+      "population": {
+        "key": "contextual",
+        "label": "Applicabilità contestuale"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
+    },
+    {
+      "pmid": "42597464",
+      "title": "Update on Sedation for Upper Gastrointestinal Endoscopy in Japan: Current Evidence on Remimazolam.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42597464/",
+      "publishedAt": "2026-08-12",
+      "journal": "DEN open",
+      "authors": [
+        "Ichijima R",
+        "Toyama M",
+        "Shishido T",
+        "Koyo Y",
+        "Yoshii T",
+        "Kawamura R"
+      ],
+      "domains": [
+        "recovery"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "review",
+        "tier": "C",
+        "label": "Revisione narrativa / scoping"
+      },
+      "population": {
+        "key": "contextual",
+        "label": "Applicabilità contestuale"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
     },
     {
       "pmid": "42565684",
@@ -1213,6 +1531,81 @@
       "lastSeenAt": "2026-08-03T14:04:23.022Z"
     },
     {
+      "pmid": "42600154",
+      "title": "Application of Mobile Health Technologies to Prevent Unintentional Childhood Injuries: Scoping Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42600154/",
+      "publishedAt": "2026-08-14",
+      "journal": "JMIR mHealth and uHealth",
+      "authors": [
+        "Wang H",
+        "Pu F",
+        "Jing D",
+        "Liu H",
+        "Li M",
+        "Li X"
+      ],
+      "domains": [
+        "wearables"
+      ],
+      "publicationTypes": [
+        "Scoping Review",
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "review",
+        "tier": "C",
+        "label": "Revisione narrativa / scoping"
+      },
+      "population": {
+        "key": "limited",
+        "label": "Applicabilità limitata"
+      },
+      "practicalRelevance": "low",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
+    },
+    {
+      "pmid": "42595367",
+      "title": "Optimising graft selection in ACL reconstruction (GRASE ACL): a study protocol for a randomised controlled clinical trial investigating quadriceps, hamstring and patella tendon for reconstruction in patients with primary ACL rupture.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42595367/",
+      "publishedAt": "2026-08-13",
+      "journal": "BMJ open",
+      "authors": [
+        "Olsen CK",
+        "Speedtsberg MB",
+        "Bencke J",
+        "Barfod KW",
+        "Kallemose T",
+        "Zebis MK"
+      ],
+      "domains": [
+        "return-to-sport"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Clinical Trial Protocol"
+      ],
+      "evidenceType": {
+        "key": "controlled",
+        "tier": "C",
+        "label": "Studio controllato"
+      },
+      "population": {
+        "key": "limited",
+        "label": "Applicabilità limitata"
+      },
+      "practicalRelevance": "low",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
+    },
+    {
       "pmid": "42570081",
       "title": "Bone stress fractures and injuries of the upper limb in athletes.",
       "url": "https://pubmed.ncbi.nlm.nih.gov/42570081/",
@@ -1280,7 +1673,7 @@
       "agreementWithStandard": "to-review",
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
     },
     {
       "pmid": "42560414",
@@ -1349,7 +1742,7 @@
       "agreementWithStandard": "to-review",
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
     },
     {
       "pmid": "42090888",
@@ -1705,155 +2098,19 @@
       "agreementWithStandard": "to-review",
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
     },
     {
-      "pmid": "42570676",
-      "title": "Effects of a Mindfulness Intervention on Volleyball-Specific Performance: A Randomized Trial.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42570676/",
-      "publishedAt": "2026-08-08",
-      "journal": "International journal of sports medicine",
+      "pmid": "41895177",
+      "title": "A gum Arabic-augmented hydrogel with high toughness, robust adhesion, and antibacterial efficacy for motion sensing and rehabilitation training.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41895177/",
+      "publishedAt": "2026-08-15",
+      "journal": "Talanta",
       "authors": [
-        "Yaman MS",
-        "Üzgü MA",
-        "Barak R",
-        "Barak İ",
-        "Birsen MT"
-      ],
-      "domains": [
-        "monitoring"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "contextual",
-        "label": "Applicabilità contestuale"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42302841",
-      "title": "A physics-guided neural network framework for prediction and control of spring-mass running.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42302841/",
-      "publishedAt": "2026-08-07",
-      "journal": "Bioinspiration & biomimetics",
-      "authors": [
-        "Safa Ozturk A",
-        "Uyanik I",
-        "Morgül Ö"
-      ],
-      "domains": [
-        "endurance"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "contextual",
-        "label": "Applicabilità contestuale"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42565820",
-      "title": "The relationship between post-occlusive reactive hyperemia and the level of training and lifestyle in young adults.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42565820/",
-      "publishedAt": "2026-08-07",
-      "journal": "European journal of applied physiology",
-      "authors": [
-        "Gałęziok K",
-        "Żebrowska A",
-        "Kuczmik W",
-        "Trybulski R"
-      ],
-      "domains": [
-        "endurance"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "contextual",
-        "label": "Applicabilità contestuale"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42565835",
-      "title": "Prevalence and severity of pubic symphysis radiographic findings in male and female sub-elite football players with and without hip and/or groin pain.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42565835/",
-      "publishedAt": "2026-08-07",
-      "journal": "Skeletal radiology",
-      "authors": [
-        "Hanff DF",
-        "Weir A",
-        "Agricola R",
-        "Mosler AB",
-        "Kemp JL",
-        "Scholes MJ"
-      ],
-      "domains": [
-        "monitoring"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "direct",
-        "label": "Popolazione sportiva"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42566719",
-      "title": "Caregivers' Phase-Specific Roles in Integrating Digital Technologies in Chinese Nursing Homes: Qualitative Ethnographic Study.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42566719/",
-      "publishedAt": "2026-08-07",
-      "journal": "Journal of medical Internet research",
-      "authors": [
-        "Chang F",
-        "Wang G"
+        "Sun Q",
+        "Yao J",
+        "Wang L",
+        "Liu W"
       ],
       "domains": [
         "wearables"
@@ -1874,60 +2131,25 @@
       "applicability": "to-review",
       "agreementWithStandard": "to-review",
       "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
     },
     {
-      "pmid": "42571190",
-      "title": "Litigation Against Physicians Caring for Collegiate Athletes in the United States.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42571190/",
-      "publishedAt": "2026-08-07",
-      "journal": "Orthopaedic journal of sports medicine",
+      "pmid": "41936981",
+      "title": "Bipolar disorder relapse detection and prediction using smartwatches. A pilot study for machine learning models using anomaly detection methods.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41936981/",
+      "publishedAt": "2026-08-15",
+      "journal": "Journal of affective disorders",
       "authors": [
-        "O'Brien AC",
-        "Kyros Z",
-        "Farmer SH",
-        "Boufadel P",
-        "Li X"
+        "Pouchon A",
+        "Aloui S",
+        "Mayer Dalverny L",
+        "Djennaoui L",
+        "Guyon-Gardeux C",
+        "Godin C"
       ],
       "domains": [
-        "return-to-sport"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "direct",
-        "label": "Popolazione sportiva"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42496684",
-      "title": "Wearable exoskeleton upper limb device based on soft actuators: design, characterization, and preliminary testing.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42496684/",
-      "publishedAt": "2026-08-06",
-      "journal": "Bioinspiration & biomimetics",
-      "authors": [
-        "Rusu DM",
-        "Mândru SD",
-        "Racz SG",
-        "Gîrjob CE",
-        "Biriș CM",
-        "Crenganiș M"
-      ],
-      "domains": [
-        "wearables"
+        "recovery"
       ],
       "publicationTypes": [
         "Journal Article"
@@ -1945,91 +2167,25 @@
       "applicability": "to-review",
       "agreementWithStandard": "to-review",
       "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
     },
     {
-      "pmid": "42560531",
-      "title": "Medial gastrocnemius stiffness contributes to active ankle joint stiffness and ground contact time in trained track-and-field athletes.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42560531/",
-      "publishedAt": "2026-08-06",
-      "journal": "European journal of applied physiology",
+      "pmid": "42344098",
+      "title": "An optimal Petrov-Galerkin framework for operator networks.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42344098/",
+      "publishedAt": "2026-08-15",
+      "journal": "Computer methods in applied mechanics and engineering",
       "authors": [
-        "Yamazaki K",
-        "Sugibayashi T",
-        "Miyamoto N"
+        "Charles P",
+        "Ray D",
+        "Yu Y",
+        "Prins J",
+        "Melchers H",
+        "Abdelmalik MRA"
       ],
       "domains": [
-        "plyometric"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "direct",
-        "label": "Popolazione sportiva"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42560532",
-      "title": "The effectiveness of polarized versus high-intensity training in moderately trained cyclists: a randomized parallel-design study.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42560532/",
-      "publishedAt": "2026-08-06",
-      "journal": "European journal of applied physiology",
-      "authors": [
-        "Moran-MacDonald A",
-        "Wilson S",
-        "Wu Z",
-        "Haines G",
-        "Beaupre L",
-        "Aube J"
-      ],
-      "domains": [
-        "endurance"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "direct",
-        "label": "Popolazione sportiva"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42562022",
-      "title": "The Effects of Oral Contraceptives on Muscle Hypertrophy.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42562022/",
-      "publishedAt": "2026-08-06",
-      "journal": "International journal of sports medicine",
-      "authors": [
-        "Phillips MS",
-        "Misra M",
-        "Raiser SN"
-      ],
-      "domains": [
-        "strength"
+        "recovery"
       ],
       "publicationTypes": [
         "Journal Article"
@@ -2047,146 +2203,8 @@
       "applicability": "to-review",
       "agreementWithStandard": "to-review",
       "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42562376",
-      "title": "Sex Differences in Heart Rate, Paddle, and Portage Speed During an International Kayak Marathon Competition.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42562376/",
-      "publishedAt": "2026-08-06",
-      "journal": "International journal of sports physiology and performance",
-      "authors": [
-        "Klitgaard K",
-        "Hansen RK",
-        "Franch J",
-        "Gam S"
-      ],
-      "domains": [
-        "endurance"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "contextual",
-        "label": "Applicabilità contestuale"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42562378",
-      "title": "Changes in Total Hemoglobin Mass and Its Relationship With Conditioning Indices During Altitude Training at 1700 m.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42562378/",
-      "publishedAt": "2026-08-06",
-      "journal": "International journal of sports physiology and performance",
-      "authors": [
-        "Hirayama M",
-        "Matsuda A",
-        "Sakamoto K",
-        "Neya M"
-      ],
-      "domains": [
-        "endurance"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "contextual",
-        "label": "Applicabilità contestuale"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42563219",
-      "title": "High-Quality Photoplethysmography Signal Enabled by Narrowband Red Phosphor Converted Light-Emitting Diodes for Accurate Blood-Pressure Monitoring.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42563219/",
-      "publishedAt": "2026-08-06",
-      "journal": "Advanced materials (Deerfield Beach, Fla.)",
-      "authors": [
-        "Guo R",
-        "Gong W",
-        "Song E",
-        "Zhang C",
-        "Wang Y",
-        "Ming H"
-      ],
-      "domains": [
-        "wearables"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "contextual",
-        "label": "Applicabilità contestuale"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42563389",
-      "title": "Effects of Task Specificity on External and Internal Load in Professional Male Futsal Players: A Prospective Observational Study.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42563389/",
-      "publishedAt": "2026-08-06",
-      "journal": "Sports health",
-      "authors": [
-        "Muñoz-Gracia JL",
-        "Alentorn-Geli E",
-        "Fernandez-Fernandez J",
-        "Baiget E"
-      ],
-      "domains": [
-        "monitoring"
-      ],
-      "publicationTypes": [
-        "Journal Article"
-      ],
-      "evidenceType": {
-        "key": "primary",
-        "tier": "D",
-        "label": "Studio primario / altro"
-      },
-      "population": {
-        "key": "contextual",
-        "label": "Applicabilità contestuale"
-      },
-      "practicalRelevance": "medium",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
+      "firstSeenAt": "2026-08-17T08:02:49.767Z",
+      "lastSeenAt": "2026-08-17T08:02:49.767Z"
     }
   ],
   "review": {
