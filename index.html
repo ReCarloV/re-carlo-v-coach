@@ -107,7 +107,7 @@
         <article class="goal-empty panel" id="goal-empty" hidden><span class="goal-empty-icon"><img src="icons/icon-192.png" alt=""></span><h2>Nessun obiettivo programmato</h2><p class="muted">Aggiungi una gara o un test per collegare countdown, calendario e periodizzazione.</p><button class="primary" id="goal-empty-add" type="button">Aggiungi il primo obiettivo</button></article>
         <div id="goal-content" hidden>
           <article class="goal-hero" id="goal-hero" aria-live="polite">
-            <div class="goal-hero-main"><div class="goal-badges"><span id="goal-current-priority">PRIORITÀ A</span><span id="goal-current-type">MARATONA</span></div><h2 id="goal-current-name">—</h2><p id="goal-current-target">—</p><div class="goal-hero-actions"><button class="goal-edit-link" id="edit-current-goal" type="button">Modifica obiettivo</button><button class="secondary small goal-regenerate-plan" id="regenerate-current-plan" type="button" hidden>Rigenera piano base</button></div></div>
+            <div class="goal-hero-main"><div class="goal-badges"><span id="goal-current-priority">PRIORITÀ A</span><span id="goal-current-type">MARATONA</span></div><h2 id="goal-current-name">—</h2><p id="goal-current-target">—</p><div class="goal-hero-actions"><button class="goal-edit-link" id="edit-current-goal" type="button">Modifica obiettivo</button></div></div>
             <div class="goal-countdown"><strong id="goal-countdown-days">—</strong><span id="goal-countdown-label">GIORNI ALLA GARA</span><small id="goal-current-date">—</small></div>
           </article>
           <div class="goal-metrics">
@@ -118,15 +118,10 @@
           </div>
           <article class="panel coach-exchange-panel" id="coach-exchange-panel" aria-live="polite">
             <div class="panel-head coach-exchange-head">
-              <div><small>CODEX ↔ APP</small><h2>Piano del Coach</h2></div>
+              <div><small>CODEX ↔ APP</small><h2>Piano importato</h2></div>
               <span class="coach-exchange-status" id="coach-exchange-status">DA PREPARARE</span>
             </div>
-            <p class="coach-exchange-intro">L’app raccoglie il quadro atleta; la task Elite Coach costruisce la progressione completa. Qui la importi con controllo prima di sostituire il futuro.</p>
-            <div class="coach-exchange-flow" aria-label="Flusso del piano Coach">
-              <div><i>1</i><span><strong>Esporta dossier</strong><small>Dati utili, obiettivi e storico recente</small></span></div>
-              <div><i>2</i><span><strong>Invialo al Coach</strong><small>Nella task Codex dedicata</small></span></div>
-              <div><i>3</i><span><strong>Importa piano</strong><small>Anteprima, revisioni e protezione dati</small></span></div>
-            </div>
+            <p class="coach-exchange-intro">Il macroprogramma viene creato e revisionato nella task Elite Coach. L’app registra ciò che accade e adatta soltanto la settimana operativa, senza riscrivere autonomamente la progressione.</p>
             <div class="coach-exchange-current" id="coach-exchange-current"></div>
             <p class="coach-exchange-feedback" id="coach-exchange-feedback" role="status" aria-live="polite"></p>
             <div class="coach-exchange-actions">
@@ -135,7 +130,6 @@
               <input id="coach-plan-file" type="file" accept="application/json,.json" hidden>
             </div>
           </article>
-          <article class="panel goal-coach-audit" id="goal-coach-audit" aria-live="polite"></article>
           <div class="goals-grid">
             <article class="panel"><div class="panel-head"><div><small>PASSI CHIAVE</small><h2>Prossime sedute essenziali</h2></div></div><div class="goal-key-sessions" id="goal-key-sessions"></div></article>
             <article class="panel"><div class="panel-head"><div><small>CALENDARIO GARE</small><h2>Prossimi appuntamenti</h2></div></div><div class="goal-upcoming-list" id="goal-upcoming-list"></div></article>
@@ -167,11 +161,12 @@
           <article class="panel recap-recovery" id="recap-recovery" aria-live="polite"></article>
           <article class="panel recap-next-plan" id="recap-next-plan" aria-live="polite"></article>
         </div>
+        <article class="panel recap-coach-review" id="recap-coach-review" aria-live="polite" hidden></article>
         <article class="panel recap-history-panel"><div class="panel-head"><div><h2>Storico settimane</h2></div></div><div class="recap-history" id="recap-history"></div></article>
       </section>
 
       <section class="view" id="plan">
-        <div class="section-head"><div><small>PROGRAMMAZIONE</small></div><div class="plan-actions"><button class="primary small" id="generate-week">Genera settimana</button><button class="ghost small" id="open-weekly-checkin">Check-in settimana</button><button class="ghost small" id="add-session">+ Seduta manuale</button><button class="ghost small" id="select-sessions" type="button">Seleziona</button></div></div>
+        <div class="section-head"><div><small>PROGRAMMAZIONE</small></div><div class="plan-actions"><button class="primary small" id="generate-week">Valuta adattamento</button><button class="ghost small" id="open-weekly-checkin">Check-in settimana</button><button class="ghost small" id="add-session">+ Seduta manuale</button><button class="ghost small" id="select-sessions" type="button">Seleziona</button></div></div>
         <p class="muted intro plan-availability-line" id="plan-intro">Disponibilità non impostata</p>
         <div id="weekly-checkin-summary" class="weekly-checkin-summary" hidden></div>
         <div class="plan-view-toolbar">
@@ -456,7 +451,7 @@
   </div>
   <div class="generator-modal" id="generator-modal" aria-hidden="true">
     <div class="generator-dialog">
-      <div class="panel-head"><div><small>COACH LOCALE</small><h2>Proposta per la settimana</h2></div><button class="icon-button" id="generator-close" type="button" aria-label="Chiudi">×</button></div>
+      <div class="panel-head"><div><small>ADATTAMENTO LOCALE</small><h2>Anteprima della settimana</h2></div><button class="icon-button" id="generator-close" type="button" aria-label="Chiudi">×</button></div>
       <p class="muted" id="generator-summary"></p>
       <div class="generator-adaptation" id="generator-adaptation"></div>
       <div class="generator-phase" id="generator-phase" hidden></div>
@@ -641,7 +636,7 @@
         <label>Priorità<select name="priority"><option value="A">A · obiettivo principale</option><option value="B">B · gara importante</option><option value="C">C · gara preparatoria</option></select></label>
         <label>Stato<select name="status"><option value="planned">Programmata</option><option value="completed">Completata</option><option value="cancelled">Annullata</option></select></label>
         <label class="goal-form-wide">Target<input name="target" maxlength="100" placeholder="Es. completare senza dolore, migliorare il PB"></label>
-        <fieldset class="goal-form-wide goal-plan-availability"><legend>Disponibilità abituale del percorso</legend><p>Definisce il piano base fino alla gara. Le variazioni di una singola settimana restano nel check-in settimanale.</p><div class="goal-plan-availability-grid"><label>Sedute settimanali<select name="planSessions"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option><option value="6">6</option></select></label><label>Durata abituale<input name="planSessionMinutes" type="number" min="30" max="180" step="15" value="60" required></label><label>Tempo massimo lungo<input name="planLongMinutes" type="number" min="45" max="240" step="5" value="150" required></label><label>Lungo nel weekend<select name="planWeekendLong"><option value="yes">Sì</option><option value="maybe">Da confermare</option><option value="no">No</option></select></label><div class="goal-plan-days"><span>Giorni abitualmente disponibili</span><div class="day-picker"><label><input type="checkbox" name="planDays" value="Lun" checked><span>Lun</span></label><label><input type="checkbox" name="planDays" value="Mar"><span>Mar</span></label><label><input type="checkbox" name="planDays" value="Mer" checked><span>Mer</span></label><label><input type="checkbox" name="planDays" value="Gio" checked><span>Gio</span></label><label><input type="checkbox" name="planDays" value="Ven"><span>Ven</span></label><label><input type="checkbox" name="planDays" value="Sab" checked><span>Sab</span></label><label><input type="checkbox" name="planDays" value="Dom" checked><span>Dom</span></label></div></div><label class="goal-plan-constraints">Vincoli abituali<textarea name="planConstraints" rows="2" maxlength="500" placeholder="Es. lungo nel weekend, mercoledì massimo 45 minuti"></textarea></label></div></fieldset>
+        <fieldset class="goal-form-wide goal-plan-availability"><legend>Disponibilità abituale del percorso</legend><p>Entra nel dossier usato dall’Elite Coach per creare o revisionare il macroprogramma. Le variazioni di una singola settimana restano nel check-in settimanale.</p><div class="goal-plan-availability-grid"><label>Sedute settimanali<select name="planSessions"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option><option value="6">6</option></select></label><label>Durata abituale<input name="planSessionMinutes" type="number" min="30" max="180" step="15" value="60" required></label><label>Tempo massimo lungo<input name="planLongMinutes" type="number" min="45" max="240" step="5" value="150" required></label><label>Lungo nel weekend<select name="planWeekendLong"><option value="yes">Sì</option><option value="maybe">Da confermare</option><option value="no">No</option></select></label><div class="goal-plan-days"><span>Giorni abitualmente disponibili</span><div class="day-picker"><label><input type="checkbox" name="planDays" value="Lun" checked><span>Lun</span></label><label><input type="checkbox" name="planDays" value="Mar"><span>Mar</span></label><label><input type="checkbox" name="planDays" value="Mer" checked><span>Mer</span></label><label><input type="checkbox" name="planDays" value="Gio" checked><span>Gio</span></label><label><input type="checkbox" name="planDays" value="Ven"><span>Ven</span></label><label><input type="checkbox" name="planDays" value="Sab" checked><span>Sab</span></label><label><input type="checkbox" name="planDays" value="Dom" checked><span>Dom</span></label></div></div><label class="goal-plan-constraints">Vincoli abituali<textarea name="planConstraints" rows="2" maxlength="500" placeholder="Es. lungo nel weekend, mercoledì massimo 45 minuti"></textarea></label></div></fieldset>
         <label class="goal-form-wide goal-result-field">Risultato<input name="result" maxlength="120" placeholder="Tempo, piazzamento o risultato del test"></label>
         <label class="goal-form-wide">Note<textarea name="notes" rows="3" maxlength="1000" placeholder="Contesto, strategia, cosa dovrà ricordare il coach..."></textarea></label>
       </div>

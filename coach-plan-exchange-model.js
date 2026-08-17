@@ -53,10 +53,32 @@
     const due=sessions.filter(item=>item.date>=from&&item.date<=to&&item.adaptiveAdjustment?.status!=='paused'),recorded=due.filter(item=>item.outcome),completed=recorded.filter(item=>item.outcome.status==='completed'),partial=recorded.filter(item=>item.outcome.status==='partial'),skipped=recorded.filter(item=>item.outcome.status==='skipped');
     return{due:due.length,recorded:recorded.length,completed:completed.length,partial:partial.length,skipped:skipped.length,recordedRate:due.length?Number((recorded.length/due.length).toFixed(3)):null};
   }
+  function daysBetween(from,to){
+    const start=new Date(`${from}T12:00:00`),end=new Date(`${to}T12:00:00`);return Math.max(0,Math.round((end-start)/86400000));
+  }
+  function assessReviewNeed(input={},options={}){
+    const today=options.today||iso(options.now instanceof Date?options.now:new Date(options.now||Date.now())),goals=Array.isArray(input.goals)?input.goals:[],goal=options.goal||activeGoal(goals,today),plans=Array.isArray(input.coachPlans)?input.coachPlans:[];
+    const plan=plans.filter(item=>item.goalId===goal?.id&&item.status==='active').sort((a,b)=>Number(b.revision)-Number(a.revision)||String(b.importedAt||'').localeCompare(String(a.importedAt||'')))[0]||null;
+    if(!goal||!plan)return{level:'missing',label:'Piano da preparare',summary:'Non è presente una revisione attiva per l’obiettivo principale.',reasons:['Esporta il dossier iniziale e importa il piano preparato nella task Elite Coach.'],metrics:{due:0,recorded:0,adherence:null,keyMissed:0,manualChanges:0,daysSinceRevision:0},goalId:goal?.id||null,planId:null,revision:null,nextReviewDate:null};
+    const importedDate=String(plan.importedAt||plan.generatedAt||plan.validFrom).slice(0,10),from=importedDate>plan.validFrom?importedDate:plan.validFrom,sessions=Array.isArray(input.sessions)?input.sessions:[];
+    const planSessions=sessions.filter(item=>item.coachPlan?.planId===plan.id&&item.date>=from),due=planSessions.filter(item=>item.date<today&&item.adaptiveAdjustment?.status!=='paused'),recorded=due.filter(item=>item.outcome),completed=recorded.filter(item=>item.outcome.status==='completed').length,partial=recorded.filter(item=>item.outcome.status==='partial').length;
+    const adherence=due.length?Number(((completed+partial*.6)/due.length).toFixed(3)):null,keyMissed=due.filter(item=>item.priority==='essential'&&!['completed','partial'].includes(item.outcome?.status)).length,manualChanges=planSessions.filter(item=>item.manualOverride).length;
+    const goalChanged=timestamp(goal.updatedAt)&&timestamp(plan.importedAt)&&new Date(goal.updatedAt)>new Date(plan.importedAt),highSymptom=(input.bodyIssues||[]).some(item=>item?.status!=='resolved'&&Number(item.latestPain??item.initialPain)>=5),daysSinceRevision=daysBetween(importedDate,today),reasons=[];
+    if(goalChanged)reasons.push('L’obiettivo o la disponibilità strutturale sono cambiati dopo l’ultima importazione.');
+    if(keyMissed>=2)reasons.push(`${keyMissed} sedute essenziali dovute non risultano completate.`);
+    if(due.length>=4&&adherence!==null&&adherence<.7)reasons.push(`Aderenza ponderata al ${Math.round(adherence*100)}% sulle sedute dovute della revisione.`);
+    if(highSymptom)reasons.push('È presente un fastidio attivo con intensità almeno 5/10: serve una revisione prudente, non una diagnosi automatica.');
+    let level=reasons.length?'due':'current';
+    if(level==='current'&&manualChanges>=2){level='recommended';reasons.push(`${manualChanges} sedute del piano sono state modificate manualmente.`);}
+    if(level==='current'&&daysSinceRevision>=21&&recorded.length>=6){level='recommended';reasons.push(`Sono trascorsi ${daysSinceRevision} giorni e sono disponibili ${recorded.length} nuovi esiti dalla revisione ${plan.revision}.`);}
+    if(level==='current')reasons.push('La revisione attiva è recente e non emergono segnali strutturali sufficienti per sostituirla.');
+    const labels={due:'Revisione necessaria',recommended:'Revisione consigliata',current:'Piano aggiornato'};
+    return{level,label:labels[level],summary:level==='due'?'Il piano va rivalutato nella task Elite Coach prima di modificarne la struttura.':level==='recommended'?'Ci sono abbastanza nuovi dati per un controllo del piano, senza urgenza.':'L’app continua a registrare dati e ad applicare solo adattamenti operativi conservativi.',reasons,metrics:{due:due.length,recorded:recorded.length,adherence,keyMissed,manualChanges,daysSinceRevision},goalId:goal.id,planId:plan.id,revision:Number(plan.revision),reviewedFrom:from,nextReviewDate:addDays(importedDate,21)};
+  }
   function createBrief(input={},options={}){
     const now=options.now instanceof Date?options.now:new Date(options.now||Date.now()),today=options.today||iso(now),goal=options.goal||activeGoal(input.goals,today);
     if(!goal)error('NO_PRIORITY_A_GOAL','Serve un obiettivo futuro di priorità A per creare il dossier del Coach.');
-    const historyFrom=addDays(today,-83),whoopFrom=addDays(today,-27),sessions=Array.isArray(input.sessions)?input.sessions:[],goals=Array.isArray(input.goals)?input.goals:[];
+    const historyFrom=addDays(today,-83),whoopFrom=addDays(today,-27),sessions=Array.isArray(input.sessions)?input.sessions:[],goals=Array.isArray(input.goals)?input.goals:[],review=assessReviewNeed(input,{today,goal});
     const recentSessions=sessions.filter(item=>item.date>=historyFrom&&item.date<today).sort((a,b)=>a.date.localeCompare(b.date)).map(sessionBrief);
     const futureSessions=sessions.filter(item=>item.date>=today&&item.date<=goal.date).sort((a,b)=>a.date.localeCompare(b.date)).map(sessionBrief);
     const availability=(goal.trainingAvailability&&clone(goal.trainingAvailability))||[...(input.weeklyAvailabilityHistory||[])].sort((a,b)=>String(b.weekStart).localeCompare(String(a.weekStart)))[0]||null;
@@ -66,13 +88,13 @@
       objective:{primary:clone(goal),secondary:goals.filter(item=>item.status==='planned'&&item.id!==goal.id&&item.date>=today).sort((a,b)=>a.date.localeCompare(b.date)).map(clone)},
       availability,
       observations:{
-        historyWindow:{from:historyFrom,to:addDays(today,-1),days:84},adherence:adherenceSummary(sessions,historyFrom,addDays(today,-1)),sessions:recentSessions,
+        historyWindow:{from:historyFrom,to:addDays(today,-1),days:84},adherence:adherenceSummary(sessions,historyFrom,addDays(today,-1)),sinceRevision:{from:review.reviewedFrom||null,planId:review.planId,revision:review.revision,status:review.level,metrics:review.metrics,reasons:review.reasons},sessions:recentSessions,
         activities:(input.importedActivities||[]).filter(item=>item.date>=historyFrom&&item.date<today).map(activityBrief),
         whoop:{window:{from:whoopFrom,to:today,days:28},cycles:(input.whoopCycles||[]).filter(item=>(item.date||item.cycleDate||String(item.cycleStart||'').slice(0,10))>=whoopFrom).map(whoopCycleBrief),sleeps:(input.whoopSleeps||[]).filter(item=>(item.date||item.sleepDate||String(item.sleepStart||'').slice(0,10))>=whoopFrom).map(whoopSleepBrief),workouts:(input.whoopWorkouts||[]).filter(item=>(item.date||String(item.start||'').slice(0,10))>=whoopFrom).map(whoopWorkoutBrief)},
         preSessionCheckins:(input.preSessionCheckins||[]).filter(item=>(item.sessionDate||String(item.createdAt||'').slice(0,10))>=historyFrom).map(clone),
         bodyIssues:(input.bodyIssues||[]).filter(item=>item.status==='active'||String(item.resolvedAt||'').slice(0,10)>=historyFrom).map(clone)
       },
-      currentPlan:{sessions:futureSessions,coachPlans:clone(input.coachPlans||[])},
+      currentPlan:{review,sessions:futureSessions,coachPlans:clone(input.coachPlans||[])},
       outputContract:{kind:'coach-plan',schemaVersion:PLAN_VERSION,importRule:'Restituisci un unico file JSON valido. Le gare già presenti negli obiettivi non vanno duplicate come sedute.',requiredSessionStructure:'Ogni seduta deve avere prescrizione strutturata nei details e rationale; nessun dato sensore futuro va inventato.'}
     });
   }
@@ -138,5 +160,5 @@
     return{value,record,sessions:incoming,nextSessions:[...preserved,...incoming].sort((a,b)=>a.date.localeCompare(b.date)||a.title.localeCompare(b.title)),nextCoachPlans:nextPlans,nextRetiredPlanSessions:[...retiredMap.values()],preview:{goalName:goal.name,revision:record.revision,validFrom:record.validFrom,validTo:record.validTo,added:incoming.length,replaced:replaceable.length,protected:sessions.filter(item=>item.date>=record.validFrom&&item.date<=record.validTo&&!replaceIds.has(item.id)).length,omittedRaceDuplicates:omitted.length,categoryCounts,methodology:record.methodology.summary,warnings:[...(omitted.length?[`${omitted.length} seduta/e gara duplicate escluse: fanno fede gli obiettivi già salvati nell’app.`]:[]),...(replaceable.some(item=>item.outcome)?['Le sedute registrate non verranno sostituite.']:[])]}};
   }
 
-  return{APP_NAME,BRIEF_VERSION,PLAN_VERSION,createBrief,validatePlanPackage,buildImport,activeGoal,mondayFor,hash,stable};
+  return{APP_NAME,BRIEF_VERSION,PLAN_VERSION,createBrief,assessReviewNeed,validatePlanPackage,buildImport,activeGoal,mondayFor,hash,stable};
 });
