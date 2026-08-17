@@ -7,7 +7,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(goalsModel,programming){
   'use strict';
 
-  const VERSION='1.1.0';
+  const VERSION='1.2.0';
   const DAY_MS=86400000;
   const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const dateAtNoon=value=>new Date(`${value}T12:00:00`);
@@ -27,9 +27,9 @@
     return normalizeAvailability(latest||fallback);
   }
   function calibratedAvailability(value,athleteState,weekIndex=0){
-    const declared=normalizeAvailability(value),capacity=athleteState?.capacity;if(!capacity?.usable||!Number.isFinite(Number(capacity.sessionsPerWeek)))return{...declared,declaredSessions:declared.sessions,capacitySourceDays:null};
-    const observed=Math.max(1,Math.round(Number(capacity.sessionsPerWeek))),trajectoryStep=Math.floor(Math.max(0,Number(weekIndex)||0)/4),sessions=Math.min(declared.sessions,observed+trajectoryStep);
-    return{...declared,sessions,declaredSessions:declared.sessions,observedSessionsPerWeek:Number(capacity.sessionsPerWeek),capacitySourceDays:capacity.sourceDays};
+    const declared=normalizeAvailability(value),capacity=athleteState?.capacity,ordinarySessionMinutes=Math.min(70,declared.sessionMinutes);
+    if(!capacity?.usable||!Number.isFinite(Number(capacity.sessionsPerWeek)))return{...declared,sessions:declared.sessions,sessionMinutes:ordinarySessionMinutes,declaredSessions:declared.sessions,declaredSessionMinutes:declared.sessionMinutes,capacitySourceDays:null};
+    return{...declared,sessions:declared.sessions,sessionMinutes:ordinarySessionMinutes,declaredSessions:declared.sessions,declaredSessionMinutes:declared.sessionMinutes,observedSessionsPerWeek:Number(capacity.sessionsPerWeek),capacitySourceDays:capacity.sourceDays};
   }
   function recentLongAnchor(sessions=[],today){
     const start=addDays(today,-56),runs=(Array.isArray(sessions)?sessions:[]).filter(item=>item?.category==='running'&&item.date>=start&&item.date<=today&&['completed','partial'].includes(item.outcome?.status));

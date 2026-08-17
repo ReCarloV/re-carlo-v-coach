@@ -325,13 +325,14 @@
     const generatedAt=new Date().toISOString(),sessions=[];
     plan.weeks.forEach(week=>{
       const proposal=build({weekStart:week.weekStart,availability:{...week.availability,weekStart:week.weekStart},sessions:allSessions,baseline:true});
-      (proposal.sessions||[]).forEach(item=>sessions.push({...item,baselinePlan:{version:1,signature:plan.signature,goalId:week.goalId,goalName:week.goalName,weekStart:week.weekStart,phaseKey:week.phaseKey,phaseLabel:week.phaseLabel,generatedAt},rationale:`Piano base · ${item.rationale||week.phaseLabel}`,notes:'',generated:true,generatorVersion:4}));
+      (proposal.sessions||[]).forEach(item=>sessions.push({...item,baselinePlan:{version:2,signature:plan.signature,goalId:week.goalId,goalName:week.goalName,weekStart:week.weekStart,phaseKey:week.phaseKey,phaseLabel:week.phaseLabel,generatedAt},rationale:`Piano base · ${item.rationale||week.phaseLabel}`,notes:'',generated:true,generatorVersion:4}));
     });
     return{plan,sessions,athleteState};
   }
   function ensureBaselinePlan(options={}){
-    if(!macrocycleModel||!window.rcSessions?.replaceBaselinePlan)return{changed:false};const current=window.rcSessions.getAll(),existing=current.filter(item=>item.baselinePlan&&!item.outcome);if(existing.length&&!options.force)return{changed:false,reason:'already-present'};
-    const result=buildBaselinePlan(options);
+    if(!macrocycleModel||!window.rcSessions?.replaceBaselinePlan)return{changed:false};const current=window.rcSessions.getAll(),existing=current.filter(item=>item.baselinePlan&&!item.outcome),result=buildBaselinePlan(options),signature=result.plan?.signature||null;
+    const stale=existing.some(item=>item.baselinePlan?.version!==2||item.baselinePlan?.signature!==signature);
+    if(existing.length&&!options.force&&!stale)return{changed:false,reason:'already-current',...result};
     if(!result.plan?.weeks?.length){
       if(options.force&&existing.length){const fromDate=addDays(mondayFor(localDate()),7);window.rcSessions.replaceBaselinePlan([],{fromDate,signature:result.plan?.signature||null});return{changed:true,reason:'no-goals',...result};}
       return{changed:false,reason:'no-goals'};
