@@ -263,7 +263,7 @@
     const today=input.today||iso(new Date()); const sessions=Array.isArray(input.sessions)?input.sessions:[];const activeSessions=sessions.filter(item=>!paused(item));
     const todaySessions=sortTodaySessions(activeSessions.filter(item=>item.date===today)); const primary=todaySessions[0]||null;
     const nextSession=activeSessions.filter(item=>item.date>today).sort((a,b)=>a.date.localeCompare(b.date)||(priorityRank[a.priority]??1)-(priorityRank[b.priority]??1))[0]||null;
-    const issues=activeIssues(input.bodyIssues,today);const staleIssues=issues.filter(issue=>issue.requiresUpdate); const checkin=primary?currentCheckin(input.preCheckins,today,primary.id):null;const execution=primary?buildExecution(primary,checkin):null;
+    const issues=activeIssues(input.bodyIssues,today);const staleIssues=issues.filter(issue=>issue.requiresUpdate); const checkin=primary?currentCheckin(input.preCheckins,today,primary.id):null;const primarySkipped=primary?.outcome?.status==='skipped';const execution=primary&&!primarySkipped?buildExecution(primary,checkin):null;
     const weekStart=mondayFor(today),weekEnd=addDays(weekStart,6); const weekSessions=activeSessions.filter(item=>item.date>=weekStart&&item.date<=weekEnd);
     const performedWeek=weekSessions.filter(performed); const completedCount=performedWeek.length;
     const load7Start=addDays(today,-6); const last7=activeSessions.filter(item=>item.date>=load7Start&&item.date<=today&&performed(item));
@@ -286,7 +286,7 @@
       todaySessions,primary,secondary:todaySessions.slice(1),nextSession,
       primaryTag:primary?sessionTag(primary):null,
       primarySummary:primary?sessionSummary(primary):'',
-      prescription:[...(primary?.adaptiveAdjustment?.instructions?.length?[{label:'Adattamento settimanale',value:primary.adaptiveAdjustment.instructions.join(' ')}]:[]),...(execution?.prescription||[])],execution,
+      prescription:primarySkipped?[]:[...(primary?.adaptiveAdjustment?.instructions?.length?[{label:'Adattamento settimanale',value:primary.adaptiveAdjustment.instructions.join(' ')}]:[]),...(execution?.prescription||[])],execution,primarySkipped,
       checkin,issues,staleIssues,worstIssue:issues.find(issue=>issue.isFresh)||issues[0]||null,
       coachNote:coachNote(primary,checkin,issues),
       subjective,

@@ -61,6 +61,14 @@
     const copy=element('div');copy.append(element('strong','',item.title),element('span','',`${status} · ${item.durationMin} min`));
     const action=element('button','ghost',item.outcome?'Dettagli':'Check-in');action.type='button';action.addEventListener('click',()=>item.outcome?window.rcSessions.openOutcome(item.id):window.rcCheckins.openPre(item.id));row.append(copy,action);return row;
   }
+  function appendSecondary(model){
+    if(!model.secondary.length)return;const secondary=element('div','today-secondary');secondary.append(element('small','today-secondary-title','ALTRE SEDUTE DI OGGI'));model.secondary.forEach(item=>secondary.append(secondaryRow(item)));sessionPanel.append(secondary);
+  }
+  function renderSkippedPrimary(model){
+    const session=model.primary;const head=element('div','panel-head');const copy=element('div');const tags=element('div','today-session-tags');tags.append(element('span',`tag ${model.primaryTag.css}`,model.primaryTag.label),element('span','today-skipped-badge','NON SVOLTA'));copy.append(tags,element('h2','',session.title));head.append(copy);
+    const state=element('div','today-skipped-state');const mark=element('span','today-skipped-mark','—');const detail=element('div');detail.append(element('strong','','Seduta registrata come non svolta'),element('span','',model.primarySummary||'Non svolta'));if(model.coachNote?.text)detail.append(element('p','',model.coachNote.text));state.append(mark,detail);
+    const actions=element('div','today-session-actions');const outcome=element('button','primary','Modifica registrazione');outcome.type='button';outcome.addEventListener('click',()=>window.rcSessions.openOutcome(session.id));const plan=element('button','ghost','Vedi nel piano');plan.type='button';plan.addEventListener('click',()=>window.rcNavigation?.show('plan'));actions.append(outcome,plan);sessionPanel.append(head,state,actions);appendSecondary(model);
+  }
   function renderPrimary(model){
     const session=model.primary;const execution=model.execution;const head=element('div','panel-head');const copy=element('div');const tags=element('div','today-session-tags');tags.append(element('span',`tag ${model.primaryTag.css}`,model.primaryTag.label));if(execution?.adapted)tags.append(element('span',`tag adjustment ${execution.mode}`,execution.mode==='stop'?'ALLENAMENTO SOSPESO':execution.mode==='replace'?'SOSTITUZIONE ODIERNA':'VERSIONE ADATTATA'));copy.append(tags,element('h2','',execution?.title||session.title));
     const edit=element('button','ghost','Modifica');edit.type='button';edit.addEventListener('click',()=>window.rcSessions.openEditor(session.id));head.append(copy,edit);
@@ -72,9 +80,9 @@
     else {primaryAction.id='open-pre-checkin';primaryAction.textContent=model.checkin?'Aggiorna check-in pre sessione':'Avvia check-in pre sessione';primaryAction.addEventListener('click',()=>window.rcCheckins.openPre(session.id));}
     const planAction=element('button','ghost','Vedi nel piano');planAction.type='button';planAction.addEventListener('click',()=>window.rcNavigation?.show('plan'));actions.append(primaryAction,planAction);
     sessionPanel.append(head,summary,prescription,note,actions);
-    if(model.secondary.length){const secondary=element('div','today-secondary');secondary.append(element('small','today-secondary-title','ALTRE SEDUTE DI OGGI'));model.secondary.forEach(item=>secondary.append(secondaryRow(item)));sessionPanel.append(secondary);}
+    appendSecondary(model);
   }
-  function renderSession(model){sessionPanel.replaceChildren();if(model.primary)renderPrimary(model);else renderNoSession(model);}
+  function renderSession(model){sessionPanel.replaceChildren();if(model.primarySkipped)renderSkippedPrimary(model);else if(model.primary)renderPrimary(model);else renderNoSession(model);}
 
   function formatMinutes(total){const hours=Math.floor(total/60),minutes=total%60;return hours?`${hours}h ${String(minutes).padStart(2,'0')}`:`${minutes} min`;}
   function renderWeek(model){
