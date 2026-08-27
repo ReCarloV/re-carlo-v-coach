@@ -5,10 +5,11 @@
   const checkinModel=typeof module!=='undefined'&&module.exports?require('./checkin-model.js'):root.rcCheckinModel;
   const zonesModel=typeof module!=='undefined'&&module.exports?require('./training-zones-model.js'):root.rcTrainingZonesModel;
   const skipReasonModel=typeof module!=='undefined'&&module.exports?require('./skip-reason-model.js'):root.rcSkipReasonModel;
-  const api=factory(todayModel,exerciseCatalog,strengthModel,checkinModel,zonesModel,skipReasonModel);
+  const reconciliationModel=typeof module!=='undefined'&&module.exports?require('./reconciliation-model.js'):root.rcReconciliationModel;
+  const api=factory(todayModel,exerciseCatalog,strengthModel,checkinModel,zonesModel,skipReasonModel,reconciliationModel);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(root)root.rcWorkoutModeModel=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(todayModel,exerciseCatalog,strengthModel,checkinModel,zonesModel,skipReasonModel){
+})(typeof globalThis!=='undefined'?globalThis:this,function(todayModel,exerciseCatalog,strengthModel,checkinModel,zonesModel,skipReasonModel,reconciliationModel){
   'use strict';
 
   const VERSION='1.0.0';
@@ -102,7 +103,7 @@
   function buildSession(session,options={}){
     const meta=category(session),state=status(session),outcome=session.outcome||null;
     const wasPerformed=performed(session),skipped=outcome?.status==='skipped',strength=session.category==='strength';
-    return{...session,meta,state,timeRange:timeRange(session),priorityLabel:priorityLabel[session.priority]||'Importante',performed:wasPerformed,skipped,skipReasonLabel:skipped&&outcome.skipReason?skipReasonModel?.label?.(outcome.skipReason)||'Motivo registrato':'',preCheckin:options.preCheckin||null,blocks:skipped?[]:sessionBlocks(session),...(strength&&!skipped?{strengthStimulus:exerciseCatalog?.sessionStimulus?.(session,{actual:wasPerformed})||null,strengthReview:wasPerformed?exerciseCatalog?.compareStrengthSession?.(session)||null:null}:{}),displayDuration:skipped?'Non svolta':outcome?.actualDurationMin?`${outcome.actualDurationMin} min reali`:`${number(session.durationMin)} min previsti`,displayLoad:!skipped&&outcome?.sessionLoad?`${outcome.sessionLoad} AU`:null};
+    return{...session,meta,state,timeRange:timeRange(session),priorityLabel:priorityLabel[session.priority]||'Importante',performed:wasPerformed,skipped,needsPostSessionCompletion:Boolean(reconciliationModel?.needsPostSessionCompletion?.(outcome)),skipReasonLabel:skipped&&outcome.skipReason?skipReasonModel?.label?.(outcome.skipReason)||'Motivo registrato':'',preCheckin:options.preCheckin||null,blocks:skipped?[]:sessionBlocks(session),...(strength&&!skipped?{strengthStimulus:exerciseCatalog?.sessionStimulus?.(session,{actual:wasPerformed})||null,strengthReview:wasPerformed?exerciseCatalog?.compareStrengthSession?.(session)||null:null}:{}),displayDuration:skipped?'Non svolta':outcome?.actualDurationMin?`${outcome.actualDurationMin} min reali`:`${number(session.durationMin)} min previsti`,displayLoad:!skipped&&outcome?.sessionLoad?`${outcome.sessionLoad} AU`:null};
   }
   function buildWorkoutDay(input={}){
     const today=input.today||iso(),all=Array.isArray(input.sessions)?input.sessions:[],preCheckins=Array.isArray(input.preCheckins)?input.preCheckins:[],todaySessions=sortSessions(all.filter(item=>item.date===today&&!paused(item))),selected=todaySessions.find(item=>item.id===input.selectedId)||todaySessions[0]||null;

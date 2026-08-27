@@ -5,6 +5,7 @@
 
   const clamp=value=>Math.max(0,Math.min(1,value));
   const round=value=>+clamp(value).toFixed(2);
+  const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
   const dateKey=value=>String(value||'').slice(0,10);
   const validDateKey=value=>/^\d{4}-\d{2}-\d{2}$/.test(String(value||''));
   const timestampMinutes=(value,offsetMinutes=0)=>{
@@ -81,18 +82,54 @@
     if(!candidate||!['confirmed','dismissed'].includes(status))throw new TypeError('Decisione di riconciliazione non valida.');const timestamp=now instanceof Date?now.toISOString():new Date(now).toISOString();
     return{id:`reconciliation-${hash(candidate.key)}`,key:candidate.key,status,date:candidate.date,stravaActivityId:candidate.stravaActivityId||null,whoopWorkoutId:candidate.whoopWorkoutId||null,sessionId:candidate.sessionId||null,replacesDecisionId:candidate.replacesDecisionId||null,confidence:candidate.confidence,reasons:[...candidate.reasons],createdAt:timestamp,updatedAt:timestamp};
   }
-  function applyWhoopDurations(sessions,candidates,now=new Date()){
+  const observedDistanceKm=candidate=>{
+    const meters=Number(candidate?.strava?.distanceM);return Number.isFinite(meters)&&meters>0?+(meters/1000).toFixed(2):null;
+  };
+  const observedDurationMin=candidate=>{
+    const minutes=durationWhoop(candidate?.whoop)||durationStrava(candidate?.strava);return minutes===null?null:Math.max(1,Math.round(minutes));
+  };
+  function needsPostSessionCompletion(outcome){
+    return outcome?.completionSource==='device-match'&&['completed','partial'].includes(outcome.status);
+  }
+  function applyConfirmedDeviceMatches(sessions,candidates,now=new Date()){
     const timestamp=now instanceof Date?now.toISOString():new Date(now).toISOString(),bySession=new Map();
-    (Array.isArray(candidates)?candidates:[]).forEach(candidate=>{const duration=durationWhoop(candidate?.whoop);if(candidate?.sessionId&&candidate?.whoopWorkoutId&&duration!==null)bySession.set(candidate.sessionId,{candidate,duration:Math.max(1,Math.round(duration))});});
+    (Array.isArray(candidates)?candidates:[]).forEach(candidate=>{
+      if(!candidate?.sessionId||(!candidate?.whoopWorkoutId&&!candidate?.stravaActivityId))return;
+      bySession.set(candidate.sessionId,{candidate,duration:observedDurationMin(candidate),distance:observedDistanceKm(candidate)});
+    });
     const updatedSessionIds=[];const next=(Array.isArray(sessions)?sessions:[]).map(session=>{
-      const match=bySession.get(session?.id),outcome=session?.outcome;if(!match||!['completed','partial'].includes(outcome?.status))return session;
-      const {candidate,duration}=match,previousEvidence=outcome.deviceEvidence&&typeof outcome.deviceEvidence==='object'?outcome.deviceEvidence:null,decisionId=`reconciliation-${hash(candidate.key)}`;
-      const usedFields=[...new Set([...(Array.isArray(previousEvidence?.usedFields)?previousEvidence.usedFields:[]),'actualDurationMin'])];
-      const deviceEvidence={reconciliationDecisionId:decisionId,stravaActivityId:candidate.stravaActivityId||previousEvidence?.stravaActivityId||null,whoopWorkoutId:candidate.whoopWorkoutId,observedDurationMin:duration,observedDistanceKm:previousEvidence?.observedDistanceKm??null,usedFields,reviewedAt:timestamp};
-      const rpe=Number(outcome.rpe),sessionLoad=Number.isFinite(rpe)?Math.round(duration*rpe):outcome.sessionLoad;updatedSessionIds.push(session.id);
-      return{...session,outcome:{...outcome,actualDurationMin:duration,sessionLoad,deviceEvidence,updatedAt:timestamp},updatedAt:timestamp};
+      const match=bySession.get(session?.id);if(!match)return session;
+      const {candidate,duration,distance}=match,existing=session?.outcome||null,manualOutcome=['completed','partial'].includes(existing?.status)&&!needsPostSessionCompletion(existing),previousEvidence=existing?.deviceEvidence&&typeof existing.deviceEvidence==='object'?existing.deviceEvidence:null,decisionId=`reconciliation-${hash(candidate.key)}`;
+      const actualDistance=['running','swimming'].includes(session.category)?distance:null,usedFields=[...new Set([...(Array.isArray(previousEvidence?.usedFields)?previousEvidence.usedFields:[]),...(duration!==null?['actualDurationMin']:[]),...(actualDistance!==null?['actualDistanceKm']:[])])];
+      const deviceEvidence={reconciliationDecisionId:decisionId,stravaActivityId:candidate.stravaActivityId||previousEvidence?.stravaActivityId||null,whoopWorkoutId:candidate.whoopWorkoutId||previousEvidence?.whoopWorkoutId||null,observedDurationMin:duration,observedDistanceKm:actualDistance??previousEvidence?.observedDistanceKm??null,usedFields,reviewedAt:timestamp};
+      let outcome;
+      if(manualOutcome){
+        const rpeKnown=existing.rpe!==null&&existing.rpe!==undefined&&existing.rpe!==''&&Number.isFinite(Number(existing.rpe)),sessionLoad=duration!==null&&rpeKnown?Math.round(duration*Number(existing.rpe)):existing.sessionLoad;
+        outcome={...existing,...(duration!==null?{actualDurationMin:duration}:{}),...(actualDistance!==null?{actualDistanceKm:actualDistance}:{}),sessionLoad,deviceEvidence,updatedAt:timestamp};
+      }else{
+        const hasStoredPrior=Object.prototype.hasOwnProperty.call(previousEvidence||{},'priorOutcome'),priorOutcome=hasStoredPrior?clone(previousEvidence.priorOutcome):clone(existing);
+        outcome={status:'completed',completionSource:'device-match',actualDurationMin:duration,actualDistanceKm:actualDistance,rpe:null,sessionLoad:null,execution:null,pain:null,skipReason:null,notes:existing?.notes||'',deviceEvidence:{...deviceEvidence,priorOutcome:priorOutcome||null},recordedAt:existing?.recordedAt||timestamp,updatedAt:timestamp};
+      }
+      updatedSessionIds.push(session.id);return{...session,outcome,updatedAt:timestamp};
     });
     return{sessions:next,updatedSessionIds};
   }
-  return{buildReconciliationState,createReconciliationDecision,applyWhoopDurations,scoreSourcePair,scorePlan,candidateKey,confidenceLabel};
+  function revertConfirmedDeviceMatch(sessions,decision,now=new Date()){
+    if(!decision?.sessionId||decision.status!=='confirmed')return{sessions:Array.isArray(sessions)?sessions:[],updatedSessionIds:[]};
+    const timestamp=now instanceof Date?now.toISOString():new Date(now).toISOString();const updatedSessionIds=[];
+    const next=(Array.isArray(sessions)?sessions:[]).map(session=>{
+      if(session?.id!==decision.sessionId)return session;const outcome=session.outcome;if(!outcome)return session;const evidence=outcome.deviceEvidence;
+      if(!evidence||evidence.reconciliationDecisionId!==decision.id)return session;
+      updatedSessionIds.push(session.id);
+      if(needsPostSessionCompletion(outcome)){
+        const prior=Object.prototype.hasOwnProperty.call(evidence,'priorOutcome')?clone(evidence.priorOutcome):null;
+        if(prior)return{...session,outcome:prior,updatedAt:timestamp};
+        const nextSession={...session,updatedAt:timestamp};delete nextSession.outcome;return nextSession;
+      }
+      const nextOutcome={...outcome,updatedAt:timestamp};delete nextOutcome.deviceEvidence;return{...session,outcome:nextOutcome,updatedAt:timestamp};
+    });
+    return{sessions:next,updatedSessionIds};
+  }
+  const applyWhoopDurations=applyConfirmedDeviceMatches;
+  return{buildReconciliationState,createReconciliationDecision,applyConfirmedDeviceMatches,revertConfirmedDeviceMatch,applyWhoopDurations,needsPostSessionCompletion,scoreSourcePair,scorePlan,candidateKey,confidenceLabel};
 });

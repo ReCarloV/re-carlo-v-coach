@@ -39,6 +39,7 @@
   function mondayFor(value) { const date=dateAtNoon(value);const day=date.getDay()||7;date.setDate(date.getDate()-day+1);return iso(date); }
   function timestampDate(value) { const date=new Date(value);return Number.isNaN(date.getTime())?null:iso(date); }
   function performed(session) { return ['completed','partial'].includes(session.outcome?.status); }
+  function deviceOutcomePending(session){return session?.outcome?.completionSource==='device-match'&&performed(session);}
   function paused(session) { return session.adaptiveAdjustment?.status==='paused'&&!session.outcome; }
   function number(value) { const parsed=Number(value);return Number.isFinite(parsed)?parsed:0; }
   function reductionLabel(factor,label){const reduction=Math.round((1-Number(factor||1))*100);return reduction>0?`${label} −${reduction}%`:null;}
@@ -182,7 +183,7 @@
     if(session.category==='swimming'&&details.swimDistanceM)parts.splice(1,0,`${details.swimDistanceM} m`);
     if(session.category==='cycling'&&details.ftpMin&&details.ftpMax)parts.splice(1,0,`${details.ftpMin}–${details.ftpMax}% FTP`);
     if(session.outcome?.status==='skipped')return `Non svolta${session.outcome.skipReason?` · ${skipReasonModel.label(session.outcome.skipReason)}`:''}`;
-    if(performed(session))return [outcomeLabel[session.outcome.status],session.outcome.actualDurationMin?`${session.outcome.actualDurationMin} min reali`:'',session.outcome.rpe?`RPE ${session.outcome.rpe}`:''].filter(Boolean).join(' · ');
+    if(performed(session))return [outcomeLabel[session.outcome.status],deviceOutcomePending(session)?'post-sessione da completare':'',session.outcome.actualDurationMin?`${session.outcome.actualDurationMin} min reali`:'',session.outcome.rpe?`RPE ${session.outcome.rpe}`:''].filter(Boolean).join(' · ');
     return parts.filter(Boolean).join(' · ');
   }
   function sortTodaySessions(sessions) {
@@ -278,13 +279,13 @@
       return {date,label:['L','M','M','G','V','S','D'][index],dayName:['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'][index],isToday:date===today,load:dayLoad,performed:performedItems.length,planned:items.filter(item=>!item.outcome).length,skipped:items.filter(item=>item.outcome?.status==='skipped').length};
     });
     const maxDayLoad=Math.max(1,...days.map(day=>day.load));days.forEach(day=>{day.height=day.load?Math.max(12,Math.round(day.load/maxDayLoad*100)):day.performed?12:day.planned?12:day.skipped?6:0;});
-    const recommendation=checkin?.recommendation; const subjectiveMeta=recommendationMeta[recommendation?.level];
+    const recommendation=checkin?.recommendation; const subjectiveMeta=recommendationMeta[recommendation?.level],primaryDevicePending=deviceOutcomePending(primary);
     const sleepObserved=recoveryModel?recoveryModel.todaySleepMetric({today,cycles:input.whoopCycles,sleeps:input.whoopSleeps}):{value:'—',summary:'Nessun dato WHOOP importato'};const freshness=freshnessModel?freshnessModel.analyzeDeviceFreshness({today,whoopCycles:input.whoopCycles,whoopSleeps:input.whoopSleeps,whoopImportBatches:input.whoopImportBatches}):{whoop:{showOnDashboard:false}};const sleep={...sleepObserved,visible:Boolean(freshness.whoop.showOnDashboard&&sleepObserved.value!=='—'),freshness:freshness.whoop};const application=applicationModel?.applicationState?.(sessions,input.adaptiveAnalysis,weekStart,{today})||{applied:false,stale:false,application:null};
-    const subjective=subjectiveMeta?{value:subjectiveMeta.value,tone:subjectiveMeta.tone,summary:recommendation.title}:primary?{value:'—',tone:'neutral',summary:'Compila il check-in pre sessione'}:weekSessions.length?{value:'REST DAY',tone:'rest',summary:'Nessuna seduta programmata oggi'}:{value:'PIANO LIBERO',tone:'neutral',summary:'Nessuna settimana programmata'};
+    const subjective=subjectiveMeta?{value:subjectiveMeta.value,tone:subjectiveMeta.tone,summary:recommendation.title}:primary?.outcome?{value:'—',tone:'neutral',summary:primaryDevicePending?'Pre-sessione non richiesto · seduta rilevata dal dispositivo':'Pre-sessione non registrato · seduta già conclusa'}:primary?{value:'—',tone:'neutral',summary:'Compila il check-in pre sessione'}:weekSessions.length?{value:'REST DAY',tone:'rest',summary:'Nessuna seduta programmata oggi'}:{value:'PIANO LIBERO',tone:'neutral',summary:'Nessuna settimana programmata'};
     return {
       today,weekStart,weekEnd,
       todaySessions,primary,secondary:todaySessions.slice(1),nextSession,
-      primaryTag:primary?sessionTag(primary):null,
+      primaryTag:primary?sessionTag(primary):null,primaryDevicePending,
       primarySummary:primary?sessionSummary(primary):'',
       prescription:primarySkipped?[]:[...(primary?.adaptiveAdjustment?.instructions?.length?[{label:'Adattamento settimanale',value:primary.adaptiveAdjustment.instructions.join(' ')}]:[]),...(execution?.prescription||[])],execution,primarySkipped,
       checkin,issues,staleIssues,worstIssue:issues.find(issue=>issue.isFresh)||issues[0]||null,

@@ -18,7 +18,7 @@
     if(session.category==='strength'&&session.priority!=='optional'&&/lower|full|hyrox/.test(text))return true;
     return['hyrox','metcon'].includes(session.category)&&session.priority!=='optional';
   }
-  function isKeyOutcome(session){return Boolean(session?.outcome&&isKeySession(session));}
+  function isKeyOutcome(session){return Boolean(session?.outcome&&session.outcome.completionSource!=='device-match'&&isKeySession(session));}
   function outcomeObservedAt(session){const value=session?.outcome?.updatedAt||session?.outcome?.recordedAt||session?.updatedAt||null;if(!value)return null;const stamp=new Date(value);return Number.isNaN(stamp.getTime())?null:stamp.toISOString();}
   function pendingOutcomeReview(sessions,weekStart,options={}){
     const today=options.today||dateKey(new Date()),weekEnd=addDays(weekStart,6),items=Array.isArray(sessions)?sessions:[];

@@ -57,9 +57,9 @@
     sessionPanel.append(head,empty,action);
   }
   function secondaryRow(item){
-    const row=element('div','today-secondary-row');const status=item.outcome?({completed:'Svolta',partial:'Parziale',skipped:'Non svolta'}[item.outcome.status]||'Registrata'):'Programmata';
+    const row=element('div','today-secondary-row');const pending=item.outcome?.completionSource==='device-match',status=pending?'Svolta · post-sessione da completare':item.outcome?({completed:'Svolta',partial:'Parziale',skipped:'Non svolta'}[item.outcome.status]||'Registrata'):'Programmata';
     const copy=element('div');copy.append(element('strong','',item.title),element('span','',`${status} · ${item.durationMin} min`));
-    const action=element('button','ghost',item.outcome?'Dettagli':'Check-in');action.type='button';action.addEventListener('click',()=>item.outcome?window.rcSessions.openOutcome(item.id):window.rcCheckins.openPre(item.id));row.append(copy,action);return row;
+    const action=element('button','ghost',pending?'Completa':item.outcome?'Dettagli':'Check-in');action.type='button';action.addEventListener('click',()=>item.outcome?window.rcSessions.openOutcome(item.id):window.rcCheckins.openPre(item.id));row.append(copy,action);return row;
   }
   function appendSecondary(model){
     if(!model.secondary.length)return;const secondary=element('div','today-secondary');secondary.append(element('small','today-secondary-title','ALTRE SEDUTE DI OGGI'));model.secondary.forEach(item=>secondary.append(secondaryRow(item)));sessionPanel.append(secondary);
@@ -76,7 +76,7 @@
     const prescription=element('div','prescription today-prescription');model.prescription.forEach(block=>prescription.append(todayPrescriptionBlock(block)));
     const note=element('div',`coach-note ${toneClass[model.coachNote.tone]||''}`.trim());note.id='today-coach-note';note.append(element('strong','',model.coachNote.title));if(model.coachNote.text)note.append(element('p','',model.coachNote.text));
     const actions=element('div','today-session-actions');const primaryAction=element('button','primary');primaryAction.type='button';
-    if(session.outcome){primaryAction.textContent='Apri registrazione';primaryAction.addEventListener('click',()=>window.rcSessions.openOutcome(session.id));}
+    if(session.outcome){primaryAction.textContent=model.primaryDevicePending?'Completa post-sessione':'Apri registrazione';primaryAction.addEventListener('click',()=>window.rcSessions.openOutcome(session.id));}
     else {primaryAction.id='open-pre-checkin';primaryAction.textContent=model.checkin?'Aggiorna check-in pre sessione':'Avvia check-in pre sessione';primaryAction.addEventListener('click',()=>window.rcCheckins.openPre(session.id));}
     const planAction=element('button','ghost','Vedi nel piano');planAction.type='button';planAction.addEventListener('click',()=>window.rcNavigation?.show('plan'));actions.append(primaryAction,planAction);
     sessionPanel.append(head,summary,prescription,note,actions);
@@ -98,7 +98,7 @@
   }
   function render(){const model=currentModel();renderMetrics(model);renderWhoopOverview(model);renderAdaptive(model);renderSession(model);renderWeek(model);const profile=safeDataset('profile',null),name=profile?.firstName&&profile.profileSetupComplete!==false?profile.firstName:'';window.rcNavigation?.setTitle('today',greeting(name));}
 
-  ['rc:sessions-updated','rc:body-issues-updated','rc:pre-checkin-updated','rc:weekly-checkin-updated','rc:profile-updated','rc:whoop-updated','rc:whoop-sync-state','rc:data-restored'].forEach(name=>document.addEventListener(name,render));
+  ['rc:sessions-updated','rc:reconciliation-updated','rc:body-issues-updated','rc:pre-checkin-updated','rc:weekly-checkin-updated','rc:profile-updated','rc:whoop-updated','rc:whoop-sync-state','rc:data-restored'].forEach(name=>document.addEventListener(name,render));
   document.addEventListener('rc:view-changed',event=>{if(event.detail?.view==='today')render();});
   render();
 })();

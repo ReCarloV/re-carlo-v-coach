@@ -25,6 +25,7 @@
   const prescriptionModel=window.rcSessionPrescriptionModel;
   const safetyModel=window.rcSafetyScreenModel;
   const calendarFeedModel=window.rcCalendarFeedModel;
+  const reconciliationModel=window.rcReconciliationModel;
   let sessions = load();
   let planView = localStorage.getItem(VIEW_KEY) === 'calendar' ? 'calendar' : 'list';
   let calendarCursor = relevantCalendarMonth();
@@ -202,7 +203,7 @@
     const strengthSets=Array.isArray(outcome.strengthPerformance)?outcome.strengthPerformance.length:0;
     const durationKnown=outcome.actualDurationMin!==null&&outcome.actualDurationMin!==undefined;const rpeKnown=outcome.rpe!==null&&outcome.rpe!==undefined;const painKnown=outcome.pain!==null&&outcome.pain!==undefined;
     const strengthSummary=strengthSets?(outcome.strengthPerformanceVersion===2?`${strengthSets} ${strengthSets===1?'serie principale':'serie principali'}`:'serie e1RM storica · volume n.d.') :'';
-    return [durationKnown?`${outcome.actualDurationMin} min reali`:'',outcome.actualDistanceKm?`${outcome.actualDistanceKm} km`:'',rpeKnown?`RPE ${outcome.rpe}`:'',durationKnown&&rpeKnown?`carico ${outcome.sessionLoad} AU`:'',painKnown?`dolore ${outcome.pain}/10`:'',strengthSummary].filter(Boolean).join(' · ');
+    return [reconciliationModel?.needsPostSessionCompletion?.(outcome)?'Post-sessione da completare':'',durationKnown?`${outcome.actualDurationMin} min reali`:'',outcome.actualDistanceKm?`${outcome.actualDistanceKm} km`:'',rpeKnown?`RPE ${outcome.rpe}`:'',durationKnown&&rpeKnown?`carico ${outcome.sessionLoad} AU`:'',painKnown?`dolore ${outcome.pain}/10`:'',strengthSummary].filter(Boolean).join(' · ');
   }
   function evidenceSourceLabel(evidence){return[evidence?.stravaActivityId?'Strava':null,evidence?.whoopWorkoutId?'WHOOP':null].filter(Boolean).join(' + ');}
   function showCalendarMessage(message){const live=document.getElementById('calendar-move-status');if(live)live.textContent=message;const node=document.getElementById('toast');if(!node)return;clearTimeout(calendarToastTimer);node.textContent=message;node.classList.add('show');calendarToastTimer=setTimeout(()=>{node.classList.remove('show');node.textContent='Salvato sul dispositivo';},2200);}
@@ -247,7 +248,7 @@
       if(raceGoals.length){const race=document.createElement('button');race.type='button';race.className='calendar-race-marker';race.setAttribute('aria-label',`Race day: ${raceGoals.map(goal=>goal.name).join(', ')}`);const label=document.createElement('span');label.textContent='⚑ RACE DAY';const name=document.createElement('strong');name.textContent=raceGoals.map(goal=>goal.name).join(' · ');race.append(label,name);race.addEventListener('click',()=>window.rcNavigation?.show('goals'));cell.append(race);}
       const events=document.createElement('div');events.className='calendar-events';
       items.forEach(session=>{
-        const meta=categoryMeta[session.category],outcome=session.outcome,paused=isPaused(session),evidence=!paused?currentEvidenceIndex.get(session.id):null,status=outcome?outcomeMeta[outcome.status]:paused?pausedOutcomeMeta:evidence?{label:'Dati collegati',symbol:'◆'}:plannedOutcomeMeta;
+        const meta=categoryMeta[session.category],outcome=session.outcome,paused=isPaused(session),evidence=!paused?currentEvidenceIndex.get(session.id):null,pendingDevice=reconciliationModel?.needsPostSessionCompletion?.(outcome),status=pendingDevice?{label:'Svolta da dispositivo · post-sessione da completare',symbol:'◆'}:outcome?outcomeMeta[outcome.status]:paused?pausedOutcomeMeta:evidence?{label:'Dati collegati',symbol:'◆'}:plannedOutcomeMeta;
         const movePolicy=planViewModel.calendarMovePolicy(session,calendarMoveOptions(session,evidence));const compactCalendar=window.matchMedia?.('(max-width: 620px) and (orientation: portrait)').matches;const movable=movePolicy.allowed&&!selectionMode&&!compactCalendar;const selected=selectedIds.has(String(session.id));const button=document.createElement('button');button.type='button';button.className=`calendar-event ${meta.css} priority-${session.priority} outcome-${outcome?.status||(paused?'paused':evidence?'observed':'planned')}${selectionMode?' selection-mode':''}${selected?' selected':''}${movable?' calendar-event-movable':' calendar-event-locked'}`;button.dataset.sessionId=session.id;button.dataset.sessionDate=session.date;button.draggable=false;
         if(evidence)button.classList.add('has-observed-data');
         button.title=`${session.title} · ${outcome?outcomeSummary(session):targetText(session)} · ${movePolicy.message}`;
@@ -297,8 +298,8 @@
       const actions = document.createElement('div'); actions.className = 'day-actions';
       const priority = document.createElement('span'); priority.className = `priority ${session.priority}`; priority.textContent = priorityMeta[session.priority];
       const recordable=canRecordOutcome(session);
-      const status=document.createElement('span');status.className=`outcome-status ${session.outcome?.status||(paused?'paused':evidence?'observed':'planned')}`;status.textContent=session.outcome?`${outcomeMeta[session.outcome.status].symbol} ${outcomeMeta[session.outcome.status].label}`:paused?'Ⅱ Sospesa':evidence?'◆ Dati collegati':(recordable?'○ Da registrare':'○ Programmata');actions.append(status);
-      const record = document.createElement('button'); record.type='button';record.className='record-outcome';record.disabled=!recordable;record.textContent=recordable?(session.outcome?'Dettagli':evidence?'Completa check-out':'Registra'):paused?'Sospesa':'Non ancora';
+      const pendingDevice=reconciliationModel?.needsPostSessionCompletion?.(session.outcome);const status=document.createElement('span');status.className=`outcome-status ${session.outcome?.status||(paused?'paused':evidence?'observed':'planned')}`;status.textContent=pendingDevice?'◆ Svolta · completa post-sessione':session.outcome?`${outcomeMeta[session.outcome.status].symbol} ${outcomeMeta[session.outcome.status].label}`:paused?'Ⅱ Sospesa':evidence?'◆ Dati collegati':(recordable?'○ Da registrare':'○ Programmata');actions.append(status);
+      const record = document.createElement('button'); record.type='button';record.className='record-outcome';record.disabled=!recordable;record.textContent=recordable?(pendingDevice?'Completa post-sessione':session.outcome?'Dettagli':evidence?'Completa check-out':'Registra'):paused?'Sospesa':'Non ancora';
       if(recordable) record.addEventListener('click',()=>openOutcome(session));
       else { record.classList.add('future');record.title=outcomeLockedMessage(session);record.setAttribute('aria-label',`${outcomeLockedMessage(session)} ${session.title}`); }
       const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'edit-session'; edit.textContent = 'Modifica'; edit.addEventListener('click', () => open(session));
@@ -458,7 +459,7 @@
     document.getElementById('delete-session').hidden = !session;
     const outcomeButton=document.getElementById('session-outcome');
     outcomeButton.hidden = !session || !canRecordOutcome(session);
-    outcomeButton.textContent = session?.outcome ? 'Dettagli' : currentEvidenceIndex.has(session?.id) ? 'Completa check-out' : 'Registra';
+    outcomeButton.textContent = reconciliationModel?.needsPostSessionCompletion?.(session?.outcome) ? 'Completa post-sessione' : session?.outcome ? 'Dettagli' : currentEvidenceIndex.has(session?.id) ? 'Completa check-out' : 'Registra';
     if (session) {
       const values = { ...session, ...(session.details || {}) };
       Object.entries(values).forEach(([name,value]) => { const field = form.elements.namedItem(name); if (field && value !== undefined && value !== null) field.value = value; });
@@ -524,7 +525,7 @@
     const formula=athleteStrengthFormula();section.querySelector('.strength-performance-heading small').textContent=`${strengthModel.FORMULAS[formula].shortLabel} · RPE-AWARE`;
     const isStrength=session.category==='strength',lifts=isStrength?strengthModel.editableLifts({...session,outcome}):[];section.dataset.hasRows=String(isStrength);
     const existing=new Map(strengthModel.groupedEntries(outcome?.strengthPerformance).map(group=>[group.key,group.entries]));
-    lifts.forEach(lift=>container.append(strengthPerformanceRow(lift,existing.get(lift.key)||[],formula,{prefillPlanned:!outcome})));
+    lifts.forEach(lift=>container.append(strengthPerformanceRow(lift,existing.get(lift.key)||[],formula,{prefillPlanned:!outcome||reconciliationModel?.needsPostSessionCompletion?.(outcome)})));
     select.onchange=()=>{button.disabled=!select.value;};button.onclick=()=>{const key=select.value,meta=strengthModel.LIFTS[key];if(!meta)return;const row=strengthPerformanceRow({key,label:meta.label,exercise:meta.label,externalLoad:meta.externalLoad,planned:false},[],formula);container.append(row);syncStrengthPerformanceChoices();row.querySelector('input')?.focus();};
     syncStrengthPerformanceChoices();
   }
@@ -650,7 +651,7 @@
   function setOutcomeMode(session,editMode){
     const record=document.getElementById('outcome-record-view'),fields=document.getElementById('outcome-editor-fields'),actions=document.getElementById('outcome-editor-actions'),readOnly=Boolean(session.outcome&&!editMode);record.hidden=!readOnly;fields.hidden=readOnly;actions.hidden=readOnly;const title=document.getElementById('outcome-title'),kicker=title.previousElementSibling;
     if(readOnly){title.textContent=session.outcome.status==='skipped'?'Seduta non svolta':'Allenamento svolto';if(kicker)kicker.textContent='REGISTRAZIONE EFFETTIVA';renderOutcomeRecord(session);}
-    else{title.textContent=session.outcome?'Modifica registrazione':'Check-in post-allenamento';if(kicker)kicker.textContent='CHECK-IN POST-ALLENAMENTO';}
+    else{title.textContent=reconciliationModel?.needsPostSessionCompletion?.(session.outcome)?'Completa il post-sessione':session.outcome?'Modifica registrazione':'Check-in post-allenamento';if(kicker)kicker.textContent='CHECK-IN POST-ALLENAMENTO';}
   }
   function closeOutcome() {activeOutcomeEvidence=null;outcomeModal.classList.remove('open');outcomeModal.setAttribute('aria-hidden','true');}
   function openOutcome(session,options={}) {
@@ -662,11 +663,11 @@
     outcomeForm.elements.rpe.value=outcome?.rpe??'';
     outcomeForm.elements.execution.value=outcome?.execution||'';outcomeForm.elements.pain.value=outcome?.pain??'';
     outcomeForm.elements.skipReason.value=outcome?.skipReason||'time';outcomeForm.elements.outcomeNotes.value=outcome?.notes||'';
-    fillOutcomeSafetyScreen(outcome);if(!outcome)outcomeForm.elements.outcomeCardiopulmonaryStatus.value='clear';
+    fillOutcomeSafetyScreen(outcome);if(!outcome?.cardiopulmonaryScreen)outcomeForm.elements.outcomeCardiopulmonaryStatus.value='clear';
     renderEndurancePerformance(session,outcome);
     renderStrengthPerformance(session,outcome);
     const context=document.getElementById('outcome-session-context');const strong=document.createElement('strong');strong.textContent=session.title;const span=document.createElement('span');const date=new Date(`${session.date}T12:00:00`),time=calendarFeedModel?.timeRange?.(session)||'09:00';span.textContent=`${date.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})} · ${time} · ${categoryMeta[session.category].label} · ${session.durationMin} min previsti`;context.replaceChildren(strong,span);
-    renderObservedEvidence(evidence,Boolean(outcome));document.getElementById('outcome-delete').hidden=!outcome;toggleOutcomeFields();setOutcomeMode(session,Boolean(options.edit));outcomeModal.classList.add('open');outcomeModal.setAttribute('aria-hidden','false');outcomeForm.scrollTop=0;
+    const pendingDevice=reconciliationModel?.needsPostSessionCompletion?.(outcome);renderObservedEvidence(evidence,Boolean(outcome)&&!pendingDevice);document.getElementById('outcome-delete').hidden=!outcome;toggleOutcomeFields();setOutcomeMode(session,Boolean(options.edit)||pendingDevice);outcomeModal.classList.add('open');outcomeModal.setAttribute('aria-hidden','false');outcomeForm.scrollTop=0;
   }
   function detailsFromForm(data, category) {
     if (category === 'running') return {runType:data.get('runType'),distanceKm:Number(data.get('distanceKm')) || null,runTarget:data.get('runTarget'),hrZone:data.get('hrZone'),paceMin:Number(data.get('paceMin')),paceSec:Number(data.get('paceSec')),runRpe:Number(data.get('runRpe')),runBlocks:JSON.parse(data.get('runBlocks')||'[]')};

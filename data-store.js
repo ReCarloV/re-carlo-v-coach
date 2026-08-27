@@ -266,6 +266,8 @@
     }
     if (session.outcome !== null && session.outcome !== undefined) {
       if (!isObject(session.outcome) || !outcomeStatuses.has(session.outcome.status)) invalid('INVALID_OUTCOME','Una registrazione post-allenamento usa uno stato non riconosciuto. I dati originali sono stati preservati.');
+      if(owns(session.outcome,'completionSource')&&session.outcome.completionSource!=='device-match')invalid('INVALID_OUTCOME','La provenienza della registrazione post-allenamento non è valida.');
+      if(session.outcome.completionSource==='device-match'&&!['completed','partial'].includes(session.outcome.status))invalid('INVALID_OUTCOME','Una registrazione confermata dal dispositivo deve indicare una seduta svolta o parziale.');
       ['actualDurationMin','actualDistanceKm','rpe','sessionLoad','pain'].forEach(field => {
         if (owns(session.outcome,field) && session.outcome[field] !== null && !isFiniteValue(session.outcome[field])) invalid('INVALID_OUTCOME','Una registrazione post-allenamento contiene valori non validi.');
       });
@@ -1045,8 +1047,11 @@
       const detail={type:'reconciliation-updated',saved:decisions.length,updatedSessions:Array.isArray(options.updatedSessionIds)?options.updatedSessionIds.length:0,updatedAt:now().toISOString()};dispatch(detail);return detail;
     }
     function saveReconciliationDecision(decision,options){return saveReconciliationDecisions([decision],options);}
-    function removeReconciliationDecision(decisionId){
-      const current=read('reconciliationDecisions');validateReconciliationDecisions(current);const next=current.filter(item=>item.id!==decisionId);if(next.length===current.length)throw new DataStoreError('UNKNOWN_RECONCILIATION','L’abbinamento selezionato non esiste più.');write('reconciliationDecisions',next);const detail={type:'reconciliation-removed',decisionId,removedAt:now().toISOString()};dispatch(detail);return detail;
+    function removeReconciliationDecision(decisionId,options={}){
+      const current=read('reconciliationDecisions');validateReconciliationDecisions(current);const next=current.filter(item=>item.id!==decisionId);if(next.length===current.length)throw new DataStoreError('UNKNOWN_RECONCILIATION','L’abbinamento selezionato non esiste più.');const hasSessions=Object.prototype.hasOwnProperty.call(options,'sessions');if(hasSessions)validate('sessions',options.sessions);const touched=new Map();remember(touched,datasets.reconciliationDecisions.key);if(hasSessions)remember(touched,datasets.sessions.key);
+      try{write('reconciliationDecisions',next);if(hasSessions)write('sessions',options.sessions);}
+      catch(error){const rollback=rollbackTouched(touched);if(!rollback.complete){const failure=new DataStoreError('ROLLBACK_INCOMPLETE',`L’annullamento dell’abbinamento è stato interrotto e alcune chiavi devono essere verificate: ${rollback.failedKeys.join(', ')}.`);failure.failedKeys=rollback.failedKeys;throw failure;}throw error;}
+      const detail={type:'reconciliation-removed',decisionId,updatedSessions:Array.isArray(options.updatedSessionIds)?options.updatedSessionIds.length:0,removedAt:now().toISOString()};dispatch(detail);return detail;
     }
 
     function commitCoachPlan(state){
