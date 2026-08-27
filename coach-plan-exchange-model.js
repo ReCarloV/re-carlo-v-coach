@@ -46,7 +46,7 @@
   function whoopSleepBrief(item){return stable({id:item.id,date:item.date||item.sleepDate,start:item.sleepStart,end:item.sleepEnd,sleepPerformance:item.sleepPerformance,sleepConsistency:item.sleepConsistency,sleepEfficiency:item.sleepEfficiency,respiratoryRate:item.respiratoryRate,asleepMinutes:item.asleepMinutes,inBedMinutes:item.inBedMinutes});}
   function whoopWorkoutBrief(item){return stable({id:item.id,date:item.date,start:item.start,end:item.end,sport:item.sport,durationMin:item.durationMin,strain:item.strain,averageHr:item.averageHr,maxHr:item.maxHr,calories:item.calories,distanceKm:item.distanceKm});}
   function profileBrief(profile,hrZones){
-    const fields=['firstName','lastName','nickname','birthDate','heightCm','weightKg','level','sports','equipment','maxHr','restingHr','ftp','hrZoneMethod','ftpZoneMethod','strengthFormula','strengthMaxes','personalBests','heartRateSources','bodyMeasurementSources'];
+    const fields=['firstName','lastName','nickname','birthDate','heightCm','weightKg','level','sports','equipment','maxHr','restingHr','ftp','hrZoneMethod','ftpZoneMethod','strengthFormula','strengthMaxes','personalBests','performanceTests','heartRateSources','bodyMeasurementSources'];
     return stable({...Object.fromEntries(fields.filter(field=>Object.prototype.hasOwnProperty.call(profile||{},field)).map(field=>[field,clone(profile[field])])),hrZones:Array.isArray(hrZones)?clone(hrZones):null});
   }
   function adherenceSummary(sessions,from,to){

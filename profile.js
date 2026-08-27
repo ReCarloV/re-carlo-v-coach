@@ -1,8 +1,9 @@
 (function () {
   const PROFILE_KEY = 'rc-athlete-profile-v1';
   const metricsModel=window.rcAthleteMetricsModel;
+  const performanceModel=window.rcPerformanceTestModel;
   const defaults = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     firstName: 'Atleta',
     lastName: '',
     nickname: 'Re Carlo V',
@@ -19,6 +20,7 @@
     ftpZoneMethod: 'coggan7',
     strengthMaxes: { pullup:null, bench:null, military:null, squat:null, frontsquat:null, deadlift:null, trapbar:null },
     personalBests: [],
+    performanceTests: [],
     sports: [],
     equipment: {},
     updatedAt: new Date().toISOString()
@@ -66,12 +68,13 @@
       const merged = {
         ...structuredClone(defaults),
         ...stored,
-        personalBests: migratePersonalBests(stored.personalBests)
+        personalBests: migratePersonalBests(stored.personalBests),
+        performanceTests: performanceModel?.normalizeRecords?.(stored.performanceTests)||[]
       };
       merged.strengthMaxes={...defaults.strengthMaxes,...(stored.strengthMaxes||{})};
       merged.equipment = stored.equipment || categorizeLegacyDevices(stored.devices);
       if(!Object.prototype.hasOwnProperty.call(stored,'profileSetupComplete'))merged.profileSetupComplete=true;
-      merged.schemaVersion = 3;
+      merged.schemaVersion = 4;
       return merged;
     } catch (_) {
       return structuredClone(defaults);
@@ -158,6 +161,36 @@
     document.getElementById('strength-method-summary').textContent=`${window.rcStrengthPerformanceModel.FORMULAS[formula].label} sui migliori set da 1–10 ripetizioni. Quando presente, l’RPE del set aggiunge la RIR stimata (10 − RPE) prima del calcolo; i dati storici senza RPE restano validi. Un riferimento manuale ha priorità. I salti molto ampi rispetto ad almeno due osservazioni richiedono la conferma dei dati.`;
   }
 
+  function testDate(value){return new Date(`${value}T12:00:00`).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});}
+  function testProtocol(record){
+    const protocol=record.protocol||{},parts=[];
+    if(protocol.side)parts.push(protocol.side==='left'?'lato sinistro':'lato destro');
+    if(protocol.dropHeightCm)parts.push(`drop ${protocol.dropHeightCm} cm`);
+    if(protocol.protocolName)parts.push(protocol.protocolName);
+    if(protocol.exercise)parts.push(protocol.exercise);
+    if(protocol.velocityMetric)parts.push(protocol.velocityMetric.toUpperCase());
+    if(protocol.distanceM)parts.push(`${protocol.distanceM} m`);
+    if(protocol.startType)parts.push({standing:'partenza in piedi','three-point':'tre appoggi',flying:'lanciata'}[protocol.startType]);
+    return parts.join(' · ');
+  }
+  function renderPerformanceTests(){
+    const summary=document.getElementById('performance-test-summary'),history=document.getElementById('performance-test-history-list'),details=document.getElementById('performance-test-history'),count=document.getElementById('performance-test-count');
+    if(!summary||!performanceModel)return;const records=performanceModel.sortedRecords(athlete.performanceTests),latest=performanceModel.latestByTest(records);summary.replaceChildren();history.replaceChildren();count.textContent=`${records.length} ${records.length===1?'misurazione':'misurazioni'}`;
+    if(!latest.length){const empty=document.createElement('div');empty.className='performance-test-empty';empty.innerHTML='<strong>Nessun test registrato</strong><span>Inserisci una misurazione manuale da My Jump Lab, VBT o dal dispositivo che hai usato.</span>';summary.append(empty);details.hidden=true;return;}
+    details.hidden=false;latest.slice(0,6).forEach(record=>{
+      const test=performanceModel.CATALOG[record.testId],trend=performanceModel.trendFor(record,records),card=document.createElement('button');card.type='button';card.className='performance-test-card';card.dataset.testRecordId=record.id;
+      const head=document.createElement('span');head.className='performance-test-card-head';const category=document.createElement('small');category.textContent=test.category;const date=document.createElement('em');date.textContent=testDate(record.date);head.append(category,date);
+      const title=document.createElement('strong');title.textContent=test.label;const result=document.createElement('b');result.textContent=performanceModel.primaryResult(record);
+      const secondary=document.createElement('span');secondary.className='performance-test-secondary';secondary.textContent=performanceModel.secondaryResult(record)||testProtocol(record)||record.source;
+      const footer=document.createElement('span');footer.className='performance-test-card-footer';footer.textContent=trend?`vs stesso protocollo ${trend.delta>0?'+':''}${trend.delta.toLocaleString('it-IT',{maximumFractionDigits:3})}`:`${record.source}${testProtocol(record)?` · ${testProtocol(record)}`:''}`;
+      card.append(head,title,result,secondary,footer);summary.append(card);
+    });
+    records.forEach(record=>{
+      const test=performanceModel.CATALOG[record.testId],row=document.createElement('button');row.type='button';row.className='performance-test-history-row';row.dataset.testRecordId=record.id;
+      const main=document.createElement('span'),title=document.createElement('strong'),protocol=document.createElement('small');title.textContent=test.label;protocol.textContent=testProtocol(record)||record.source;main.append(title,protocol);const value=document.createElement('span'),result=document.createElement('b'),date=document.createElement('small');result.textContent=performanceModel.primaryResult(record);date.textContent=testDate(record.date);value.append(result,date);row.append(main,value);history.append(row);
+    });
+  }
+
   function renderEquipmentSummary(expanded = false) {
     const container = document.getElementById('profile-devices'); container.replaceChildren();
     let hiddenCount = 0;
@@ -186,7 +219,7 @@
     document.getElementById('profile-summary').textContent = setup?[Number.isFinite(age)?`${age} anni`:null,Number(athlete.heightCm)>0?`${athlete.heightCm} cm`:null,Number(athlete.weightKg)>0?`${athlete.weightKg} kg`:null].filter(Boolean).join(' · ')||'Dati antropometrici non disponibili':'Dati atleta non ancora inseriti';
     document.getElementById('profile-level').textContent = setup?athlete.level:'DA CONFIGURARE';
     document.getElementById('profile-sports').textContent = athlete.sports.length?athlete.sports.join(' · '):'Nessuna disciplina configurata';
-    renderStrengthMaxes(); renderPersonalBests(); renderEquipmentSummary();
+    renderStrengthMaxes(); renderPerformanceTests(); renderPersonalBests(); renderEquipmentSummary();
     document.querySelector('.brand strong').textContent = athlete.nickname.toUpperCase();
     window.rcNavigation?.setTitle('today',setup?`Oggi, ${athlete.firstName}.`:'Oggi');
     renderHrSettings(athlete.hrZoneMethod);
@@ -230,7 +263,7 @@
       maxHr, restingHr, ftp: Number(data.get('ftp')),
       strengthMaxes:{pullup:Number(data.get('maxPullup'))||null,bench:Number(data.get('maxBench'))||null,military:Number(data.get('maxMilitary'))||null,squat:Number(data.get('maxSquat'))||null,frontsquat:Number(data.get('maxFrontSquat'))||null,deadlift:Number(data.get('maxDeadlift'))||null,trapbar:Number(data.get('maxTrapBar'))||null},
       personalBests: JSON.parse(data.get('personalBests') || '[]'),
-      sports: JSON.parse(data.get('sports') || '[]'), equipment: JSON.parse(data.get('equipment') || '{}'), schemaVersion: 3, profileSetupComplete:true
+      sports: JSON.parse(data.get('sports') || '[]'), equipment: JSON.parse(data.get('equipment') || '{}'), schemaVersion: 4, profileSetupComplete:true
     };
     if(heartRateSources)athlete.heartRateSources=heartRateSources;else delete athlete.heartRateSources;
     if(bodyMeasurementSources)athlete.bodyMeasurementSources=bodyMeasurementSources;else delete athlete.bodyMeasurementSources;
@@ -261,6 +294,38 @@
     athlete.strengthFormula=event.target.value;saveProfile();renderStrengthMaxes();toast();
     document.dispatchEvent(new CustomEvent('rc:profile-updated'));
   });
+
+  const performanceModal=document.getElementById('performance-test-modal'),performanceForm=document.getElementById('performance-test-form'),performanceType=document.getElementById('performance-test-type'),performanceFields=document.getElementById('performance-test-fields'),performancePoints=document.getElementById('performance-test-points');
+  function fillPerformanceTypes(){
+    const groups=new Map();Object.entries(performanceModel.CATALOG).forEach(([id,test])=>{if(!groups.has(test.category))groups.set(test.category,[]);groups.get(test.category).push([id,test]);});performanceType.replaceChildren();groups.forEach((tests,label)=>{const group=document.createElement('optgroup');group.label=label;tests.forEach(([id,test])=>{const option=document.createElement('option');option.value=id;option.textContent=test.label;group.append(option);});performanceType.append(group);});
+  }
+  function performanceInput(field,value,scope){
+    const label=document.createElement('label');label.textContent=`${field.label}${field.unit?` (${field.unit})`:''}`;let input;
+    if(field.type==='choice'){input=document.createElement('select');field.options.forEach(([key,text])=>{const option=document.createElement('option');option.value=key;option.textContent=text;input.append(option);});}
+    else{input=document.createElement('input');input.type=field.type;input.placeholder=field.placeholder||'';if(field.type==='number'){input.inputMode='decimal';input.min=field.min;input.max=field.max;input.step=field.step;}if(field.maxLength)input.maxLength=field.maxLength;}
+    input.dataset.testScope=scope;input.dataset.testKey=field.key;input.required=Boolean(field.required);if(value!==undefined&&value!==null)input.value=value;label.append(input);return label;
+  }
+  function addVbtPoint(point={}){const row=document.createElement('div');row.className='performance-vbt-row';row.innerHTML='<label>Carico (kg)<input type="number" inputmode="decimal" min="0.1" max="1000" step="0.1"></label><label>Velocità (m/s)<input type="number" inputmode="decimal" min="0.01" max="5" step="0.001"></label><button class="icon-button" type="button" aria-label="Rimuovi punto">×</button>';row.querySelectorAll('input')[0].value=point.loadKg??'';row.querySelectorAll('input')[1].value=point.velocityMs??'';row.querySelector('button').addEventListener('click',()=>{if(performancePoints.children.length>2)row.remove();});performancePoints.append(row);}
+  function renderPerformanceForm(record=null){
+    const test=performanceModel.CATALOG[performanceType.value];performanceFields.replaceChildren();document.getElementById('performance-test-description').textContent=test.description;
+    test.protocol.forEach(field=>performanceFields.append(performanceInput(field,record?.protocol?.[field.key],'protocol')));test.values.forEach(field=>{let value=record?.values?.[field.key];if(!record&&performanceType.value==='imtp'&&field.key==='bodyMassKg'&&Number(athlete.weightKg)>0)value=athlete.weightKg;performanceFields.append(performanceInput(field,value,'values'));});
+    const vbt=document.getElementById('performance-test-vbt');vbt.hidden=!test.points;performancePoints.replaceChildren();if(test.points)(record?.points?.length?record.points:[{},{},{}]).forEach(addVbtPoint);
+  }
+  function localToday(){const now=new Date(),offset=now.getTimezoneOffset();return new Date(now.getTime()-offset*60000).toISOString().slice(0,10);}
+  function openPerformanceTest(record=null){performanceForm.reset();performanceForm.elements.recordId.value=record?.id||'';performanceType.value=record?.testId||'cmj';performanceForm.elements.date.value=record?.date||localToday();performanceForm.elements.source.value=record?.source||'My Jump Lab';performanceForm.elements.notes.value=record?.notes||'';document.getElementById('performance-test-delete').hidden=!record;renderPerformanceForm(record);performanceModal.classList.add('open');performanceModal.setAttribute('aria-hidden','false');}
+  function closePerformanceTest(){performanceModal.classList.remove('open');performanceModal.setAttribute('aria-hidden','true');}
+  fillPerformanceTypes();
+  document.getElementById('add-performance-test').addEventListener('click',()=>openPerformanceTest());
+  document.getElementById('performance-test-close').addEventListener('click',closePerformanceTest);document.getElementById('performance-test-cancel').addEventListener('click',closePerformanceTest);
+  performanceType.addEventListener('change',()=>{if(performanceType.value==='vbt'&&performanceForm.elements.source.value==='My Jump Lab')performanceForm.elements.source.value='VBT encoder';renderPerformanceForm();});
+  document.getElementById('performance-vbt-add').addEventListener('click',()=>addVbtPoint());
+  document.getElementById('performance-test-summary').addEventListener('click',event=>{const card=event.target.closest('[data-test-record-id]');if(card)openPerformanceTest(athlete.performanceTests.find(item=>item.id===card.dataset.testRecordId));});
+  document.getElementById('performance-test-history-list').addEventListener('click',event=>{const row=event.target.closest('[data-test-record-id]');if(row)openPerformanceTest(athlete.performanceTests.find(item=>item.id===row.dataset.testRecordId));});
+  performanceForm.addEventListener('submit',event=>{
+    event.preventDefault();const protocol={},values={};performanceFields.querySelectorAll('[data-test-scope]').forEach(input=>{const target=input.dataset.testScope==='protocol'?protocol:values;if(input.value!=='')target[input.dataset.testKey]=input.value;});const points=[...performancePoints.querySelectorAll('.performance-vbt-row')].map(row=>({loadKg:row.querySelectorAll('input')[0].value,velocityMs:row.querySelectorAll('input')[1].value}));const id=performanceForm.elements.recordId.value,existing=athlete.performanceTests.find(item=>item.id===id);
+    try{const record=performanceModel.createRecord({id,testId:performanceType.value,date:performanceForm.elements.date.value,source:performanceForm.elements.source.value,notes:performanceForm.elements.notes.value,protocol,values,points,createdAt:existing?.createdAt});athlete.performanceTests=performanceModel.sortedRecords([record,...athlete.performanceTests.filter(item=>item.id!==id)]);athlete.schemaVersion=4;saveProfile();renderPerformanceTests();closePerformanceTest();toast();document.dispatchEvent(new CustomEvent('rc:profile-updated',{detail:{reason:'performance-test-saved',recordId:record.id}}));}catch(error){window.alert(error.message||'La misurazione non è valida.');}
+  });
+  document.getElementById('performance-test-delete').addEventListener('click',()=>{const id=performanceForm.elements.recordId.value,record=athlete.performanceTests.find(item=>item.id===id);if(!record||!window.confirm(`Eliminare ${performanceModel.CATALOG[record.testId].label} del ${testDate(record.date)}?`))return;athlete.performanceTests=athlete.performanceTests.filter(item=>item.id!==id);saveProfile();renderPerformanceTests();closePerformanceTest();toast();document.dispatchEvent(new CustomEvent('rc:profile-updated',{detail:{reason:'performance-test-deleted',recordId:id}}));});
 
   document.getElementById('export-profile').addEventListener('click', () => {
     try {

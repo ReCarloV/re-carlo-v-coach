@@ -31,9 +31,12 @@
   const goalTypes = new Set(['marathon','half-marathon','running','hyrox','obstacle','triathlon','athx','cycling','strength-test','test','other']);
   const goalPriorities = new Set(['A','B','C']);
   const goalStatuses = new Set(['planned','completed','cancelled']);
+  const performanceTestIds = new Set(['cmj','cmj-arms','sj','single-leg-cmj','drop-jump','repeated-jump','broad-jump','imtp','vbt','sprint','cod-505']);
+  const performanceTestProtocolFields = new Set(['side','dropHeightCm','protocolName','device','exercise','velocityMetric','distanceM','startType']);
+  const performanceTestValueFields = new Set(['jumpHeightCm','flightTimeMs','contactTimeMs','jumpCount','meanJumpHeightCm','meanContactTimeMs','distanceCm','peakForceN','bodyMassKg','timeSec']);
   const strengthDefaults = { pullup:null, bench:null, military:null, squat:null, frontsquat:null, deadlift:null, trapbar:null };
   const datasets = Object.freeze({
-    profile: { key:'rc-athlete-profile-v1', version:3, kind:'json', fallback:null },
+    profile: { key:'rc-athlete-profile-v1', version:4, kind:'json', fallback:null },
     hrZones: { key:'rc-hr-zones', version:1, kind:'json', fallback:null },
     profilePhoto: { key:'rc-profile-photo', version:1, kind:'raw', fallback:null },
     sessions: { key:'rc-training-sessions-v1', version:1, kind:'json', fallback:[] },
@@ -105,6 +108,27 @@
     return value;
   }
 
+  function validatePerformanceTestRecord(record){
+    if(!isObject(record)||typeof record.id!=='string'||!record.id.trim()||record.id.length>120||!performanceTestIds.has(record.testId)||!isDateKey(record.date)||typeof record.source!=='string'||record.source.length>120||typeof record.notes!=='string'||record.notes.length>1000||!isTimestamp(record.createdAt)||!isTimestamp(record.updatedAt)||!isObject(record.protocol)||!isObject(record.values))return false;
+    if(Object.keys(record.protocol).some(key=>!performanceTestProtocolFields.has(key))||Object.keys(record.values).some(key=>!performanceTestValueFields.has(key)))return false;
+    if(Object.entries(record.protocol).some(([key,value])=>['dropHeightCm','distanceM'].includes(key)?!isFiniteValue(value):typeof value!=='string'||!value.trim()||value.length>80))return false;
+    if(Object.values(record.values).some(value=>!isFiniteValue(value)))return false;
+    const required=(object,keys)=>keys.every(key=>owns(object,key)&&isFiniteValue(object[key]));
+    if(['cmj','cmj-arms','sj','single-leg-cmj'].includes(record.testId)&&!required(record.values,['jumpHeightCm']))return false;
+    if(record.testId==='single-leg-cmj'&&!['left','right'].includes(record.protocol.side))return false;
+    if(record.testId==='drop-jump'&&(!required(record.protocol,['dropHeightCm'])||!required(record.values,['jumpHeightCm','contactTimeMs'])))return false;
+    if(record.testId==='repeated-jump'&&(!record.protocol.protocolName||!required(record.values,['jumpCount','meanJumpHeightCm','meanContactTimeMs'])))return false;
+    if(record.testId==='broad-jump'&&!required(record.values,['distanceCm']))return false;
+    if(record.testId==='imtp'&&!required(record.values,['peakForceN']))return false;
+    if(record.testId==='sprint'&&(!required(record.protocol,['distanceM'])||!['standing','three-point','flying'].includes(record.protocol.startType)||!required(record.values,['timeSec'])))return false;
+    if(record.testId==='cod-505'&&(!['left','right'].includes(record.protocol.side)||!required(record.values,['timeSec'])))return false;
+    if(record.testId==='vbt'){
+      if(typeof record.protocol.exercise!=='string'||!record.protocol.exercise.trim()||!['mpv','mv','pv'].includes(record.protocol.velocityMetric)||!Array.isArray(record.points)||record.points.length<2||record.points.length>12)return false;
+      if(record.points.some(point=>!isObject(point)||!isFiniteValue(point.loadKg)||Number(point.loadKg)<=0||Number(point.loadKg)>1000||!isFiniteValue(point.velocityMs)||Number(point.velocityMs)<=0||Number(point.velocityMs)>5))return false;
+    }else if(owns(record,'points'))return false;
+    return true;
+  }
+
   function validateProfile(value) {
     if (value === null) return value;
     if (!isObject(value)) invalid('INVALID_PROFILE','Il profilo atleta non è valido.');
@@ -146,6 +170,7 @@
         return ['hours','minutes','seconds','distanceKm'].some(field => owns(item,field) && !isFiniteValue(item[field]));
       })) invalid('INVALID_PROFILE','I personal best del profilo non sono validi.');
     }
+    if(owns(value,'performanceTests')&&(!Array.isArray(value.performanceTests)||value.performanceTests.length>500||value.performanceTests.some(record=>!validatePerformanceTestRecord(record))))invalid('INVALID_PROFILE','Lo storico dei test atleta non è valido.');
     return value;
   }
 
@@ -537,6 +562,7 @@
     }
     if (owns(value,'personalBests') && !Array.isArray(value.personalBests) && !isObject(value.personalBests)) invalid('INVALID_PROFILE','I personal best del profilo non sono validi.');
     if (owns(value,'strengthMaxes') && !isObject(value.strengthMaxes)) invalid('INVALID_PROFILE','I massimali del profilo non sono validi.');
+    if (owns(value,'performanceTests') && !Array.isArray(value.performanceTests)) invalid('INVALID_PROFILE','Lo storico dei test atleta non è valido.');
     if (owns(value,'equipment') && !isObject(value.equipment)) invalid('INVALID_PROFILE','L’attrezzatura del profilo non è valida.');
     if (owns(value,'devices') && !Array.isArray(value.devices)) invalid('INVALID_PROFILE','I dispositivi legacy del profilo non sono validi.');
     const normalized = { ...clone(value) };
@@ -547,10 +573,11 @@
     if (!owns(normalized,'hrZoneMethod')) normalized.hrZoneMethod = 'hrr';
     if (!owns(normalized,'ftpZoneMethod')) normalized.ftpZoneMethod = 'coggan7';
     if (!owns(normalized,'profileSetupComplete')) normalized.profileSetupComplete = true;
+    if (!Array.isArray(normalized.performanceTests)) normalized.performanceTests = [];
     if (!isObject(value.equipment) && Array.isArray(value.devices)) normalized.equipment = categorizeDevices(value.devices);
     const ftp = Number(value.ftp || legacyFtp);
     if (Number.isFinite(ftp) && ftp > 0) normalized.ftp = ftp;
-    normalized.schemaVersion = 3;
+    normalized.schemaVersion = 4;
     return validateProfile(normalized);
   }
   function normalizeSession(session) {
