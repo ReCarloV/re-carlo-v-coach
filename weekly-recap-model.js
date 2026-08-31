@@ -45,6 +45,15 @@
     if(exact)return{...exact,weekStart:target};
     return weeklyCheckin?.weekStart&&mondayFor(weeklyCheckin.weekStart)===target?{...weeklyCheckin,weekStart:target}:null;
   }
+
+  function historyWeekStarts(input={}){
+    const currentWeek=mondayFor(input.currentWeek||input.today||iso(new Date()));
+    const cursor=input.cursor?mondayFor(input.cursor):currentWeek;
+    const sessionStarts=(Array.isArray(input.sessions)?input.sessions:[]).map(item=>item?.date?mondayFor(item.date):null);
+    const availabilityStarts=(Array.isArray(input.availability)?input.availability:[]).map(item=>item?.weekStart?mondayFor(item.weekStart):null);
+    const starts=[currentWeek,cursor,...sessionStarts,...availabilityStarts].filter(start=>start&&start<=currentWeek);
+    return [...new Set(starts)].sort((a,b)=>b.localeCompare(a));
+  }
   function weekClosure(sessions=[]){
     const required=(Array.isArray(sessions)?sessions:[]).filter(item=>!paused(item));const recorded=required.filter(item=>Boolean(item.outcome)),pending=required.filter(item=>!item.outcome);
     return{required:required.length,recorded:recorded.length,pending,ready:pending.length===0};
@@ -141,5 +150,5 @@
     };
   }
 
-  return {buildWeeklyRecap,mondayFor,addDays,availabilityFor,availabilityForTarget,executionCredit,weekClosure};
+  return {buildWeeklyRecap,mondayFor,addDays,availabilityFor,availabilityForTarget,historyWeekStarts,executionCredit,weekClosure};
 });

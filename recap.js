@@ -82,8 +82,7 @@
   }
   function historyStarts(){
     const sessions=window.rcSessions?.getAll?.()||safeDataset('sessions',[]);const availability=window.rcCheckins?.getAvailabilityHistory?.()||safeDataset('weeklyAvailabilityHistory',[]);
-    const starts=[currentWeek,cursor,...sessions.map(item=>modelApi.mondayFor(item.date)),...availability.map(item=>item.weekStart)].filter(Boolean);
-    return [...new Set(starts)].sort((a,b)=>b.localeCompare(a));
+    return modelApi.historyWeekStarts({currentWeek,cursor,sessions,availability});
   }
   function renderHistory(){
     const container=document.getElementById('recap-history');container.replaceChildren();historyStarts().map(start=>buildModel(start)).filter(model=>model.weekStart===currentWeek||model.sessions.length||model.availability).forEach(model=>{
