@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "status": "ok",
-  "generatedAt": "2026-08-24T05:58:36.317Z",
+  "generatedAt": "2026-08-31T11:41:16.506Z",
   "standardVersion": "1.0.0",
   "scan": {
-    "from": "2026-08-11",
-    "to": "2026-08-24",
+    "from": "2026-08-18",
+    "to": "2026-08-31",
     "windowDays": 14
   },
   "source": {
@@ -16,19 +16,19 @@
     {
       "key": "endurance",
       "label": "Endurance",
-      "resultCount": 25,
+      "resultCount": 17,
       "status": "ok"
     },
     {
       "key": "strength",
       "label": "Forza",
-      "resultCount": 9,
+      "resultCount": 10,
       "status": "ok"
     },
     {
       "key": "concurrent",
       "label": "Concurrent / hybrid",
-      "resultCount": 1,
+      "resultCount": 2,
       "status": "ok"
     },
     {
@@ -46,25 +46,25 @@
     {
       "key": "recovery",
       "label": "Recupero e sonno",
-      "resultCount": 54,
+      "resultCount": 48,
       "status": "ok"
     },
     {
       "key": "wearables",
       "label": "Wearable e HRV",
-      "resultCount": 21,
+      "resultCount": 25,
       "status": "ok"
     },
     {
       "key": "monitoring",
       "label": "Monitoraggio del carico",
-      "resultCount": 7,
+      "resultCount": 11,
       "status": "ok"
     },
     {
       "key": "return-to-sport",
       "label": "Return to sport",
-      "resultCount": 27,
+      "resultCount": 32,
       "status": "ok"
     }
   ],
@@ -175,7 +175,7 @@
       "agreementWithStandard": "to-review",
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-08-24T05:58:36.317Z",
-      "lastSeenAt": "2026-08-24T05:58:36.317Z"
+      "lastSeenAt": "2026-08-31T11:41:16.506Z"
     },
     {
       "pmid": "42611173",
@@ -533,6 +533,43 @@
       "lastSeenAt": "2026-08-24T05:58:36.317Z"
     },
     {
+      "pmid": "42666376",
+      "title": "Knee proprioception following anterior cruciate ligament repair and reconstruction: A systematic review and network meta-analysis.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42666376/",
+      "publishedAt": "2026-08-19",
+      "journal": "Asia-Pacific journal of sports medicine, arthroscopy, rehabilitation and technology",
+      "authors": [
+        "Cheng J",
+        "Xia T",
+        "Wu Y",
+        "Chen Y",
+        "Yu L",
+        "Wang TYF"
+      ],
+      "domains": [
+        "recovery"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "synthesis",
+        "tier": "B",
+        "label": "Revisione sistematica / meta-analisi"
+      },
+      "population": {
+        "key": "limited",
+        "label": "Applicabilità limitata"
+      },
+      "practicalRelevance": "low",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-31T11:41:16.506Z",
+      "lastSeenAt": "2026-08-31T11:41:16.506Z"
+    },
+    {
       "pmid": "42611401",
       "title": "Inciting Events of Lower-Limb Muscle Injury: A Systematic Review and Meta-analysis of Video-Based Studies.",
       "url": "https://pubmed.ncbi.nlm.nih.gov/42611401/",
@@ -859,6 +896,150 @@
       "lastSeenAt": "2026-08-10T10:03:35.915Z"
     },
     {
+      "pmid": "42667572",
+      "title": "Technology and Obesity: A Year in Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42667572/",
+      "publishedAt": "2026-08-29",
+      "journal": "Advances in therapy",
+      "authors": [
+        "Patra S",
+        "Bhandarkar A",
+        "Kapoor N",
+        "Kalra S"
+      ],
+      "domains": [
+        "recovery"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "review",
+        "tier": "C",
+        "label": "Revisione narrativa / scoping"
+      },
+      "population": {
+        "key": "contextual",
+        "label": "Applicabilità contestuale"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-31T11:41:16.506Z",
+      "lastSeenAt": "2026-08-31T11:41:16.506Z"
+    },
+    {
+      "pmid": "42667675",
+      "title": "The cold-water immersion recovery-adaptation paradox: Reconciling acute parasympathetic and analgesic benefits with chronic hypertrophy attenuation.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42667675/",
+      "publishedAt": "2026-08-29",
+      "journal": "Experimental physiology",
+      "authors": [
+        "Tornero-Aguilera JF",
+        "Lozano-Meca J",
+        "López-Moreno M",
+        "Sancho-Haro ES",
+        "Muñoz-López M",
+        "Baz-Valle E"
+      ],
+      "domains": [
+        "strength",
+        "recovery",
+        "wearables"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "review",
+        "tier": "C",
+        "label": "Revisione narrativa / scoping"
+      },
+      "population": {
+        "key": "contextual",
+        "label": "Applicabilità contestuale"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-31T11:41:16.506Z",
+      "lastSeenAt": "2026-08-31T11:41:16.506Z"
+    },
+    {
+      "pmid": "42658266",
+      "title": "Hybrid Assistive Limb in orthopaedic rehabilitation: cybernic treatment developed in Japan for neuromotor functional restoration.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42658266/",
+      "publishedAt": "2026-08-27",
+      "journal": "International orthopaedics",
+      "authors": [
+        "Miura K",
+        "Soma Y",
+        "Shimizu Y",
+        "Kadone H",
+        "Kubota S",
+        "Ezaki S"
+      ],
+      "domains": [
+        "wearables"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Review"
+      ],
+      "evidenceType": {
+        "key": "review",
+        "tier": "C",
+        "label": "Revisione narrativa / scoping"
+      },
+      "population": {
+        "key": "contextual",
+        "label": "Applicabilità contestuale"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-31T11:41:16.506Z",
+      "lastSeenAt": "2026-08-31T11:41:16.506Z"
+    },
+    {
+      "pmid": "42660526",
+      "title": "Strength and Conditioning Practices in Tennis: A Narrative Review of Contemporary Evidence.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42660526/",
+      "publishedAt": "2026-08-27",
+      "journal": "International journal of sports physiology and performance",
+      "authors": [
+        "Fernandez-Fernandez J",
+        "Colomar J",
+        "Baiget E"
+      ],
+      "domains": [
+        "monitoring"
+      ],
+      "publicationTypes": [
+        "Journal Article"
+      ],
+      "evidenceType": {
+        "key": "review",
+        "tier": "C",
+        "label": "Revisione narrativa / scoping"
+      },
+      "population": {
+        "key": "contextual",
+        "label": "Applicabilità contestuale"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-31T11:41:16.506Z",
+      "lastSeenAt": "2026-08-31T11:41:16.506Z"
+    },
+    {
       "pmid": "42627713",
       "title": "The Effects of AI-Guided Exercise and a Smart Ring on Arterial Stiffness: Protocol for a Randomized Controlled Trial.",
       "url": "https://pubmed.ncbi.nlm.nih.gov/42627713/",
@@ -931,6 +1112,44 @@
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-08-24T05:58:36.317Z",
       "lastSeenAt": "2026-08-24T05:58:36.317Z"
+    },
+    {
+      "pmid": "42644110",
+      "title": "Ischemic preconditioning enhances 6-hour sprint, jump, and isometric strength responses to complex training in resistance-trained males: a randomized controlled pilot trial.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42644110/",
+      "publishedAt": "2026-08-21",
+      "journal": "PeerJ",
+      "authors": [
+        "Zhou L",
+        "Wang R",
+        "Zhang Y",
+        "Wang L",
+        "Li Z",
+        "Qin S"
+      ],
+      "domains": [
+        "strength",
+        "plyometric"
+      ],
+      "publicationTypes": [
+        "Journal Article",
+        "Randomized Controlled Trial"
+      ],
+      "evidenceType": {
+        "key": "controlled",
+        "tier": "C",
+        "label": "Studio controllato"
+      },
+      "population": {
+        "key": "direct",
+        "label": "Popolazione sportiva"
+      },
+      "practicalRelevance": "medium",
+      "applicability": "to-review",
+      "agreementWithStandard": "to-review",
+      "reviewStatus": "candidate",
+      "firstSeenAt": "2026-08-31T11:41:16.506Z",
+      "lastSeenAt": "2026-08-31T11:41:16.506Z"
     },
     {
       "pmid": "42614059",
@@ -1852,7 +2071,7 @@
       "agreementWithStandard": "to-review",
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-08-24T05:58:36.317Z",
-      "lastSeenAt": "2026-08-24T05:58:36.317Z"
+      "lastSeenAt": "2026-08-31T11:41:16.506Z"
     },
     {
       "pmid": "42617053",
@@ -1995,220 +2214,6 @@
       "reviewStatus": "candidate",
       "firstSeenAt": "2026-08-10T10:03:35.915Z",
       "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42566134",
-      "title": "Understanding Anterior Cruciate Ligament Adaptation: Structural, Mechanical, and Healing Considerations.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42566134/",
-      "publishedAt": "2026-08-07",
-      "journal": "Sports medicine (Auckland, N.Z.)",
-      "authors": [
-        "Staniucha OK",
-        "Birse SM",
-        "Ferris DE",
-        "Morris BA",
-        "McCarthy AM",
-        "Gabbett TJ"
-      ],
-      "domains": [
-        "strength"
-      ],
-      "publicationTypes": [
-        "Journal Article",
-        "Review"
-      ],
-      "evidenceType": {
-        "key": "review",
-        "tier": "C",
-        "label": "Revisione narrativa / scoping"
-      },
-      "population": {
-        "key": "limited",
-        "label": "Applicabilità limitata"
-      },
-      "practicalRelevance": "low",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-17T08:02:49.767Z"
-    },
-    {
-      "pmid": "42560414",
-      "title": "Exercise Training and Heart Rate Variability: A Guided Optimization of Cardiorespiratory Fitness in Cardiometabolic Disease.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42560414/",
-      "publishedAt": "2026-08-06",
-      "journal": "Current atherosclerosis reports",
-      "authors": [
-        "Mendoza MF",
-        "Anzelmo MA",
-        "Rojas AA",
-        "Suan NM",
-        "Lavie CJ"
-      ],
-      "domains": [
-        "wearables"
-      ],
-      "publicationTypes": [
-        "Journal Article",
-        "Review"
-      ],
-      "evidenceType": {
-        "key": "review",
-        "tier": "C",
-        "label": "Revisione narrativa / scoping"
-      },
-      "population": {
-        "key": "limited",
-        "label": "Applicabilità limitata"
-      },
-      "practicalRelevance": "low",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-10T10:03:35.915Z"
-    },
-    {
-      "pmid": "42552323",
-      "title": "Virtual reality-assisted neuromuscular training effects on agility performance and injury prevention in basketball athletes: a controlled laboratory experiment.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42552323/",
-      "publishedAt": "2026-08-05",
-      "journal": "Scientific reports",
-      "authors": [
-        "Jiang L",
-        "Wu Y"
-      ],
-      "domains": [
-        "plyometric"
-      ],
-      "publicationTypes": [
-        "Journal Article",
-        "Randomized Controlled Trial"
-      ],
-      "evidenceType": {
-        "key": "controlled",
-        "tier": "C",
-        "label": "Studio controllato"
-      },
-      "population": {
-        "key": "limited",
-        "label": "Applicabilità limitata"
-      },
-      "practicalRelevance": "low",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-10T10:03:35.915Z",
-      "lastSeenAt": "2026-08-17T08:02:49.767Z"
-    },
-    {
-      "pmid": "42090888",
-      "title": "Exploring the role of artificial intelligence in anterior cruciate ligament injuries in high-performing & elite athletes.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42090888/",
-      "publishedAt": "2026-08-01",
-      "journal": "The Knee",
-      "authors": [
-        "Lisacek-Kiosoglous A",
-        "Latoo A",
-        "Peach Y",
-        "Fontannaz D",
-        "Boubaris J",
-        "Fontalis A"
-      ],
-      "domains": [
-        "wearables"
-      ],
-      "publicationTypes": [
-        "Journal Article",
-        "Review"
-      ],
-      "evidenceType": {
-        "key": "review",
-        "tier": "C",
-        "label": "Revisione narrativa / scoping"
-      },
-      "population": {
-        "key": "limited",
-        "label": "Applicabilità limitata"
-      },
-      "practicalRelevance": "low",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-03T14:04:23.022Z",
-      "lastSeenAt": "2026-08-03T14:04:23.022Z"
-    },
-    {
-      "pmid": "42442879",
-      "title": "Muscle Injuries in the Older Athlete.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42442879/",
-      "publishedAt": "2026-08-01",
-      "journal": "Magnetic resonance imaging clinics of North America",
-      "authors": [
-        "Pascual TA",
-        "Azulay G",
-        "Chahla J",
-        "Marrero A",
-        "Rolón AU",
-        "Arguello JF"
-      ],
-      "domains": [
-        "recovery"
-      ],
-      "publicationTypes": [
-        "Journal Article",
-        "Review"
-      ],
-      "evidenceType": {
-        "key": "review",
-        "tier": "C",
-        "label": "Revisione narrativa / scoping"
-      },
-      "population": {
-        "key": "limited",
-        "label": "Applicabilità limitata"
-      },
-      "practicalRelevance": "low",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-08-03T14:04:23.022Z",
-      "lastSeenAt": "2026-08-03T14:04:23.022Z"
-    },
-    {
-      "pmid": "42530617",
-      "title": "Imaging characterization of sports-related hamstring injuries.",
-      "url": "https://pubmed.ncbi.nlm.nih.gov/42530617/",
-      "publishedAt": "2026-07-30",
-      "journal": "Skeletal radiology",
-      "authors": [
-        "Weber MA",
-        "Randow M",
-        "Klaan B"
-      ],
-      "domains": [
-        "return-to-sport"
-      ],
-      "publicationTypes": [
-        "Journal Article",
-        "Review"
-      ],
-      "evidenceType": {
-        "key": "review",
-        "tier": "C",
-        "label": "Revisione narrativa / scoping"
-      },
-      "population": {
-        "key": "limited",
-        "label": "Applicabilità limitata"
-      },
-      "practicalRelevance": "low",
-      "applicability": "to-review",
-      "agreementWithStandard": "to-review",
-      "reviewStatus": "candidate",
-      "firstSeenAt": "2026-07-31T11:16:53.165Z",
-      "lastSeenAt": "2026-07-31T11:31:22.191Z"
     }
   ],
   "review": {
