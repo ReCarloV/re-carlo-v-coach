@@ -68,11 +68,11 @@
     if (d.strengthFocus === 'Forza HYROX') d.strengthFocus = 'HYROX strength';
     if (hyroxTypes[d.hyroxFormat]) d.hyroxFormat = hyroxTypes[d.hyroxFormat];
     const outcome = session.outcome && outcomeMeta[session.outcome.status] ? session.outcome : null;
-    const migrated={...session,details:d,outcome,titleMode:session.titleMode || 'custom'};return window.rcPlanImportModel?.migrateImportedRaceDate?window.rcPlanImportModel.migrateImportedRaceDate(migrated):migrated;
+    return{...session,details:d,outcome,titleMode:session.titleMode || 'custom'};
   }
   function load() {
     try {
-      const stored=JSON.parse(localStorage.getItem(STORAGE_KEY)),source=Array.isArray(stored)?stored:structuredClone(defaults),migrated=source.map(migrateSession).map(item=>prescriptionModel?.normalizeSessionContent?.(item)||item),retired=window.rcPlanImportModel?.retireImportedPlan?.(migrated,{today:localDate()})||{sessions:migrated,changed:false};
+      const stored=JSON.parse(localStorage.getItem(STORAGE_KEY)),source=Array.isArray(stored)?stored:structuredClone(defaults),migrated=source.map(migrateSession).map(item=>prescriptionModel?.normalizeSessionContent?.(item)||item),legacy=window.rcLegacyPlanMigrationModel,retired=legacy?.hasPendingMigration?.(migrated)?legacy.migrateLegacyPlan(migrated,{today:localDate()}):{sessions:migrated,changed:false};
       let active=retired.sessions,retirementChanged=retired.changed;
       if(retired.archivedSessions?.length){
         try{const store=window.rcDataStore;if(!store)throw new Error('Archivio dati non disponibile');const existing=store.getDataset('retiredPlanSessions'),byId=new Map(existing.map(item=>[item.id,item]));retired.archivedSessions.forEach(item=>byId.set(item.id,item));store.setDataset('retiredPlanSessions',[...byId.values()]);}

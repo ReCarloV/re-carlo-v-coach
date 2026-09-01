@@ -19,3 +19,5 @@ html[data-theme="light"] .reconciliation-reasons span{background:#e3f5ef;color:#
 html[data-theme="light"] .reconciliation-history summary{color:#314d68}
 html[data-theme="light"] .reconciliation-history summary span{background:#e8f1fa;color:#28649c}
 html[data-theme="light"] .reconciliation-cutoff-note{border-color:#c7d9ea;background:#eef6fd;color:#476682}
+.lab-tools-panel{margin-top:16px}.lab-tools-panel>.panel-head{margin-bottom:0}.lab-tools-body{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}.lab-tools-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.lab-tool-card{display:grid;align-content:space-between;min-height:170px;padding:18px;border:1px solid var(--line);border-radius:12px;background:#0b1728}.lab-tool-card h3{margin:5px 0 8px}.lab-tool-card .data-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.lab-tools-state{margin:12px 0 0;color:var(--muted);font-size:11px}.lab-tools-body[hidden]{display:none}
+@media(max-width:700px){.lab-tools-panel>.panel-head{align-items:flex-start}.lab-tools-panel>.panel-head>button{width:100%}.lab-tools-grid{grid-template-columns:1fr}.lab-tool-card{min-height:0}}

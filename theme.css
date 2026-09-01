@@ -473,6 +473,7 @@ html[data-theme="light"] .source-status.optional{border:1px solid #bfd0e2;backgr
 html[data-theme="light"] .source-status.service-offline{border:1px solid #dda8b1;background:#fff0f2;color:#a23c50}
 html[data-theme="light"] .settings-disclosure-toggle{border-color:#b9ccde;background:#edf4fa;color:#3f6488}
 html[data-theme="light"] .settings-disclosure-toggle:hover,html[data-theme="light"] .settings-disclosure.is-open .settings-disclosure-toggle{border-color:#78a5d2;background:#e3f0fc;color:#174f92}
+html[data-theme="light"] .lab-tool-card{border-color:#cbdbe8;background:#f7fafc}
 html[data-theme="light"] .import-safety span{border-color:#bfd3e6;background:#edf5fd;color:#245f96}
 html[data-theme="light"] .import-source-card code{border-color:#d2dfeb;background:#edf3f8;color:#294f7a}
 html[data-theme="light"] .plan-source .plan-button{border-color:#a9c1d9!important;background:#edf4fb!important;color:#245f96!important}

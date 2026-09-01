@@ -30,7 +30,6 @@
   <link rel="stylesheet" href="fasting-tracker.css">
   <link rel="stylesheet" href="workout-mode.css">
   <link rel="stylesheet" href="recap.css">
-  <link rel="stylesheet" href="demo-data.css">
   <link rel="stylesheet" href="session-selection.css">
   <link rel="stylesheet" href="strength-performance.css">
   <link rel="stylesheet" href="strength-reliability.css">
@@ -244,7 +243,6 @@
             </div>
           </article>
           <article class="panel data-panel"><div><small>PROTEZIONE DATI</small><h2>Backup completo</h2><p class="muted">Tutti i dati dell’app in un unico file.</p><small id="backup-status">Resta sul tuo dispositivo.</small></div><div class="data-actions"><button class="ghost" id="export-profile">Esporta backup</button><label class="ghost file-button" for="import-profile">Ripristina backup</label><input id="import-profile" type="file" accept="application/json"></div></article>
-          <article class="panel data-panel demo-panel"><div><small>AMBIENTE DI PROVA</small><h2>Mese dimostrativo</h2><p class="muted">20 sedute di giugno 2026, marcate DEMO.</p><small id="demo-data-status">Nessun dato dimostrativo caricato.</small></div><div class="data-actions"><button class="primary" id="load-demo-data" type="button">Carica giugno demo</button><button class="ghost" id="remove-demo-data" type="button" disabled>Rimuovi demo</button></div></article>
         </div>
         <div class="settings-section-head">
           <div><small>STORICO E PROVENIENZA</small><h2>Dati e connessioni</h2></div>
@@ -382,6 +380,16 @@
             <summary>Decisioni già prese <span id="reconciliation-history-count">0</span></summary>
             <div id="reconciliation-history-list"></div>
           </details>
+        </article>
+        <article class="panel lab-tools-panel" id="lab-tools-panel">
+          <div class="panel-head"><div><small>AREA SEPARATA</small><h2>Laboratorio e migrazioni</h2><p class="muted">Gli strumenti di prova e il vecchio Excel restano fuori dall’uso quotidiano.</p></div><button class="ghost" id="lab-tools-toggle" type="button" aria-controls="lab-tools-body" aria-expanded="false">Apri laboratorio</button></div>
+          <div class="lab-tools-body" id="lab-tools-body" hidden>
+            <div class="lab-tools-grid">
+              <section class="lab-tool-card demo-panel"><div><small>AMBIENTE DI PROVA</small><h3>Mese dimostrativo</h3><p class="muted">20 sedute di giugno 2026, tutte marcate DEMO e separate dalle analisi reali.</p><small id="demo-data-status">Gli strumenti demo non sono ancora caricati.</small></div><div class="data-actions"><button class="primary" id="load-demo-data" type="button">Carica giugno demo</button><button class="ghost" id="remove-demo-data" type="button" disabled>Rimuovi demo</button></div></section>
+              <section class="lab-tool-card"><div><small>ARCHIVIO STORICO</small><h3>Vecchio piano Excel</h3><p class="muted">L’importazione è disattivata. Le vecchie sedute restano leggibili nel backup, ma non guidano più il Piano.</p><small id="legacy-plan-archive-status">L’archivio verrà controllato all’apertura.</small></div></section>
+            </div>
+            <p class="lab-tools-state" id="lab-tools-load-state">Questa area viene caricata soltanto quando la apri.</p>
+          </div>
         </article>
       </section>
 
@@ -770,7 +778,7 @@
   <script defer src="tab-coordination-model.js"></script>
   <script defer src="tab-coordination.js"></script>
   <script defer src="activity-import-model.js"></script>
-  <script defer src="plan-import-model.js"></script>
+  <script defer src="legacy-plan-migration-model.js"></script>
   <script defer src="whoop-import-model.js"></script>
   <script defer src="whoop-api-model.js"></script>
   <script defer src="reconciliation-model.js"></script>
@@ -823,8 +831,7 @@
   <script defer src="weekly-recap-model.js"></script>
   <script defer src="recap.js"></script>
   <script defer src="generator.js"></script>
-  <script defer src="demo-data-model.js"></script>
-  <script defer src="demo-data.js"></script>
+  <script defer src="lab-tools.js"></script>
   <script defer src="data-import.js"></script>
   <script defer src="whoop-import.js"></script>
   <script defer src="vendor/supabase-2.110.5.min.js"></script>
