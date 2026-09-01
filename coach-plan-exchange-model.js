@@ -7,6 +7,7 @@
 
   const BRIEF_VERSION=1;
   const PLAN_VERSION=1;
+  const REVIEW_VERSION=1;
   const APP_NAME='Re Carlo V Personal Coach';
   const categories=new Set(['running','swimming','cycling','strength','hyrox','metcon','test','recovery']);
   const priorities=new Set(['essential','important','optional']);
@@ -33,18 +34,37 @@
   function error(code,message,details=[]){const failure=new Error(message);failure.name='CoachPlanError';failure.code=code;failure.details=details;throw failure;}
   function boundedArray(value,max,label){if(!Array.isArray(value)||value.length>max)error('INVALID_COACH_PLAN',`${label} non è valido.`);return value;}
   function activeGoal(goals,today){return[...(Array.isArray(goals)?goals:[])].filter(goal=>goal?.status==='planned'&&goal.priority==='A'&&dateKey(goal.date)&&goal.date>=today).sort((a,b)=>a.date.localeCompare(b.date))[0]||null;}
-  function sessionBrief(session){
+  function number(value){return value!==null&&value!==''&&Number.isFinite(Number(value))?Number(value):null;}
+  function rounded(value,digits=1){return value===null?null:Number(value.toFixed(digits));}
+  function paceFrom(durationMin,distanceKm){const duration=number(durationMin),distance=number(distanceKm);return duration&&distance?Math.round(duration*60/distance):null;}
+  function activityBrief(activity){
+    const durationMin=number(activity.durationMin)??(number(activity.movingSec)!==null?number(activity.movingSec)/60:null),distanceKm=number(activity.distanceKm)??(number(activity.distanceM)!==null?number(activity.distanceM)/1000:null);
+    return stable({id:activity.id,date:activity.date,localStart:activity.localStart,type:activity.type||activity.category,sport:activity.sport||activity.sportType,name:activity.name,durationMin:rounded(durationMin),distanceKm:rounded(distanceKm,3),averagePaceSecPerKm:paceFrom(durationMin,distanceKm),averageHr:activity.averageHr,maxHr:activity.maxHr,elevationM:activity.elevationM??activity.elevationGainM,calories:activity.calories,source:activity.source?.provider||'strava'});
+  }
+  function whoopWorkoutBrief(item){const durationMin=number(item.durationMin),distanceKm=number(item.distanceKm);return stable({id:item.id,date:item.date,start:item.start,end:item.end,sport:item.sport,durationMin:rounded(durationMin),strain:item.strain,averageHr:item.averageHr,maxHr:item.maxHr,calories:item.calories,distanceKm:rounded(distanceKm,3),averagePaceSecPerKm:paceFrom(durationMin,distanceKm)});}
+  function evidenceIndexes(input={}){
+    return{
+      activities:new Map((input.importedActivities||[]).map(item=>[item.id,item])),
+      workouts:new Map((input.whoopWorkouts||[]).map(item=>[item.id,item])),
+      decisions:new Map((input.reconciliationDecisions||[]).filter(item=>item.status==='confirmed'&&item.sessionId).map(item=>[item.sessionId,item]))
+    };
+  }
+  function sessionDeviceObservations(session,indexes){
+    const snapshot=session.outcome?.deviceEvidence||{},decision=indexes?.decisions?.get(session.id)||{},stravaId=snapshot.stravaActivityId||decision.stravaActivityId||null,whoopId=snapshot.whoopWorkoutId||decision.whoopWorkoutId||null;
+    const strava=stravaId?indexes?.activities?.get(stravaId)||null:null,whoop=whoopId?indexes?.workouts?.get(whoopId)||null:null;if(!strava&&!whoop)return null;
+    return stable({decisionId:snapshot.reconciliationDecisionId||decision.id||null,strava:strava?activityBrief(strava):null,whoop:whoop?whoopWorkoutBrief(whoop):null,note:'Riepiloghi dell’intera seduta; non rappresentano automaticamente i singoli blocchi prescritti.'});
+  }
+  function sessionBrief(session,indexes){
     return stable({
       id:session.id,date:session.date,category:session.category,title:session.title,durationMin:session.durationMin,startTime:session.startTime||null,priority:session.priority,
       details:session.details||{},notes:session.notes||'',rationale:session.rationale||'',outcome:session.outcome||null,
       goalId:session.goalId||session.baselinePlan?.goalId||session.coachPlan?.goalId||null,goalGenerated:Boolean(session.goalGenerated),
-      plan:{baseline:session.baselinePlan||null,coach:session.coachPlan||null,adaptive:session.adaptiveAdjustment||null,application:session.coachApplication||null,manualOverride:Boolean(session.manualOverride)}
+      plan:{baseline:session.baselinePlan||null,coach:session.coachPlan||null,adaptive:session.adaptiveAdjustment||null,application:session.coachApplication||null,manualOverride:Boolean(session.manualOverride)},
+      deviceObservations:sessionDeviceObservations(session,indexes)
     });
   }
-  function activityBrief(activity){return stable({id:activity.id,date:activity.date,localStart:activity.localStart,type:activity.type,sport:activity.sport,name:activity.name,durationMin:activity.durationMin,distanceKm:activity.distanceKm,averageHr:activity.averageHr,maxHr:activity.maxHr,elevationM:activity.elevationM,calories:activity.calories,source:activity.source?.provider||'strava'});}
   function whoopCycleBrief(item){return stable({id:item.id,date:item.date||item.cycleDate,start:item.cycleStart,end:item.cycleEnd,recoveryScore:item.recoveryScore,dayStrain:item.dayStrain,restingHr:item.restingHr,hrvMs:item.hrvMs,spo2:item.spo2,skinTempC:item.skinTempC});}
   function whoopSleepBrief(item){return stable({id:item.id,date:item.date||item.sleepDate,start:item.sleepStart,end:item.sleepEnd,sleepPerformance:item.sleepPerformance,sleepConsistency:item.sleepConsistency,sleepEfficiency:item.sleepEfficiency,respiratoryRate:item.respiratoryRate,asleepMinutes:item.asleepMinutes,inBedMinutes:item.inBedMinutes});}
-  function whoopWorkoutBrief(item){return stable({id:item.id,date:item.date,start:item.start,end:item.end,sport:item.sport,durationMin:item.durationMin,strain:item.strain,averageHr:item.averageHr,maxHr:item.maxHr,calories:item.calories,distanceKm:item.distanceKm});}
   function profileBrief(profile,hrZones){
     const fields=['firstName','lastName','nickname','birthDate','heightCm','weightKg','level','sports','equipment','maxHr','restingHr','ftp','hrZoneMethod','ftpZoneMethod','strengthFormula','strengthMaxes','personalBests','performanceTests','heartRateSources','bodyMeasurementSources'];
     return stable({...Object.fromEntries(fields.filter(field=>Object.prototype.hasOwnProperty.call(profile||{},field)).map(field=>[field,clone(profile[field])])),hrZones:Array.isArray(hrZones)?clone(hrZones):null});
@@ -60,10 +80,11 @@
     const today=options.today||iso(options.now instanceof Date?options.now:new Date(options.now||Date.now())),goals=Array.isArray(input.goals)?input.goals:[],goal=options.goal||activeGoal(goals,today),plans=Array.isArray(input.coachPlans)?input.coachPlans:[];
     const plan=plans.filter(item=>item.goalId===goal?.id&&item.status==='active').sort((a,b)=>Number(b.revision)-Number(a.revision)||String(b.importedAt||'').localeCompare(String(a.importedAt||'')))[0]||null;
     if(!goal||!plan)return{level:'missing',label:'Piano da preparare',summary:'Non è presente una revisione attiva per l’obiettivo principale.',reasons:['Esporta il dossier iniziale e importa il piano preparato nella task Elite Coach.'],metrics:{due:0,recorded:0,adherence:null,keyMissed:0,manualChanges:0,daysSinceRevision:0},goalId:goal?.id||null,planId:null,revision:null,nextReviewDate:null};
-    const importedDate=String(plan.importedAt||plan.generatedAt||plan.validFrom).slice(0,10),from=importedDate>plan.validFrom?importedDate:plan.validFrom,sessions=Array.isArray(input.sessions)?input.sessions:[];
-    const planSessions=sessions.filter(item=>item.coachPlan?.planId===plan.id&&item.date>=from),due=planSessions.filter(item=>item.date<today&&item.adaptiveAdjustment?.status!=='paused'),recorded=due.filter(item=>item.outcome),completed=recorded.filter(item=>item.outcome.status==='completed').length,partial=recorded.filter(item=>item.outcome.status==='partial').length;
-    const adherence=due.length?Number(((completed+partial*.6)/due.length).toFixed(3)):null,keyMissed=due.filter(item=>item.priority==='essential'&&!['completed','partial'].includes(item.outcome?.status)).length,manualChanges=planSessions.filter(item=>item.manualOverride).length;
-    const goalChanged=timestamp(goal.updatedAt)&&timestamp(plan.importedAt)&&new Date(goal.updatedAt)>new Date(plan.importedAt),highSymptom=(input.bodyIssues||[]).some(item=>item?.status!=='resolved'&&Number(item.latestPain??item.initialPain)>=5),daysSinceRevision=daysBetween(importedDate,today),reasons=[];
+    const reviews=[...(Array.isArray(plan.reviews)?plan.reviews:[])].filter(item=>item?.decision==='confirmed'&&timestamp(item.reviewedAt)&&timestamp(item.dossierExportedAt)).sort((a,b)=>a.reviewedAt.localeCompare(b.reviewedAt)),latestReview=reviews.at(-1)||null;
+    const importedTimestamp=plan.importedAt||plan.generatedAt||`${plan.validFrom}T00:00:00.000Z`,cutoffTimestamp=latestReview?.dossierExportedAt||importedTimestamp,anchorDate=latestReview?.reviewedThrough?addDays(latestReview.reviewedThrough,1):String(latestReview?.reviewedAt||importedTimestamp).slice(0,10),from=anchorDate>plan.validFrom?anchorDate:plan.validFrom,sessions=Array.isArray(input.sessions)?input.sessions:[];
+    const allPlanSessions=sessions.filter(item=>item.coachPlan?.planId===plan.id),planSessions=allPlanSessions.filter(item=>item.date>=from),due=planSessions.filter(item=>item.date<today&&item.adaptiveAdjustment?.status!=='paused'),recorded=due.filter(item=>item.outcome),completed=recorded.filter(item=>item.outcome.status==='completed').length,partial=recorded.filter(item=>item.outcome.status==='partial').length;
+    const adherence=due.length?Number(((completed+partial*.6)/due.length).toFixed(3)):null,keyMissed=due.filter(item=>item.priority==='essential'&&!['completed','partial'].includes(item.outcome?.status)).length,manualChanges=allPlanSessions.filter(item=>item.manualOverride&&timestamp(item.updatedAt)&&new Date(item.updatedAt)>new Date(cutoffTimestamp)).length;
+    const goalChanged=timestamp(goal.updatedAt)&&new Date(goal.updatedAt)>new Date(cutoffTimestamp),highSymptom=(input.bodyIssues||[]).some(item=>item?.status!=='resolved'&&Number(item.latestPain??item.initialPain)>=5),daysSinceRevision=daysBetween(anchorDate,today),reasons=[];
     if(goalChanged)reasons.push('L’obiettivo o la disponibilità strutturale sono cambiati dopo l’ultima importazione.');
     if(keyMissed>=2)reasons.push(`${keyMissed} sedute essenziali dovute non risultano completate.`);
     if(due.length>=4&&adherence!==null&&adherence<.7)reasons.push(`Aderenza ponderata al ${Math.round(adherence*100)}% sulle sedute dovute della revisione.`);
@@ -71,16 +92,16 @@
     let level=reasons.length?'due':'current';
     if(level==='current'&&manualChanges>=2){level='recommended';reasons.push(`${manualChanges} sedute del piano sono state modificate manualmente.`);}
     if(level==='current'&&daysSinceRevision>=21&&recorded.length>=6){level='recommended';reasons.push(`Sono trascorsi ${daysSinceRevision} giorni e sono disponibili ${recorded.length} nuovi esiti dalla revisione ${plan.revision}.`);}
-    if(level==='current')reasons.push('La revisione attiva è recente e non emergono segnali strutturali sufficienti per sostituirla.');
+    if(level==='current')reasons.push(latestReview?`Il Coach ha confermato il piano il ${new Date(latestReview.reviewedAt).toLocaleDateString('it-IT')}; da allora non emergono nuovi segnali strutturali.`:'La revisione attiva è recente e non emergono segnali strutturali sufficienti per sostituirla.');
     const labels={due:'Revisione necessaria',recommended:'Revisione consigliata',current:'Piano aggiornato'};
-    return{level,label:labels[level],summary:level==='due'?'Il piano va rivalutato nella task Elite Coach prima di modificarne la struttura.':level==='recommended'?'Ci sono abbastanza nuovi dati per un controllo del piano, senza urgenza.':'L’app continua a registrare dati e ad applicare solo adattamenti operativi conservativi.',reasons,metrics:{due:due.length,recorded:recorded.length,adherence,keyMissed,manualChanges,daysSinceRevision},goalId:goal.id,planId:plan.id,revision:Number(plan.revision),reviewedFrom:from,nextReviewDate:addDays(importedDate,21)};
+    return{level,label:labels[level],summary:level==='due'?'Il piano va rivalutato nella task Elite Coach prima di modificarne la struttura.':level==='recommended'?'Ci sono abbastanza nuovi dati per un controllo del piano, senza urgenza.':'L’app continua a registrare dati e ad applicare solo adattamenti operativi conservativi.',reasons,metrics:{due:due.length,recorded:recorded.length,adherence,keyMissed,manualChanges,daysSinceRevision},goalId:goal.id,planId:plan.id,revision:Number(plan.revision),reviewedFrom:from,lastReviewedAt:latestReview?.reviewedAt||null,nextReviewDate:addDays(String(latestReview?.reviewedAt||importedTimestamp).slice(0,10),21)};
   }
   function createBrief(input={},options={}){
     const now=options.now instanceof Date?options.now:new Date(options.now||Date.now()),today=options.today||iso(now),goal=options.goal||activeGoal(input.goals,today);
     if(!goal)error('NO_PRIORITY_A_GOAL','Serve un obiettivo futuro di priorità A per creare il dossier del Coach.');
-    const historyFrom=addDays(today,-83),whoopFrom=addDays(today,-27),sessions=Array.isArray(input.sessions)?input.sessions:[],goals=Array.isArray(input.goals)?input.goals:[],review=assessReviewNeed(input,{today,goal});
-    const recentSessions=sessions.filter(item=>item.date>=historyFrom&&item.date<today).sort((a,b)=>a.date.localeCompare(b.date)).map(sessionBrief);
-    const futureSessions=sessions.filter(item=>item.date>=today&&item.date<=goal.date).sort((a,b)=>a.date.localeCompare(b.date)).map(sessionBrief);
+    const historyFrom=addDays(today,-83),whoopFrom=addDays(today,-27),sessions=Array.isArray(input.sessions)?input.sessions:[],goals=Array.isArray(input.goals)?input.goals:[],review=assessReviewNeed(input,{today,goal}),indexes=evidenceIndexes(input);
+    const recentSessions=sessions.filter(item=>item.date>=historyFrom&&item.date<today).sort((a,b)=>a.date.localeCompare(b.date)).map(item=>sessionBrief(item,indexes));
+    const futureSessions=sessions.filter(item=>item.date>=today&&item.date<=goal.date).sort((a,b)=>a.date.localeCompare(b.date)).map(item=>sessionBrief(item,indexes));
     const availability=(goal.trainingAvailability&&clone(goal.trainingAvailability))||[...(input.weeklyAvailabilityHistory||[])].sort((a,b)=>String(b.weekStart).localeCompare(String(a.weekStart)))[0]||null;
     return stable({
       app:APP_NAME,kind:'coach-brief',schemaVersion:BRIEF_VERSION,exportedAt:now.toISOString(),today,
@@ -95,7 +116,7 @@
         bodyIssues:(input.bodyIssues||[]).filter(item=>item.status==='active'||String(item.resolvedAt||'').slice(0,10)>=historyFrom).map(clone)
       },
       currentPlan:{review,sessions:futureSessions,coachPlans:clone(input.coachPlans||[])},
-      outputContract:{kind:'coach-plan',schemaVersion:PLAN_VERSION,importRule:'Restituisci un unico file JSON valido. Le gare già presenti negli obiettivi non vanno duplicate come sedute.',requiredSessionStructure:'Ogni seduta deve avere prescrizione strutturata nei details e rationale; nessun dato sensore futuro va inventato.'}
+      outputContract:{kind:'coach-plan',schemaVersion:PLAN_VERSION,reviewKind:'coach-review',reviewSchemaVersion:REVIEW_VERSION,importRule:'Restituisci un piano JSON solo se la struttura deve cambiare; se il piano resta valido, restituisci un esito coach-review che conferma la revisione attiva.',requiredSessionStructure:'Ogni seduta deve avere prescrizione strutturata nei details e rationale; nessun dato sensore futuro va inventato.'}
     });
   }
   function validateBlocks(session,errors){
@@ -160,5 +181,27 @@
     return{value,record,sessions:incoming,nextSessions:[...preserved,...incoming].sort((a,b)=>a.date.localeCompare(b.date)||a.title.localeCompare(b.title)),nextCoachPlans:nextPlans,nextRetiredPlanSessions:[...retiredMap.values()],preview:{goalName:goal.name,revision:record.revision,validFrom:record.validFrom,validTo:record.validTo,added:incoming.length,replaced:replaceable.length,protected:sessions.filter(item=>item.date>=record.validFrom&&item.date<=record.validTo&&!replaceIds.has(item.id)).length,omittedRaceDuplicates:omitted.length,categoryCounts,methodology:record.methodology.summary,warnings:[...(omitted.length?[`${omitted.length} seduta/e gara duplicate escluse: fanno fede gli obiettivi già salvati nell’app.`]:[]),...(replaceable.some(item=>item.outcome)?['Le sedute registrate non verranno sostituite.']:[])]}};
   }
 
-  return{APP_NAME,BRIEF_VERSION,PLAN_VERSION,createBrief,assessReviewNeed,validatePlanPackage,buildImport,activeGoal,mondayFor,hash,stable};
+  function validateReviewPackage(raw,context={}){
+    const value=typeof raw==='string'?(()=>{try{return JSON.parse(raw);}catch(_){error('INVALID_JSON','Il file del Coach non contiene JSON valido.');}})():clone(raw);
+    if(!isObject(value)||value.app!==APP_NAME||value.kind!=='coach-review'||value.schemaVersion!==REVIEW_VERSION)error('INVALID_COACH_REVIEW','Il file non è un esito di revisione Coach compatibile con questa app.');
+    const review=value.review;if(!isObject(review)||!text(review.goalId,160)||!text(review.goalName,200)||!text(review.planId,200)||!Number.isInteger(Number(review.revision))||Number(review.revision)<1||review.decision!=='confirmed'||!text(review.author,200)||!timestamp(review.reviewedAt)||!timestamp(review.dossierExportedAt)||!dateKey(review.reviewedThrough)||!text(review.summary,3000))error('INVALID_COACH_REVIEW','Identità, decisione o periodo dell’esito Coach non sono validi.');
+    if(new Date(review.reviewedAt)<new Date(review.dossierExportedAt))error('INVALID_COACH_REVIEW','La revisione non può precedere il dossier su cui si basa.');
+    if(context.today&&review.reviewedThrough>=context.today)error('INVALID_COACH_REVIEW','L’esito può confermare soltanto giornate concluse presenti nel dossier.');
+    if(context.now&&new Date(review.reviewedAt)>new Date(context.now).getTime()+5*60*1000)error('INVALID_COACH_REVIEW','La data dell’esito Coach è nel futuro.');
+    ['findings','nextReviewTriggers'].forEach(field=>{if(review[field]!==undefined&&(!Array.isArray(review[field])||review[field].length>30||review[field].some(item=>!text(item,1000))))error('INVALID_COACH_REVIEW',`Il campo ${field} dell’esito Coach non è valido.`);});
+    const plans=Array.isArray(context.coachPlans)?context.coachPlans:[],plan=plans.find(item=>item.status==='active'&&item.id===review.planId)||null;
+    if(!plan)error('COACH_REVIEW_PLAN_MISMATCH','Il piano revisionato non è più quello attivo nell’app.');
+    if(plan.goalId!==review.goalId||Number(plan.revision)!==Number(review.revision))error('COACH_REVIEW_PLAN_MISMATCH','L’esito Coach non corrisponde all’obiettivo o alla revisione attiva.');
+    if(context.goal&&context.goal.id!==review.goalId)error('GOAL_MISMATCH',`L’esito è per “${review.goalName}”, non per l’obiettivo selezionato “${context.goal.name}”.`);
+    return{value,plan};
+  }
+  function buildReviewImport(raw,context={}){
+    const now=context.now instanceof Date?context.now:new Date(context.now||Date.now()),validated=validateReviewPackage(raw,{...context,now}),value=validated.value,review=value.review,plans=Array.isArray(context.coachPlans)?clone(context.coachPlans):[];
+    const id=review.id&&text(review.id,200)?review.id:`coach-review-${hash(`${review.planId}|${review.revision}|${review.dossierExportedAt}`)}`,record={id,version:1,goalId:review.goalId,goalName:review.goalName,planId:review.planId,revision:Number(review.revision),decision:'confirmed',author:review.author,source:'codex',reviewedAt:review.reviewedAt,dossierExportedAt:review.dossierExportedAt,reviewedThrough:review.reviewedThrough,summary:review.summary,findings:clone(review.findings||[]),nextReviewTriggers:clone(review.nextReviewTriggers||[])};
+    const existing=Array.isArray(validated.plan.reviews)?validated.plan.reviews:[];if(existing.some(item=>item.id===record.id||item.dossierExportedAt===record.dossierExportedAt))error('DUPLICATE_COACH_REVIEW','Questo esito di revisione è già stato registrato.');
+    const nextCoachPlans=plans.map(plan=>plan.id===record.planId?{...plan,reviews:[...existing,record].sort((a,b)=>a.reviewedAt.localeCompare(b.reviewedAt))}:plan),nextReviewDate=addDays(record.reviewedAt.slice(0,10),21);
+    return{kind:'coach-review',value,record,nextCoachPlans,preview:{goalName:record.goalName,revision:record.revision,reviewedAt:record.reviewedAt,reviewedThrough:record.reviewedThrough,summary:record.summary,findings:record.findings,nextReviewDate}};
+  }
+
+  return{APP_NAME,BRIEF_VERSION,PLAN_VERSION,REVIEW_VERSION,createBrief,assessReviewNeed,validatePlanPackage,buildImport,validateReviewPackage,buildReviewImport,activeGoal,mondayFor,hash,stable};
 });

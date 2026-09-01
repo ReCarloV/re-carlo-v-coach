@@ -36,7 +36,7 @@ main>header h1{font-size:30px;line-height:1.12}
 .primary.small,.ghost.small{min-height:36px;padding:8px 12px}
 .icon-button{display:grid;place-items:center;width:36px;height:36px;flex:0 0 36px;border:1px solid #2b405c;border-radius:10px;background:#172740;color:#aabbd0;font-size:20px;line-height:1}
 .icon-button:hover{border-color:#4c75a3;background:#203654;color:#fff;transform:rotate(3deg)}
-.tag,.priority,.source-status,.goal-coach-confidence,.event-confidence,.programming-status{border-radius:999px}
+.tag,.priority,.source-status{border-radius:999px}
 
 /* One control system for every form and selector */
 :where(.form-grid,.goal-form-grid,.whoop-config-form) label,.structured-field,.session-notes,.checkin-label{color:#91a2b7;font-size:11px;font-weight:560;line-height:1.35}
@@ -91,8 +91,8 @@ input[type="range"]{min-height:28px}
 ::selection{background:rgba(40,120,255,.34);color:#fff}
 .settings-grid,.profile-grid,.grid,.recap-main-grid,.goals-grid{gap:18px}
 .settings-section-head{margin-top:6px}
-.methodology-details summary,.body-history summary,.whoop-manual-import summary,.goal-event-details summary,.goal-coach-method-details summary,.goal-programming-details summary{border-radius:8px;transition:background-color .15s ease,color .15s ease}
-.methodology-details summary:hover,.body-history summary:hover,.whoop-manual-import summary:hover,.goal-event-details summary:hover,.goal-coach-method-details summary:hover,.goal-programming-details summary:hover{background:rgba(67,120,184,.09);color:#b8d6fa}
+.methodology-details summary,.body-history summary,.whoop-manual-import summary{border-radius:8px;transition:background-color .15s ease,color .15s ease}
+.methodology-details summary:hover,.body-history summary:hover,.whoop-manual-import summary:hover{background:rgba(67,120,184,.09);color:#b8d6fa}
 #toast{z-index:140;pointer-events:none;border:1px solid rgba(255,255,255,.2);border-radius:11px;box-shadow:0 16px 40px rgba(0,0,0,.3)}
 
 html[data-theme="light"]{

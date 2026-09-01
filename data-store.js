@@ -380,6 +380,15 @@
       if(!isObject(plan.methodology)||typeof plan.methodology.summary!=='string'||!plan.methodology.summary.trim()||!Array.isArray(plan.methodology.assumptions)||!Array.isArray(plan.methodology.evidence))invalid('INVALID_COACH_PLANS','Il metodo del piano Coach non è valido.');
       if(!isObject(plan.adaptationPolicy)||!Number.isFinite(Number(plan.adaptationPolicy.maxVolumeReductionPct))||typeof plan.adaptationPolicy.intensityDowngradeAllowed!=='boolean'||!Array.isArray(plan.adaptationPolicy.structuralReviewTriggers))invalid('INVALID_COACH_PLANS','La politica adattiva del piano Coach non è valida.');
       if(!Array.isArray(plan.sessionIds)||plan.sessionIds.length>500||plan.sessionIds.some(id=>typeof id!=='string'||!id.trim()))invalid('INVALID_COACH_PLANS','I riferimenti alle sedute del piano Coach non sono validi.');
+      if(owns(plan,'reviews')){
+        if(!Array.isArray(plan.reviews)||plan.reviews.length>100)invalid('INVALID_COACH_PLANS','Lo storico delle conferme Coach non è valido.');
+        const reviewIds=new Set();plan.reviews.forEach(review=>{
+          if(!isObject(review)||review.version!==1||typeof review.id!=='string'||!review.id.trim()||review.id.length>200||review.planId!==plan.id||review.goalId!==plan.goalId||Number(review.revision)!==Number(plan.revision)||review.decision!=='confirmed'||review.source!=='codex'||typeof review.author!=='string'||!review.author.trim()||!isTimestamp(review.reviewedAt)||!isTimestamp(review.dossierExportedAt)||!isDateKey(review.reviewedThrough)||typeof review.summary!=='string'||!review.summary.trim()||review.summary.length>3000)invalid('INVALID_COACH_PLANS','Una conferma di revisione Coach non è valida.');
+          if(new Date(review.reviewedAt)<new Date(review.dossierExportedAt))invalid('INVALID_COACH_PLANS','Una conferma Coach precede il dossier revisionato.');
+          ['findings','nextReviewTriggers'].forEach(field=>{if(!Array.isArray(review[field])||review[field].length>30||review[field].some(item=>typeof item!=='string'||!item.trim()||item.length>1000))invalid('INVALID_COACH_PLANS',`Il campo ${field} di una conferma Coach non è valido.`);});
+          if(reviewIds.has(review.id))invalid('INVALID_COACH_PLANS','Lo stesso esito Coach è presente più volte.');reviewIds.add(review.id);
+        });
+      }
     });
     const activeGoals=new Set();value.filter(plan=>plan.status==='active').forEach(plan=>{if(activeGoals.has(plan.goalId))invalid('INVALID_COACH_PLANS','Esistono più revisioni attive per lo stesso obiettivo.');activeGoals.add(plan.goalId);});return value;
   }
@@ -1070,6 +1079,14 @@
       const detail={type:'coach-plan-imported',planId:state.planId||null,revision:Number(state.revision)||null,added:Number(state.added)||0,replaced:Number(state.replaced)||0,importedAt:now().toISOString()};dispatch(detail);return detail;
     }
 
+    function commitCoachReview(state){
+      if(!isObject(state)||!Array.isArray(state.coachPlans))throw new DataStoreError('INVALID_COACH_REVIEW','L’esito Coach da salvare non è valido.');
+      const nextPlans=clone(state.coachPlans);validate('coachPlans',nextPlans);const touched=new Map();
+      try{remember(touched,datasets.coachPlans.key);write('coachPlans',nextPlans);}
+      catch(error){const rollback=rollbackTouched(touched);if(!rollback.complete){const failure=new DataStoreError('ROLLBACK_INCOMPLETE',`L’esito Coach non è stato salvato e la chiave ${datasets.coachPlans.key} deve essere verificata.`);failure.failedKeys=rollback.failedKeys;throw failure;}throw new DataStoreError('COACH_REVIEW_WRITE_FAILED',`Registrazione annullata senza modificare i dati: ${error.message||'errore di scrittura'}`);}
+      const detail={type:'coach-review-imported',planId:state.planId||null,revision:Number(state.revision)||null,reviewId:state.reviewId||null,reviewedAt:state.reviewedAt||now().toISOString()};dispatch(detail);return detail;
+    }
+
     function downloadBackup() {
       if (typeof document === 'undefined' || typeof URL === 'undefined' || typeof Blob === 'undefined') throw new DataStoreError('DOWNLOAD_UNAVAILABLE', 'Il download non è disponibile in questo ambiente.');
       const snapshot = createSnapshot();
@@ -1080,7 +1097,7 @@
       return snapshot;
     }
 
-    return { bootstrap, health:()=>clone(health), getDataset:read, setDataset:write, createSnapshot, createCloudSnapshot, inspectBackup, restoreBackup, restoreCloudSnapshot, commitImportBatch, removeImportBatch, commitWhoopImportBatch, commitWhoopApiSync, removeWhoopImportBatch, saveReconciliationDecision, saveReconciliationDecisions, removeReconciliationDecision, commitCoachPlan, downloadBackup };
+    return { bootstrap, health:()=>clone(health), getDataset:read, setDataset:write, createSnapshot, createCloudSnapshot, inspectBackup, restoreBackup, restoreCloudSnapshot, commitImportBatch, removeImportBatch, commitWhoopImportBatch, commitWhoopApiSync, removeWhoopImportBatch, saveReconciliationDecision, saveReconciliationDecisions, removeReconciliationDecision, commitCoachPlan, commitCoachReview, downloadBackup };
   }
 
   return {
