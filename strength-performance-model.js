@@ -59,6 +59,7 @@
     const hasLoad=block?.loadKg!==''&&block?.loadKg!==null&&block?.loadKg!==undefined,load=Number(block?.loadKg),reps=Number(block?.reps),sets=Number(block?.sets),rpe=plannedRpe(block);return{...(hasLoad&&Number.isFinite(load)&&load>=0?{plannedLoadKg:roundHalf(load)}:{}),...(Number.isInteger(reps)&&reps>0?{plannedReps:reps}:{}),...(Number.isInteger(sets)&&sets>0?{plannedSets:sets}:{}),...(rpe!==null?{plannedRpe:rpe}:{})};
   }
   function plannedSetDefaults(lift={}){return{...(lift.plannedLoadKg!==undefined?{loadKg:lift.plannedLoadKg}:{}),...(lift.plannedReps?{reps:lift.plannedReps}:{}),...(lift.plannedRpe!==undefined?{rpe:lift.plannedRpe}:{})};}
+  function copySetValues(entry={}){return{loadKg:entry.loadKg??'',reps:entry.reps??'',rpe:entry.rpe??''};}
   function editableLifts(session){
     const result=[],seen=new Set();
     const add=(exercise,block=null)=>{const key=liftKey(exercise);if(!key||seen.has(key))return;seen.add(key);result.push({key,label:LIFTS[key].label,exercise:String(exercise).trim(),externalLoad:LIFTS[key].externalLoad,planned:Boolean(block),...plannedValues(block)});};
@@ -103,5 +104,5 @@
     const result=Object.fromEntries(Object.keys(LIFTS).map(key=>[key,[]]));[...perSession.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.sessionId.localeCompare(b.sessionId)).forEach(point=>result[point.key].push(point));Object.keys(result).forEach(key=>{result[key]=result[key].slice(-Math.max(2,Number(limit)||8));});return result;
   }
 
-  return {LIFTS,FORMULAS,liftKey,rirFromRpe,effectiveReps,estimateE1rm,normalizedEntry,plannedRpe,plannedValues,plannedSetDefaults,editableLifts,groupedEntries,bestSet,sessionVolume,deriveMaxes,historyByLift};
+  return {LIFTS,FORMULAS,liftKey,rirFromRpe,effectiveReps,estimateE1rm,normalizedEntry,plannedRpe,plannedValues,plannedSetDefaults,copySetValues,editableLifts,groupedEntries,bestSet,sessionVolume,deriveMaxes,historyByLift};
 });
