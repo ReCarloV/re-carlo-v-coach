@@ -50,9 +50,17 @@
     const zones=score?.zone_durations||{};const durationMillis=number(durationMin)===null?null:Number(durationMin)*60000;
     return [1,2,3,4,5].map(zone=>{const value=number(zones[`zone_${['zero','one','two','three','four','five'][zone]}_milli`]);return value===null||!durationMillis?null:rounded(value/durationMillis*100,1);});
   }
+  function zoneDurations(score){
+    const zones=score?.zone_durations||{},names=['zero','one','two','three','four','five'];
+    return names.map(name=>millisToMinutes(zones[`zone_${name}_milli`]));
+  }
+  function averagePace(durationMin,distanceKm){
+    const duration=number(durationMin),distance=number(distanceKm);return duration&&distance&&distance>0?Math.round(duration*60/distance):null;
+  }
   function normalizeWorkout(record){
     const timezone=String(record?.timezone_offset||'+00:00');const start=localTimestamp(record?.start,timezone);const end=localTimestamp(record?.end,timezone);const durationMin=Number.isFinite(Date.parse(record?.end)-Date.parse(record?.start))?rounded((Date.parse(record.end)-Date.parse(record.start))/60000):null;const score=record?.score||{};const name=String(record?.sport_name||'Allenamento WHOOP');const externalId=start;
-    return {id:`whoop:workout:${idPart(externalId)}`,externalId,apiId:String(record?.id||''),cycleStart:start,cycleEnd:end,date:dateFrom(start),timezone,start,end,durationMin,name,category:importModel.workoutCategory(name),strain:number(score.strain),calories:score.kilojoule===null||score.kilojoule===undefined?null:rounded(Number(score.kilojoule)/4.184),maxHr:number(score.max_heart_rate),averageHr:number(score.average_heart_rate),hrZonePct:zonePercentages(score,durationMin),gpsEnabled:Number(score.distance_meter)>0,distanceKm:score.distance_meter===null||score.distance_meter===undefined?null:rounded(Number(score.distance_meter)/1000,3),altitudeGainM:number(score.altitude_gain_meter),apiUpdatedAt:record?.updated_at||null};
+    const kilojoule=number(score.kilojoule),distanceKm=score.distance_meter===null||score.distance_meter===undefined?null:rounded(Number(score.distance_meter)/1000,3);
+    return {id:`whoop:workout:${idPart(externalId)}`,externalId,apiId:String(record?.id||''),cycleStart:start,cycleEnd:end,date:dateFrom(start),timezone,start,end,durationMin,name,sport:name,sportId:number(record?.sport_id),category:importModel.workoutCategory(name),scoreState:record?.score_state?String(record.score_state):null,strain:number(score.strain),kilojoule,calories:kilojoule===null?null:rounded(kilojoule/4.184),percentRecorded:number(score.percent_recorded),maxHr:number(score.max_heart_rate),averageHr:number(score.average_heart_rate),hrZonePct:zonePercentages(score,durationMin),hrZoneDurationsMin:zoneDurations(score),gpsEnabled:Number(score.distance_meter)>0,distanceKm,averagePaceSecPerKm:averagePace(durationMin,distanceKm),altitudeGainM:number(score.altitude_gain_meter),altitudeChangeM:number(score.altitude_change_meter),apiUpdatedAt:record?.updated_at||null};
   }
   function normalizeWhoopApiPayload(payload){
     const sleeps=(Array.isArray(payload?.sleeps)?payload.sleeps:[]).map(normalizeSleep);const mainSleepByCycle=new Map(sleeps.filter(item=>!item.nap&&item.cycleId!==null).map(item=>[String(item.cycleId),item]));const recoveryByCycle=new Map((Array.isArray(payload?.recoveries)?payload.recoveries:[]).map(item=>[String(item.cycle_id),item]));

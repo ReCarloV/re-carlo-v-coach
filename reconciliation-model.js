@@ -82,11 +82,20 @@
     if(!candidate||!['confirmed','dismissed'].includes(status))throw new TypeError('Decisione di riconciliazione non valida.');const timestamp=now instanceof Date?now.toISOString():new Date(now).toISOString();
     return{id:`reconciliation-${hash(candidate.key)}`,key:candidate.key,status,date:candidate.date,stravaActivityId:candidate.stravaActivityId||null,whoopWorkoutId:candidate.whoopWorkoutId||null,sessionId:candidate.sessionId||null,replacesDecisionId:candidate.replacesDecisionId||null,confidence:candidate.confidence,reasons:[...candidate.reasons],createdAt:timestamp,updatedAt:timestamp};
   }
+  const metric=value=>value!==null&&value!==''&&Number.isFinite(Number(value))?Number(value):null;
   const observedDistanceKm=candidate=>{
-    const meters=Number(candidate?.strava?.distanceM);return Number.isFinite(meters)&&meters>0?+(meters/1000).toFixed(2):null;
+    const direct=metric(candidate?.strava?.distanceKm),meters=metric(candidate?.strava?.distanceM),whoop=metric(candidate?.whoop?.distanceKm),distance=direct&&direct>0?direct:meters&&meters>0?meters/1000:whoop&&whoop>0?whoop:null;return distance===null?null:+distance.toFixed(2);
   };
   const observedDurationMin=candidate=>{
     const minutes=durationWhoop(candidate?.whoop)||durationStrava(candidate?.strava);return minutes===null?null:Math.max(1,Math.round(minutes));
+  };
+  const pace=(seconds,distanceKm)=>seconds&&distanceKm?Math.round(seconds/distanceKm):null;
+  const observationsFor=(candidate,previous={})=>{
+    const strava=candidate?.strava,whoop=candidate?.whoop,stravaDistance=metric(strava?.distanceKm)??(metric(strava?.distanceM)!==null?metric(strava.distanceM)/1000:null),whoopDistance=metric(whoop?.distanceKm),whoopDuration=durationWhoop(whoop);
+    return{
+      strava:strava?{durationMin:durationStrava(strava),distanceKm:stravaDistance,averagePaceSecPerKm:pace(metric(strava.movingSec),stravaDistance),averageHr:metric(strava.averageHr),maxHr:metric(strava.maxHr),elevationGainM:metric(strava.elevationGainM??strava.elevationM),calories:metric(strava.calories),averageCadence:metric(strava.averageCadence),averageWatts:metric(strava.averageWatts),weightedWatts:metric(strava.weightedWatts),relativeEffort:metric(strava.relativeEffort)}:previous?.strava||null,
+      whoop:whoop?{sport:whoop.sport||whoop.name||null,sportId:metric(whoop.sportId),scoreState:whoop.scoreState||null,durationMin:whoopDuration,distanceKm:whoopDistance,averagePaceSecPerKm:metric(whoop.averagePaceSecPerKm)??pace(whoopDuration*60,whoopDistance),averageHr:metric(whoop.averageHr),maxHr:metric(whoop.maxHr),strain:metric(whoop.strain),calories:metric(whoop.calories),kilojoule:metric(whoop.kilojoule),percentRecorded:metric(whoop.percentRecorded),altitudeGainM:metric(whoop.altitudeGainM),altitudeChangeM:metric(whoop.altitudeChangeM),hrZonePct:Array.isArray(whoop.hrZonePct)?[...whoop.hrZonePct]:null,hrZoneDurationsMin:Array.isArray(whoop.hrZoneDurationsMin)?[...whoop.hrZoneDurationsMin]:null}:previous?.whoop||null
+    };
   };
   function needsPostSessionCompletion(outcome){
     return outcome?.completionSource==='device-match'&&['completed','partial'].includes(outcome.status);
@@ -100,8 +109,8 @@
     const updatedSessionIds=[];const next=(Array.isArray(sessions)?sessions:[]).map(session=>{
       const match=bySession.get(session?.id);if(!match)return session;
       const {candidate,duration,distance}=match,existing=session?.outcome||null,manualOutcome=['completed','partial'].includes(existing?.status)&&!needsPostSessionCompletion(existing),previousEvidence=existing?.deviceEvidence&&typeof existing.deviceEvidence==='object'?existing.deviceEvidence:null,decisionId=`reconciliation-${hash(candidate.key)}`;
-      const actualDistance=['running','swimming'].includes(session.category)?distance:null,usedFields=[...new Set([...(Array.isArray(previousEvidence?.usedFields)?previousEvidence.usedFields:[]),...(duration!==null?['actualDurationMin']:[]),...(actualDistance!==null?['actualDistanceKm']:[])])];
-      const deviceEvidence={reconciliationDecisionId:decisionId,stravaActivityId:candidate.stravaActivityId||previousEvidence?.stravaActivityId||null,whoopWorkoutId:candidate.whoopWorkoutId||previousEvidence?.whoopWorkoutId||null,observedDurationMin:duration,observedDistanceKm:actualDistance??previousEvidence?.observedDistanceKm??null,usedFields,reviewedAt:timestamp};
+      const actualDistance=['running','swimming','cycling'].includes(session.category)?distance:null,usedFields=[...new Set([...(Array.isArray(previousEvidence?.usedFields)?previousEvidence.usedFields:[]),...(duration!==null?['actualDurationMin']:[]),...(actualDistance!==null?['actualDistanceKm']:[])])];
+      const deviceEvidence={reconciliationDecisionId:decisionId,stravaActivityId:candidate.stravaActivityId||previousEvidence?.stravaActivityId||null,whoopWorkoutId:candidate.whoopWorkoutId||previousEvidence?.whoopWorkoutId||null,observedDurationMin:duration,observedDistanceKm:actualDistance??previousEvidence?.observedDistanceKm??null,observations:observationsFor(candidate,previousEvidence?.observations),usedFields,reviewedAt:timestamp};
       let outcome;
       if(manualOutcome){
         const rpeKnown=existing.rpe!==null&&existing.rpe!==undefined&&existing.rpe!==''&&Number.isFinite(Number(existing.rpe)),sessionLoad=duration!==null&&rpeKnown?Math.round(duration*Number(existing.rpe)):existing.sessionLoad;

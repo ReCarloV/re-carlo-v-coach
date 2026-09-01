@@ -7,9 +7,12 @@
   const round=(value,digits=1)=>value===null?null:+value.toFixed(digits);
   const stravaDuration=activity=>{const seconds=number(activity?.movingSec)??number(activity?.elapsedSec);return seconds&&seconds>0?seconds/60:null;};
   const whoopDuration=workout=>{const minutes=number(workout?.durationMin);return minutes&&minutes>0?minutes:null;};
-  const distanceKm=activity=>{const meters=number(activity?.distanceM);return meters&&meters>0?meters/1000:null;};
+  const stravaDistance=activity=>{const direct=number(activity?.distanceKm);if(direct&&direct>0)return direct;const meters=number(activity?.distanceM);return meters&&meters>0?meters/1000:null;};
+  const whoopDistance=workout=>{const distance=number(workout?.distanceKm);return distance&&distance>0?distance:null;};
   const planDistance=session=>{const value=number(session?.details?.distanceKm);return value&&value>0?value:null;};
   const deviceValue=(value,source)=>value===null?null:{value,source};
+  const cloneArray=value=>Array.isArray(value)?value.map(item=>number(item)):null;
+  const pace=(seconds,distance)=>seconds&&distance?seconds/distance:null;
 
   function chooseDuration(session,strava,whoop){
     const stravaMin=stravaDuration(strava),whoopMin=whoopDuration(whoop);const selected=deviceValue(whoopMin,'whoop')||deviceValue(stravaMin,'strava');
@@ -24,14 +27,16 @@
   function buildSessionEvidence(session,input={}){
     if(!session?.id)return null;const decisions=Array.isArray(input.decisions)?input.decisions:[];const decision=decisions.find(item=>item.status==='confirmed'&&item.sessionId===session.id);if(!decision)return null;
     const strava=(input.stravaActivities||[]).find(item=>item.id===decision.stravaActivityId)||null;const whoop=(input.whoopWorkouts||[]).find(item=>item.id===decision.whoopWorkoutId)||null;if(!strava&&!whoop)return null;
-    const duration=chooseDuration(session,strava,whoop);const observedDistance=['running','swimming','cycling'].includes(session.category)?distanceKm(strava):null;const plannedDuration=number(session.durationMin);const swimDistanceM=number(session.details?.swimDistanceM);const plannedDistance=session.category==='swimming'&&swimDistanceM&&swimDistanceM>0?swimDistanceM/1000:planDistance(session);const selectedDuration=duration.selected?.value??null;const movingSeconds=number(strava?.movingSec);const paceSeconds=session.category==='running'&&observedDistance&&movingSeconds?movingSeconds/observedDistance:null;const sourceCount=Number(Boolean(strava))+Number(Boolean(whoop));const warnings=[];
+    const duration=chooseDuration(session,strava,whoop),supportsDistance=['running','swimming','cycling'].includes(session.category),stravaDistanceKm=supportsDistance?stravaDistance(strava):null,whoopDistanceKm=supportsDistance?whoopDistance(whoop):null,distance=deviceValue(stravaDistanceKm,'strava')||deviceValue(whoopDistanceKm,'whoop'),observedDistance=distance?.value??null;const plannedDuration=number(session.durationMin);const swimDistanceM=number(session.details?.swimDistanceM);const plannedDistance=session.category==='swimming'&&swimDistanceM&&swimDistanceM>0?swimDistanceM/1000:planDistance(session);const selectedDuration=duration.selected?.value??null;const stravaPace=session.category==='running'?pace(number(strava?.movingSec),stravaDistanceKm):null,whoopPace=session.category==='running'?(number(whoop?.averagePaceSecPerKm)??pace(whoopDuration(whoop)*60,whoopDistanceKm)):null,selectedPace=deviceValue(stravaPace,'strava')||deviceValue(whoopPace,'whoop');const sourceCount=Number(Boolean(strava))+Number(Boolean(whoop));const warnings=[];
     if(duration.conflict)warnings.push(`Le durate Strava e WHOOP differiscono di ${Math.round(duration.differenceMin)} minuti: controlla il valore prima di salvare.`);
     return{
       sessionId:session.id,decisionId:decision.id,date:session.date,stravaActivityId:strava?.id||null,whoopWorkoutId:whoop?.id||null,sourceCount,matchConfidence:number(decision.confidence),quality:quality(decision,sourceCount,duration.conflict),warnings,
       planned:{durationMin:plannedDuration,distanceKm:plannedDistance},
       observed:{
-        durationMin:round(selectedDuration),durationSource:duration.selected?.source||null,stravaDurationMin:duration.stravaMin,whoopDurationMin:duration.whoopMin,distanceKm:round(observedDistance,2),averagePaceSecPerKm:round(paceSeconds,0),
-        stravaAverageHr:number(strava?.averageHr),stravaMaxHr:number(strava?.maxHr),whoopAverageHr:number(whoop?.averageHr),whoopMaxHr:number(whoop?.maxHr),averageWatts:number(strava?.averageWatts),weightedWatts:number(strava?.weightedWatts),relativeEffort:number(strava?.relativeEffort),whoopStrain:number(whoop?.strain)
+        durationMin:round(selectedDuration),durationSource:duration.selected?.source||null,stravaDurationMin:duration.stravaMin,whoopDurationMin:duration.whoopMin,
+        distanceKm:round(observedDistance,2),distanceSource:distance?.source||null,stravaDistanceKm:round(stravaDistanceKm,3),whoopDistanceKm:round(whoopDistanceKm,3),averagePaceSecPerKm:round(selectedPace?.value??null,0),averagePaceSource:selectedPace?.source||null,stravaAveragePaceSecPerKm:round(stravaPace,0),whoopAveragePaceSecPerKm:round(whoopPace,0),
+        stravaAverageHr:number(strava?.averageHr),stravaMaxHr:number(strava?.maxHr),stravaElevationGainM:number(strava?.elevationGainM??strava?.elevationM),stravaCalories:number(strava?.calories),stravaAverageCadence:number(strava?.averageCadence),averageWatts:number(strava?.averageWatts),weightedWatts:number(strava?.weightedWatts),relativeEffort:number(strava?.relativeEffort),
+        whoopAverageHr:number(whoop?.averageHr),whoopMaxHr:number(whoop?.maxHr),whoopStrain:number(whoop?.strain),whoopCalories:number(whoop?.calories),whoopKilojoule:number(whoop?.kilojoule),whoopPercentRecorded:number(whoop?.percentRecorded),whoopAltitudeGainM:number(whoop?.altitudeGainM),whoopAltitudeChangeM:number(whoop?.altitudeChangeM),whoopHrZonePct:cloneArray(whoop?.hrZonePct),whoopHrZoneDurationsMin:cloneArray(whoop?.hrZoneDurationsMin),whoopScoreState:whoop?.scoreState||null,whoopSportId:number(whoop?.sportId),whoopSport:whoop?.sport||whoop?.name||null
       },
       comparison:{durationDeltaMin:selectedDuration===null||plannedDuration===null?null:round(selectedDuration-plannedDuration),durationDeltaPct:selectedDuration===null||!plannedDuration?null:round((selectedDuration-plannedDuration)/plannedDuration*100,0),distanceDeltaKm:observedDistance===null||plannedDistance===null?null:round(observedDistance-plannedDistance,2),durationConflict:duration.conflict,deviceDurationDifferenceMin:duration.differenceMin},
       prefill:{actualDurationMin:selectedDuration===null?null:Math.max(1,Math.round(selectedDuration)),actualDistanceKm:observedDistance===null?null:round(observedDistance,2)}
@@ -46,7 +51,11 @@
     if(!evidence?.decisionId)throw new TypeError('Evidenza dispositivo non valida.');const actualDuration=number(values.actualDurationMin),actualDistance=number(values.actualDistanceKm);const usedFields=[];
     if(actualDuration!==null&&evidence.prefill.actualDurationMin!==null&&actualDuration===evidence.prefill.actualDurationMin)usedFields.push('actualDurationMin');
     if(actualDistance!==null&&evidence.prefill.actualDistanceKm!==null&&Math.abs(actualDistance-evidence.prefill.actualDistanceKm)<.005)usedFields.push('actualDistanceKm');
-    return{reconciliationDecisionId:evidence.decisionId,stravaActivityId:evidence.stravaActivityId,whoopWorkoutId:evidence.whoopWorkoutId,observedDurationMin:evidence.observed.durationMin,observedDistanceKm:evidence.observed.distanceKm,usedFields,reviewedAt:(now instanceof Date?now:new Date(now)).toISOString()};
+    const observed=evidence.observed||{},observations={
+      strava:evidence.stravaActivityId?{durationMin:observed.stravaDurationMin,distanceKm:observed.stravaDistanceKm,averagePaceSecPerKm:observed.stravaAveragePaceSecPerKm,averageHr:observed.stravaAverageHr,maxHr:observed.stravaMaxHr,elevationGainM:observed.stravaElevationGainM,calories:observed.stravaCalories,averageCadence:observed.stravaAverageCadence,averageWatts:observed.averageWatts,weightedWatts:observed.weightedWatts,relativeEffort:observed.relativeEffort}:null,
+      whoop:evidence.whoopWorkoutId?{sport:observed.whoopSport,sportId:observed.whoopSportId,scoreState:observed.whoopScoreState,durationMin:observed.whoopDurationMin,distanceKm:observed.whoopDistanceKm,averagePaceSecPerKm:observed.whoopAveragePaceSecPerKm,averageHr:observed.whoopAverageHr,maxHr:observed.whoopMaxHr,strain:observed.whoopStrain,calories:observed.whoopCalories,kilojoule:observed.whoopKilojoule,percentRecorded:observed.whoopPercentRecorded,altitudeGainM:observed.whoopAltitudeGainM,altitudeChangeM:observed.whoopAltitudeChangeM,hrZonePct:observed.whoopHrZonePct,hrZoneDurationsMin:observed.whoopHrZoneDurationsMin}:null
+    };
+    return{reconciliationDecisionId:evidence.decisionId,stravaActivityId:evidence.stravaActivityId,whoopWorkoutId:evidence.whoopWorkoutId,observedDurationMin:observed.durationMin,observedDistanceKm:observed.distanceKm,observations,usedFields,reviewedAt:(now instanceof Date?now:new Date(now)).toISOString()};
   }
 
   return{buildSessionEvidence,buildEvidenceIndex,createDeviceEvidenceSnapshot,chooseDuration};

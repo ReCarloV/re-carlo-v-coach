@@ -38,10 +38,10 @@
   function rounded(value,digits=1){return value===null?null:Number(value.toFixed(digits));}
   function paceFrom(durationMin,distanceKm){const duration=number(durationMin),distance=number(distanceKm);return duration&&distance?Math.round(duration*60/distance):null;}
   function activityBrief(activity){
-    const durationMin=number(activity.durationMin)??(number(activity.movingSec)!==null?number(activity.movingSec)/60:null),distanceKm=number(activity.distanceKm)??(number(activity.distanceM)!==null?number(activity.distanceM)/1000:null);
-    return stable({id:activity.id,date:activity.date,localStart:activity.localStart,type:activity.type||activity.category,sport:activity.sport||activity.sportType,name:activity.name,durationMin:rounded(durationMin),distanceKm:rounded(distanceKm,3),averagePaceSecPerKm:paceFrom(durationMin,distanceKm),averageHr:activity.averageHr,maxHr:activity.maxHr,elevationM:activity.elevationM??activity.elevationGainM,calories:activity.calories,source:activity.source?.provider||'strava'});
+    const movingDurationMin=number(activity.movingSec)!==null?number(activity.movingSec)/60:number(activity.durationMin),elapsedDurationMin=number(activity.elapsedSec)!==null?number(activity.elapsedSec)/60:null,distanceKm=number(activity.distanceKm)??(number(activity.distanceM)!==null?number(activity.distanceM)/1000:null);
+    return stable({id:activity.id,date:activity.date,localStart:activity.localStart,type:activity.type||activity.category,sport:activity.sport||activity.sportType,name:activity.name,movingDurationMin:rounded(movingDurationMin),elapsedDurationMin:rounded(elapsedDurationMin),durationMin:rounded(movingDurationMin),distanceKm:rounded(distanceKm,3),averagePaceSecPerKm:paceFrom(movingDurationMin,distanceKm),averageHr:activity.averageHr,maxHr:activity.maxHr,elevationGainM:activity.elevationGainM??activity.elevationM,calories:activity.calories,averageCadence:activity.averageCadence,averageWatts:activity.averageWatts,weightedWatts:activity.weightedWatts,relativeEffort:activity.relativeEffort,perceivedEffort:activity.perceivedEffort,gear:activity.gear,source:activity.source?.provider||'strava'});
   }
-  function whoopWorkoutBrief(item){const durationMin=number(item.durationMin),distanceKm=number(item.distanceKm);return stable({id:item.id,date:item.date,start:item.start,end:item.end,sport:item.sport,durationMin:rounded(durationMin),strain:item.strain,averageHr:item.averageHr,maxHr:item.maxHr,calories:item.calories,distanceKm:rounded(distanceKm,3),averagePaceSecPerKm:paceFrom(durationMin,distanceKm)});}
+  function whoopWorkoutBrief(item){const durationMin=number(item.durationMin),distanceKm=number(item.distanceKm);return stable({id:item.id,date:item.date,start:item.start,end:item.end,timezone:item.timezone,name:item.name,sport:item.sport||item.name,category:item.category,sportId:item.sportId,scoreState:item.scoreState,durationMin:rounded(durationMin),strain:item.strain,averageHr:item.averageHr,maxHr:item.maxHr,kilojoule:item.kilojoule,calories:item.calories,percentRecorded:item.percentRecorded,distanceKm:rounded(distanceKm,3),averagePaceSecPerKm:number(item.averagePaceSecPerKm)??paceFrom(durationMin,distanceKm),altitudeGainM:item.altitudeGainM,altitudeChangeM:item.altitudeChangeM,hrZonePct:item.hrZonePct,hrZoneDurationsMin:item.hrZoneDurationsMin,source:item.source?.provider||'whoop'});}
   function evidenceIndexes(input={}){
     return{
       activities:new Map((input.importedActivities||[]).map(item=>[item.id,item])),
@@ -51,8 +51,8 @@
   }
   function sessionDeviceObservations(session,indexes){
     const snapshot=session.outcome?.deviceEvidence||{},decision=indexes?.decisions?.get(session.id)||{},stravaId=snapshot.stravaActivityId||decision.stravaActivityId||null,whoopId=snapshot.whoopWorkoutId||decision.whoopWorkoutId||null;
-    const strava=stravaId?indexes?.activities?.get(stravaId)||null:null,whoop=whoopId?indexes?.workouts?.get(whoopId)||null:null;if(!strava&&!whoop)return null;
-    return stable({decisionId:snapshot.reconciliationDecisionId||decision.id||null,strava:strava?activityBrief(strava):null,whoop:whoop?whoopWorkoutBrief(whoop):null,note:'Riepiloghi dell’intera seduta; non rappresentano automaticamente i singoli blocchi prescritti.'});
+    const strava=stravaId?indexes?.activities?.get(stravaId)||null:null,whoop=whoopId?indexes?.workouts?.get(whoopId)||null:null,stravaBrief=strava?activityBrief(strava):snapshot.observations?.strava||null,whoopBrief=whoop?whoopWorkoutBrief(whoop):snapshot.observations?.whoop||null;if(!stravaBrief&&!whoopBrief)return null;
+    return stable({decisionId:snapshot.reconciliationDecisionId||decision.id||null,strava:stravaBrief,whoop:whoopBrief,note:'Riepiloghi dell’intera seduta; WHOOP e Strava restano fonti separate e non rappresentano automaticamente i singoli blocchi prescritti.'});
   }
   function sessionBrief(session,indexes){
     return stable({
@@ -63,8 +63,8 @@
       deviceObservations:sessionDeviceObservations(session,indexes)
     });
   }
-  function whoopCycleBrief(item){return stable({id:item.id,date:item.date||item.cycleDate,start:item.cycleStart,end:item.cycleEnd,recoveryScore:item.recoveryScore,dayStrain:item.dayStrain,restingHr:item.restingHr,hrvMs:item.hrvMs,spo2:item.spo2,skinTempC:item.skinTempC});}
-  function whoopSleepBrief(item){return stable({id:item.id,date:item.date||item.sleepDate,start:item.sleepStart,end:item.sleepEnd,sleepPerformance:item.sleepPerformance,sleepConsistency:item.sleepConsistency,sleepEfficiency:item.sleepEfficiency,respiratoryRate:item.respiratoryRate,asleepMinutes:item.asleepMinutes,inBedMinutes:item.inBedMinutes});}
+  function whoopCycleBrief(item){return stable({id:item.id,date:item.date||item.cycleDate,start:item.cycleStart,end:item.cycleEnd,recoveryScore:item.recoveryScore,dayStrain:item.dayStrain,restingHr:item.restingHr,hrvMs:item.hrvMs,spo2Pct:item.spo2Pct,skinTempC:item.skinTempC,energyKcal:item.energyKcal,averageHr:item.averageHr,maxHr:item.maxHr});}
+  function whoopSleepBrief(item){return stable({id:item.id,date:item.date||item.sleepDate,start:item.sleepStart,end:item.wakeStart||item.sleepEnd,sleepPerformancePct:item.sleepPerformancePct,sleepConsistencyPct:item.sleepConsistencyPct,sleepEfficiencyPct:item.sleepEfficiencyPct,respiratoryRate:item.respiratoryRate,sleepDurationMin:item.sleepDurationMin,timeInBedMin:item.timeInBedMin,lightSleepMin:item.lightSleepMin,deepSleepMin:item.deepSleepMin,remSleepMin:item.remSleepMin,awakeMin:item.awakeMin,sleepNeedMin:item.sleepNeedMin,sleepDebtMin:item.sleepDebtMin,nap:item.nap});}
   function profileBrief(profile,hrZones){
     const fields=['firstName','lastName','nickname','birthDate','heightCm','weightKg','level','sports','equipment','maxHr','restingHr','ftp','hrZoneMethod','ftpZoneMethod','strengthFormula','strengthMaxes','personalBests','performanceTests','heartRateSources','bodyMeasurementSources'];
     return stable({...Object.fromEntries(fields.filter(field=>Object.prototype.hasOwnProperty.call(profile||{},field)).map(field=>[field,clone(profile[field])])),hrZones:Array.isArray(hrZones)?clone(hrZones):null});
