@@ -28,6 +28,10 @@ body,.sidebar,main>header,.panel,.metrics article,.day,.nav,.primary,.ghost,inpu
   box-shadow:0 8px 22px rgba(0,53,121,.2);
 }
 .brand-mark img,.goal-empty-icon img,.cloud-sync-symbol img,#avatar-placeholder img{display:block;width:100%;height:100%;object-fit:cover}
+html[data-theme="dark"] .brand-mark,
+html[data-theme="dark"] .goal-empty-icon,
+html[data-theme="dark"] .cloud-sync-symbol span,
+html[data-theme="dark"] #avatar-placeholder{background:#07101f}
 .brand strong{font-size:13px;letter-spacing:.14em}
 .brand small{letter-spacing:.04em}
 .sidebar nav{margin-top:34px}

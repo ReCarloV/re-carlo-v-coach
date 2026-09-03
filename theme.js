@@ -28,6 +28,15 @@
     if(apple)apple.content=active==='light'?'default':'black-translucent';
   }
 
+  function updateBrandAssets(active){
+    const icon=active==='dark'?'icons/icon-dark-192.png':'icons/icon-192.png';
+    document.querySelectorAll('[data-theme-logo]').forEach(image=>{
+      if(image.getAttribute('src')!==icon)image.setAttribute('src',icon);
+    });
+    const favicon=document.querySelector('link[data-theme-icon]');
+    if(favicon&&favicon.getAttribute('href')!==icon)favicon.setAttribute('href',icon);
+  }
+
   function syncControls(){
     document.querySelectorAll('[data-theme-select]').forEach(select=>{select.value=choice;});
     document.querySelectorAll('[data-theme-choice]').forEach(button=>{
@@ -43,6 +52,7 @@
     document.documentElement.dataset.themeChoice=choice;
     document.documentElement.dataset.theme=active;
     updateBrowserChrome(active);
+    updateBrandAssets(active);
     syncControls();
     if(persist){
       try{
@@ -56,6 +66,7 @@
   }
 
   function bind(){
+    updateBrandAssets(resolved(choice));
     syncControls();
     document.querySelectorAll('[data-theme-select]').forEach(select=>select.addEventListener('change',()=>apply(select.value,{persist:true,notify:true})));
     document.querySelectorAll('[data-theme-choice]').forEach(button=>button.addEventListener('click',()=>apply(button.dataset.themeChoice,{persist:true,notify:true})));
